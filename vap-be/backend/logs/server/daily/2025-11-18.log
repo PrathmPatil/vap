@@ -1,0 +1,269 @@
+info: ✅ Connected to stock_market database. {"timestamp":"2025-11-18T07:53:42.308Z"}
+info: ✅ stock_market database synced. {"timestamp":"2025-11-18T07:53:42.424Z"}
+info: ✅ Connected to bhavcopy database. {"timestamp":"2025-11-18T07:53:42.445Z"}
+info: ✅ bhavcopy database synced. {"timestamp":"2025-11-18T07:53:42.555Z"}
+info: ✅ Connected to screener_data database. {"timestamp":"2025-11-18T07:53:42.572Z"}
+info: ✅ screener_data database synced. {"timestamp":"2025-11-18T07:53:42.686Z"}
+info: ✅ Connected to third_db database. {"timestamp":"2025-11-18T07:53:42.716Z"}
+info: ✅ third_db database synced. {"timestamp":"2025-11-18T07:53:42.744Z"}
+info: ✅ Connected to ipo_data_fastapi database. {"timestamp":"2025-11-18T07:53:42.771Z"}
+info: ✅ ipo_data_fastapi database synced. {"timestamp":"2025-11-18T07:53:42.818Z"}
+info: 🚀 Server running on http://localhost:8000/vap/ {"timestamp":"2025-11-18T07:53:42.830Z"}
+error: 
+    status - 500 
+    message - Error: 
+    at Query.run (E:\Desktop_copy\Projects\vap\vap-be\backend\node_modules\sequelize\src\dialects\mysql\query.js:46:25)
+    at E:\Desktop_copy\Projects\vap\vap-be\backend\node_modules\sequelize\src\sequelize.js:650:28
+    at processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at MySQLQueryInterface.select (E:\Desktop_copy\Projects\vap\vap-be\backend\node_modules\sequelize\src\dialects\abstract\query-interface.js:1001:12)
+    at Function.findAll (E:\Desktop_copy\Projects\vap\vap-be\backend\node_modules\sequelize\src\model.js:1824:21)
+    at async Promise.all (index 1)
+    at Function.findAndCountAll (E:\Desktop_copy\Projects\vap\vap-be\backend\node_modules\sequelize\src\model.js:2183:27) 
+    url - /vap/company-data/listed-companies 
+    method - GET 
+    IP - ::1
+   {"timestamp":"2025-11-18T07:54:22.204Z"}
+error: 
+    status - 500 
+    message - Error: 
+    at Query.run (E:\Desktop_copy\Projects\vap\vap-be\backend\node_modules\sequelize\src\dialects\mysql\query.js:46:25)
+    at E:\Desktop_copy\Projects\vap\vap-be\backend\node_modules\sequelize\src\sequelize.js:650:28
+    at processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at MySQLQueryInterface.select (E:\Desktop_copy\Projects\vap\vap-be\backend\node_modules\sequelize\src\dialects\abstract\query-interface.js:1001:12)
+    at Function.findAll (E:\Desktop_copy\Projects\vap\vap-be\backend\node_modules\sequelize\src\model.js:1824:21)
+    at async Promise.all (index 1)
+    at Function.findAndCountAll (E:\Desktop_copy\Projects\vap\vap-be\backend\node_modules\sequelize\src\model.js:2183:27) 
+    url - /vap/company-data/listed-companies?page=1&limit=10 
+    method - GET 
+    IP - ::1
+   {"timestamp":"2025-11-18T07:54:22.262Z"}
+info: ✅ Connected to stock_market database. {"timestamp":"2025-11-18T07:56:23.658Z"}
+info: ✅ stock_market database synced. {"timestamp":"2025-11-18T07:56:23.756Z"}
+info: ✅ Connected to bhavcopy database. {"timestamp":"2025-11-18T07:56:23.771Z"}
+info: ✅ bhavcopy database synced. {"timestamp":"2025-11-18T07:56:23.850Z"}
+info: ✅ Connected to screener_data database. {"timestamp":"2025-11-18T07:56:23.868Z"}
+info: ✅ screener_data database synced. {"timestamp":"2025-11-18T07:56:23.936Z"}
+info: ✅ Connected to third_db database. {"timestamp":"2025-11-18T07:56:23.953Z"}
+info: ✅ third_db database synced. {"timestamp":"2025-11-18T07:56:23.970Z"}
+info: ✅ Connected to ipo_data_fastapi database. {"timestamp":"2025-11-18T07:56:23.992Z"}
+info: ✅ ipo_data_fastapi database synced. {"timestamp":"2025-11-18T07:56:24.017Z"}
+info: 🚀 Server running on http://localhost:8000/vap/ {"timestamp":"2025-11-18T07:56:24.028Z"}
+info: ✅ Connected to stock_market database. {"timestamp":"2025-11-18T07:56:43.677Z"}
+info: ✅ stock_market database synced. {"timestamp":"2025-11-18T07:56:43.717Z"}
+info: ✅ Connected to bhavcopy database. {"timestamp":"2025-11-18T07:56:43.737Z"}
+info: ✅ bhavcopy database synced. {"timestamp":"2025-11-18T07:56:43.820Z"}
+info: ✅ Connected to screener_data database. {"timestamp":"2025-11-18T07:56:43.840Z"}
+info: ✅ screener_data database synced. {"timestamp":"2025-11-18T07:56:43.895Z"}
+info: ✅ Connected to third_db database. {"timestamp":"2025-11-18T07:56:43.907Z"}
+info: ✅ third_db database synced. {"timestamp":"2025-11-18T07:56:43.914Z"}
+info: ✅ Connected to ipo_data_fastapi database. {"timestamp":"2025-11-18T07:56:43.929Z"}
+info: ✅ ipo_data_fastapi database synced. {"timestamp":"2025-11-18T07:56:43.944Z"}
+info: 🚀 Server running on http://localhost:8000/vap/ {"timestamp":"2025-11-18T07:56:43.949Z"}
+info: ✅ Connected to stock_market database. {"timestamp":"2025-11-18T07:57:13.447Z"}
+info: ✅ stock_market database synced. {"timestamp":"2025-11-18T07:57:13.490Z"}
+info: ✅ Connected to bhavcopy database. {"timestamp":"2025-11-18T07:57:13.511Z"}
+info: ✅ bhavcopy database synced. {"timestamp":"2025-11-18T07:57:13.579Z"}
+info: ✅ Connected to screener_data database. {"timestamp":"2025-11-18T07:57:13.593Z"}
+info: ✅ screener_data database synced. {"timestamp":"2025-11-18T07:57:13.648Z"}
+info: ✅ Connected to third_db database. {"timestamp":"2025-11-18T07:57:13.659Z"}
+info: ✅ third_db database synced. {"timestamp":"2025-11-18T07:57:13.666Z"}
+info: ✅ Connected to ipo_data_fastapi database. {"timestamp":"2025-11-18T07:57:13.681Z"}
+info: ✅ ipo_data_fastapi database synced. {"timestamp":"2025-11-18T07:57:13.694Z"}
+info: 🚀 Server running on http://localhost:8000/vap/ {"timestamp":"2025-11-18T07:57:13.700Z"}
+info: ✅ Connected to stock_market database. {"timestamp":"2025-11-18T07:57:39.465Z"}
+info: ✅ stock_market database synced. {"timestamp":"2025-11-18T07:57:39.506Z"}
+info: ✅ Connected to bhavcopy database. {"timestamp":"2025-11-18T07:57:39.517Z"}
+info: ✅ bhavcopy database synced. {"timestamp":"2025-11-18T07:57:39.579Z"}
+info: ✅ Connected to screener_data database. {"timestamp":"2025-11-18T07:57:39.591Z"}
+info: ✅ screener_data database synced. {"timestamp":"2025-11-18T07:57:39.645Z"}
+info: ✅ Connected to third_db database. {"timestamp":"2025-11-18T07:57:39.655Z"}
+info: ✅ third_db database synced. {"timestamp":"2025-11-18T07:57:39.663Z"}
+info: ✅ Connected to ipo_data_fastapi database. {"timestamp":"2025-11-18T07:57:39.675Z"}
+info: ✅ ipo_data_fastapi database synced. {"timestamp":"2025-11-18T07:57:39.687Z"}
+info: 🚀 Server running on http://localhost:8000/vap/ {"timestamp":"2025-11-18T07:57:39.695Z"}
+info: ✅ Connected to stock_market database. {"timestamp":"2025-11-18T08:02:53.969Z"}
+info: ✅ stock_market database synced. {"timestamp":"2025-11-18T08:02:54.017Z"}
+info: ✅ Connected to bhavcopy database. {"timestamp":"2025-11-18T08:02:54.038Z"}
+info: ✅ bhavcopy database synced. {"timestamp":"2025-11-18T08:02:54.106Z"}
+info: ✅ Connected to screener_data database. {"timestamp":"2025-11-18T08:02:54.125Z"}
+info: ✅ screener_data database synced. {"timestamp":"2025-11-18T08:02:54.190Z"}
+info: ✅ Connected to third_db database. {"timestamp":"2025-11-18T08:02:54.205Z"}
+info: ✅ third_db database synced. {"timestamp":"2025-11-18T08:02:54.217Z"}
+info: ✅ Connected to ipo_data_fastapi database. {"timestamp":"2025-11-18T08:02:54.231Z"}
+info: ✅ ipo_data_fastapi database synced. {"timestamp":"2025-11-18T08:02:54.250Z"}
+info: 🚀 Server running on http://localhost:8000/vap/ {"timestamp":"2025-11-18T08:02:54.256Z"}
+info: ✅ Connected to stock_market database. {"timestamp":"2025-11-18T08:05:33.420Z"}
+info: ✅ stock_market database synced. {"timestamp":"2025-11-18T08:05:33.464Z"}
+info: ✅ Connected to bhavcopy database. {"timestamp":"2025-11-18T08:05:33.488Z"}
+info: ✅ bhavcopy database synced. {"timestamp":"2025-11-18T08:05:33.554Z"}
+info: ✅ Connected to screener_data database. {"timestamp":"2025-11-18T08:05:33.563Z"}
+info: ✅ screener_data database synced. {"timestamp":"2025-11-18T08:05:33.623Z"}
+info: ✅ Connected to third_db database. {"timestamp":"2025-11-18T08:05:33.635Z"}
+info: ✅ third_db database synced. {"timestamp":"2025-11-18T08:05:33.644Z"}
+info: ✅ Connected to ipo_data_fastapi database. {"timestamp":"2025-11-18T08:05:33.658Z"}
+info: ✅ ipo_data_fastapi database synced. {"timestamp":"2025-11-18T08:05:33.670Z"}
+info: 🚀 Server running on http://localhost:8000/vap/ {"timestamp":"2025-11-18T08:05:33.675Z"}
+info: ✅ Connected to stock_market database. {"timestamp":"2025-11-18T08:05:47.176Z"}
+info: ✅ stock_market database synced. {"timestamp":"2025-11-18T08:05:47.211Z"}
+info: ✅ Connected to bhavcopy database. {"timestamp":"2025-11-18T08:05:47.226Z"}
+info: ✅ bhavcopy database synced. {"timestamp":"2025-11-18T08:05:47.289Z"}
+info: ✅ Connected to screener_data database. {"timestamp":"2025-11-18T08:05:47.300Z"}
+info: ✅ screener_data database synced. {"timestamp":"2025-11-18T08:05:47.354Z"}
+info: ✅ Connected to third_db database. {"timestamp":"2025-11-18T08:05:47.362Z"}
+info: ✅ third_db database synced. {"timestamp":"2025-11-18T08:05:47.371Z"}
+info: ✅ Connected to ipo_data_fastapi database. {"timestamp":"2025-11-18T08:05:47.381Z"}
+info: ✅ ipo_data_fastapi database synced. {"timestamp":"2025-11-18T08:05:47.394Z"}
+info: 🚀 Server running on http://localhost:8000/vap/ {"timestamp":"2025-11-18T08:05:47.399Z"}
+info: ✅ Connected to stock_market database. {"timestamp":"2025-11-18T08:06:02.519Z"}
+info: ✅ stock_market database synced. {"timestamp":"2025-11-18T08:06:02.569Z"}
+info: ✅ Connected to bhavcopy database. {"timestamp":"2025-11-18T08:06:02.588Z"}
+info: ✅ bhavcopy database synced. {"timestamp":"2025-11-18T08:06:02.689Z"}
+info: ✅ Connected to screener_data database. {"timestamp":"2025-11-18T08:06:02.703Z"}
+info: ✅ screener_data database synced. {"timestamp":"2025-11-18T08:06:02.772Z"}
+info: ✅ Connected to third_db database. {"timestamp":"2025-11-18T08:06:02.784Z"}
+info: ✅ third_db database synced. {"timestamp":"2025-11-18T08:06:02.793Z"}
+info: ✅ Connected to ipo_data_fastapi database. {"timestamp":"2025-11-18T08:06:02.810Z"}
+info: ✅ ipo_data_fastapi database synced. {"timestamp":"2025-11-18T08:06:02.827Z"}
+info: 🚀 Server running on http://localhost:8000/vap/ {"timestamp":"2025-11-18T08:06:02.832Z"}
+info: ✅ Connected to stock_market database. {"timestamp":"2025-11-18T08:06:25.647Z"}
+info: ✅ stock_market database synced. {"timestamp":"2025-11-18T08:06:25.722Z"}
+info: ✅ Connected to bhavcopy database. {"timestamp":"2025-11-18T08:06:25.745Z"}
+info: ✅ bhavcopy database synced. {"timestamp":"2025-11-18T08:06:25.842Z"}
+info: ✅ Connected to screener_data database. {"timestamp":"2025-11-18T08:06:25.870Z"}
+info: ✅ screener_data database synced. {"timestamp":"2025-11-18T08:06:25.949Z"}
+info: ✅ Connected to third_db database. {"timestamp":"2025-11-18T08:06:25.970Z"}
+info: ✅ third_db database synced. {"timestamp":"2025-11-18T08:06:25.981Z"}
+info: ✅ Connected to ipo_data_fastapi database. {"timestamp":"2025-11-18T08:06:26.006Z"}
+info: ✅ ipo_data_fastapi database synced. {"timestamp":"2025-11-18T08:06:26.023Z"}
+info: 🚀 Server running on http://localhost:8000/vap/ {"timestamp":"2025-11-18T08:06:26.072Z"}
+info: ✅ Connected to stock_market database. {"timestamp":"2025-11-18T08:06:39.811Z"}
+info: ✅ stock_market database synced. {"timestamp":"2025-11-18T08:06:39.866Z"}
+info: ✅ Connected to bhavcopy database. {"timestamp":"2025-11-18T08:06:39.890Z"}
+info: ✅ bhavcopy database synced. {"timestamp":"2025-11-18T08:06:39.992Z"}
+info: ✅ Connected to screener_data database. {"timestamp":"2025-11-18T08:06:40.015Z"}
+info: ✅ screener_data database synced. {"timestamp":"2025-11-18T08:06:40.110Z"}
+info: ✅ Connected to third_db database. {"timestamp":"2025-11-18T08:06:40.134Z"}
+info: ✅ third_db database synced. {"timestamp":"2025-11-18T08:06:40.156Z"}
+info: ✅ Connected to ipo_data_fastapi database. {"timestamp":"2025-11-18T08:06:40.180Z"}
+info: ✅ ipo_data_fastapi database synced. {"timestamp":"2025-11-18T08:06:40.200Z"}
+info: 🚀 Server running on http://localhost:8000/vap/ {"timestamp":"2025-11-18T08:06:40.209Z"}
+info: ✅ Connected to stock_market database. {"timestamp":"2025-11-18T08:07:01.141Z"}
+info: ✅ stock_market database synced. {"timestamp":"2025-11-18T08:07:01.177Z"}
+info: ✅ Connected to bhavcopy database. {"timestamp":"2025-11-18T08:07:01.190Z"}
+info: ✅ bhavcopy database synced. {"timestamp":"2025-11-18T08:07:01.259Z"}
+info: ✅ Connected to screener_data database. {"timestamp":"2025-11-18T08:07:01.271Z"}
+info: ✅ screener_data database synced. {"timestamp":"2025-11-18T08:07:01.328Z"}
+info: ✅ Connected to third_db database. {"timestamp":"2025-11-18T08:07:01.340Z"}
+info: ✅ third_db database synced. {"timestamp":"2025-11-18T08:07:01.347Z"}
+info: ✅ Connected to ipo_data_fastapi database. {"timestamp":"2025-11-18T08:07:01.361Z"}
+info: ✅ ipo_data_fastapi database synced. {"timestamp":"2025-11-18T08:07:01.373Z"}
+info: 🚀 Server running on http://localhost:8000/vap/ {"timestamp":"2025-11-18T08:07:01.379Z"}
+info: ✅ Connected to stock_market database. {"timestamp":"2025-11-18T08:09:41.585Z"}
+info: ✅ stock_market database synced. {"timestamp":"2025-11-18T08:09:41.641Z"}
+info: ✅ Connected to bhavcopy database. {"timestamp":"2025-11-18T08:09:41.662Z"}
+info: ✅ bhavcopy database synced. {"timestamp":"2025-11-18T08:09:41.752Z"}
+info: ✅ Connected to screener_data database. {"timestamp":"2025-11-18T08:09:41.768Z"}
+info: ✅ screener_data database synced. {"timestamp":"2025-11-18T08:09:41.837Z"}
+info: ✅ Connected to third_db database. {"timestamp":"2025-11-18T08:09:41.852Z"}
+info: ✅ third_db database synced. {"timestamp":"2025-11-18T08:09:41.864Z"}
+info: ✅ Connected to ipo_data_fastapi database. {"timestamp":"2025-11-18T08:09:41.882Z"}
+info: ✅ ipo_data_fastapi database synced. {"timestamp":"2025-11-18T08:09:41.898Z"}
+info: 🚀 Server running on http://localhost:8000/vap/ {"timestamp":"2025-11-18T08:09:41.905Z"}
+info: ✅ Connected to stock_market database. {"timestamp":"2025-11-18T08:45:13.284Z"}
+info: ✅ stock_market database synced. {"timestamp":"2025-11-18T08:45:13.359Z"}
+info: ✅ Connected to bhavcopy database. {"timestamp":"2025-11-18T08:45:13.379Z"}
+info: ✅ bhavcopy database synced. {"timestamp":"2025-11-18T08:45:13.445Z"}
+info: ✅ Connected to screener_data database. {"timestamp":"2025-11-18T08:45:13.460Z"}
+info: ✅ screener_data database synced. {"timestamp":"2025-11-18T08:45:13.524Z"}
+info: ✅ Connected to third_db database. {"timestamp":"2025-11-18T08:45:13.537Z"}
+info: ✅ third_db database synced. {"timestamp":"2025-11-18T08:45:13.545Z"}
+info: ✅ Connected to ipo_data_fastapi database. {"timestamp":"2025-11-18T08:45:13.562Z"}
+info: ✅ ipo_data_fastapi database synced. {"timestamp":"2025-11-18T08:45:13.578Z"}
+info: ✅ Connected to stock_market database. {"timestamp":"2025-11-18T08:45:28.784Z"}
+info: ✅ stock_market database synced. {"timestamp":"2025-11-18T08:45:28.825Z"}
+info: ✅ Connected to bhavcopy database. {"timestamp":"2025-11-18T08:45:28.854Z"}
+info: ✅ bhavcopy database synced. {"timestamp":"2025-11-18T08:45:28.921Z"}
+info: ✅ Connected to screener_data database. {"timestamp":"2025-11-18T08:45:28.942Z"}
+info: ✅ screener_data database synced. {"timestamp":"2025-11-18T08:45:29.061Z"}
+info: ✅ Connected to third_db database. {"timestamp":"2025-11-18T08:45:29.093Z"}
+info: ✅ third_db database synced. {"timestamp":"2025-11-18T08:45:29.113Z"}
+info: ✅ Connected to ipo_data_fastapi database. {"timestamp":"2025-11-18T08:45:29.134Z"}
+info: ✅ ipo_data_fastapi database synced. {"timestamp":"2025-11-18T08:45:29.153Z"}
+info: ✅ Connected to stock_market database. {"timestamp":"2025-11-18T08:46:24.651Z"}
+info: ✅ stock_market database synced. {"timestamp":"2025-11-18T08:46:24.689Z"}
+info: ✅ Connected to bhavcopy database. {"timestamp":"2025-11-18T08:46:24.701Z"}
+info: ✅ bhavcopy database synced. {"timestamp":"2025-11-18T08:46:24.773Z"}
+info: ✅ Connected to screener_data database. {"timestamp":"2025-11-18T08:46:24.789Z"}
+info: ✅ screener_data database synced. {"timestamp":"2025-11-18T08:46:24.868Z"}
+info: ✅ Connected to third_db database. {"timestamp":"2025-11-18T08:46:24.883Z"}
+info: ✅ third_db database synced. {"timestamp":"2025-11-18T08:46:24.891Z"}
+info: ✅ Connected to ipo_data_fastapi database. {"timestamp":"2025-11-18T08:46:24.903Z"}
+info: ✅ ipo_data_fastapi database synced. {"timestamp":"2025-11-18T08:46:24.919Z"}
+info: ✅ Connected to stock_market database. {"timestamp":"2025-11-18T08:46:37.316Z"}
+info: ✅ stock_market database synced. {"timestamp":"2025-11-18T08:46:37.420Z"}
+info: ✅ Connected to bhavcopy database. {"timestamp":"2025-11-18T08:46:37.486Z"}
+info: ✅ bhavcopy database synced. {"timestamp":"2025-11-18T08:46:37.606Z"}
+info: ✅ Connected to screener_data database. {"timestamp":"2025-11-18T08:46:37.629Z"}
+info: ✅ screener_data database synced. {"timestamp":"2025-11-18T08:46:37.781Z"}
+info: ✅ Connected to third_db database. {"timestamp":"2025-11-18T08:46:37.858Z"}
+info: ✅ third_db database synced. {"timestamp":"2025-11-18T08:46:37.884Z"}
+info: ✅ Connected to ipo_data_fastapi database. {"timestamp":"2025-11-18T08:46:37.910Z"}
+info: ✅ ipo_data_fastapi database synced. {"timestamp":"2025-11-18T08:46:37.942Z"}
+info: ✅ Connected to stock_market database. {"timestamp":"2025-11-18T08:48:37.987Z"}
+info: ✅ stock_market database synced. {"timestamp":"2025-11-18T08:48:38.029Z"}
+info: ✅ Connected to bhavcopy database. {"timestamp":"2025-11-18T08:48:38.051Z"}
+info: ✅ bhavcopy database synced. {"timestamp":"2025-11-18T08:48:38.123Z"}
+info: ✅ Connected to screener_data database. {"timestamp":"2025-11-18T08:48:38.136Z"}
+info: ✅ screener_data database synced. {"timestamp":"2025-11-18T08:48:38.195Z"}
+info: ✅ Connected to third_db database. {"timestamp":"2025-11-18T08:48:38.208Z"}
+info: ✅ third_db database synced. {"timestamp":"2025-11-18T08:48:38.219Z"}
+info: ✅ Connected to ipo_data_fastapi database. {"timestamp":"2025-11-18T08:48:38.238Z"}
+info: ✅ ipo_data_fastapi database synced. {"timestamp":"2025-11-18T08:48:38.253Z"}
+info: ✅ Connected to stock_market database. {"timestamp":"2025-11-18T08:51:30.450Z"}
+info: ✅ stock_market database synced. {"timestamp":"2025-11-18T08:51:30.531Z"}
+info: ✅ Connected to bhavcopy database. {"timestamp":"2025-11-18T08:51:30.548Z"}
+info: ✅ bhavcopy database synced. {"timestamp":"2025-11-18T08:51:30.633Z"}
+info: ✅ Connected to screener_data database. {"timestamp":"2025-11-18T08:51:30.648Z"}
+info: ✅ screener_data database synced. {"timestamp":"2025-11-18T08:51:30.723Z"}
+info: ✅ Connected to third_db database. {"timestamp":"2025-11-18T08:51:30.742Z"}
+info: ✅ third_db database synced. {"timestamp":"2025-11-18T08:51:30.755Z"}
+info: ✅ Connected to ipo_data_fastapi database. {"timestamp":"2025-11-18T08:51:30.776Z"}
+info: ✅ ipo_data_fastapi database synced. {"timestamp":"2025-11-18T08:51:30.799Z"}
+error: ❌ Database connection or sync failed: Access denied for user ''@'localhost' (using password: NO) {"name":"SequelizeAccessDeniedError","original":{"code":"ER_ACCESS_DENIED_ERROR","errno":1045,"sqlMessage":"Access denied for user ''@'localhost' (using password: NO)","sqlState":"28000"},"parent":{"code":"ER_ACCESS_DENIED_ERROR","errno":1045,"sqlMessage":"Access denied for user ''@'localhost' (using password: NO)","sqlState":"28000"},"stack":"SequelizeAccessDeniedError: Access denied for user ''@'localhost' (using password: NO)\n    at ConnectionManager.connect (E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\node_modules\\sequelize\\src\\dialects\\mysql\\connection-manager.js:118:17)\n    at processTicksAndRejections (node:internal/process/task_queues:95:5)\n    at ConnectionManager._connect (E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\node_modules\\sequelize\\src\\dialects\\abstract\\connection-manager.js:332:24)\n    at E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\node_modules\\sequelize\\src\\dialects\\abstract\\connection-manager.js:250:32\n    at ConnectionManager.getConnection (E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\node_modules\\sequelize\\src\\dialects\\abstract\\connection-manager.js:280:7)\n    at E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\node_modules\\sequelize\\src\\sequelize.js:638:26\n    at Sequelize.authenticate (E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\node_modules\\sequelize\\src\\sequelize.js:972:5)","timestamp":"2025-11-18T08:51:31.004Z"}
+info: ✅ Connected to stock_market database. {"timestamp":"2025-11-18T08:54:42.645Z"}
+info: ✅ stock_market database synced. {"timestamp":"2025-11-18T08:54:42.701Z"}
+info: ✅ Connected to bhavcopy database. {"timestamp":"2025-11-18T08:54:42.719Z"}
+info: ✅ bhavcopy database synced. {"timestamp":"2025-11-18T08:54:42.796Z"}
+info: ✅ Connected to screener_data database. {"timestamp":"2025-11-18T08:54:42.808Z"}
+info: ✅ screener_data database synced. {"timestamp":"2025-11-18T08:54:42.879Z"}
+info: ✅ Connected to third_db database. {"timestamp":"2025-11-18T08:54:42.892Z"}
+info: ✅ third_db database synced. {"timestamp":"2025-11-18T08:54:42.923Z"}
+info: ✅ Connected to ipo_data_fastapi database. {"timestamp":"2025-11-18T08:54:42.945Z"}
+info: ✅ ipo_data_fastapi database synced. {"timestamp":"2025-11-18T08:54:42.983Z"}
+error: ❌ Database connection or sync failed: Access denied for user ''@'localhost' (using password: NO) {"name":"SequelizeAccessDeniedError","original":{"code":"ER_ACCESS_DENIED_ERROR","errno":1045,"sqlMessage":"Access denied for user ''@'localhost' (using password: NO)","sqlState":"28000"},"parent":{"code":"ER_ACCESS_DENIED_ERROR","errno":1045,"sqlMessage":"Access denied for user ''@'localhost' (using password: NO)","sqlState":"28000"},"stack":"SequelizeAccessDeniedError: Access denied for user ''@'localhost' (using password: NO)\n    at ConnectionManager.connect (E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\node_modules\\sequelize\\src\\dialects\\mysql\\connection-manager.js:118:17)\n    at processTicksAndRejections (node:internal/process/task_queues:95:5)\n    at ConnectionManager._connect (E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\node_modules\\sequelize\\src\\dialects\\abstract\\connection-manager.js:332:24)\n    at E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\node_modules\\sequelize\\src\\dialects\\abstract\\connection-manager.js:250:32\n    at ConnectionManager.getConnection (E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\node_modules\\sequelize\\src\\dialects\\abstract\\connection-manager.js:280:7)\n    at E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\node_modules\\sequelize\\src\\sequelize.js:638:26\n    at Sequelize.authenticate (E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\node_modules\\sequelize\\src\\sequelize.js:972:5)","timestamp":"2025-11-18T08:54:43.087Z"}
+info: ✅ Connected to stock_market database. {"timestamp":"2025-11-18T09:19:12.015Z"}
+info: ✅ stock_market database synced. {"timestamp":"2025-11-18T09:19:12.058Z"}
+info: ✅ Connected to bhavcopy database. {"timestamp":"2025-11-18T09:19:12.074Z"}
+info: ✅ bhavcopy database synced. {"timestamp":"2025-11-18T09:19:12.154Z"}
+info: ✅ Connected to screener_data database. {"timestamp":"2025-11-18T09:19:12.171Z"}
+info: ✅ screener_data database synced. {"timestamp":"2025-11-18T09:19:12.232Z"}
+info: ✅ Connected to third_db database. {"timestamp":"2025-11-18T09:19:12.247Z"}
+info: ✅ third_db database synced. {"timestamp":"2025-11-18T09:19:12.256Z"}
+info: ✅ Connected to ipo_data_fastapi database. {"timestamp":"2025-11-18T09:19:12.277Z"}
+info: ✅ ipo_data_fastapi database synced. {"timestamp":"2025-11-18T09:19:12.296Z"}
+info: ✅ Connected to bse_data database. {"timestamp":"2025-11-18T09:19:12.353Z"}
+info: ✅ bse_data database synced. {"timestamp":"2025-11-18T09:19:12.364Z"}
+info: 🚀 Server running on http://localhost:8000/vap/ {"timestamp":"2025-11-18T09:19:12.373Z"}
+info: ✅ Connected to stock_market database. {"timestamp":"2025-11-18T09:27:40.510Z"}
+info: ✅ stock_market database synced. {"timestamp":"2025-11-18T09:27:40.554Z"}
+info: ✅ Connected to bhavcopy database. {"timestamp":"2025-11-18T09:27:40.571Z"}
+info: ✅ bhavcopy database synced. {"timestamp":"2025-11-18T09:27:40.659Z"}
+info: ✅ Connected to screener_data database. {"timestamp":"2025-11-18T09:27:40.671Z"}
+info: ✅ screener_data database synced. {"timestamp":"2025-11-18T09:27:40.730Z"}
+info: ✅ Connected to third_db database. {"timestamp":"2025-11-18T09:27:40.741Z"}
+info: ✅ third_db database synced. {"timestamp":"2025-11-18T09:27:40.754Z"}
+info: ✅ Connected to ipo_data_fastapi database. {"timestamp":"2025-11-18T09:27:40.771Z"}
+info: ✅ ipo_data_fastapi database synced. {"timestamp":"2025-11-18T09:27:40.788Z"}
+info: ✅ Connected to bse_data database. {"timestamp":"2025-11-18T09:27:40.810Z"}
+info: ✅ bse_data database synced. {"timestamp":"2025-11-18T09:27:40.866Z"}
+info: 🚀 Server running on http://localhost:8000/vap/ {"timestamp":"2025-11-18T09:27:40.912Z"}

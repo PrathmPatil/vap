@@ -1,0 +1,55 @@
+{
+    "keep": {
+        "days": true,
+        "amount": 14
+    },
+    "auditLog": "logs\\requests\\daily\\.66602cdde70fd43456e51d0c9addc83824638c4d-audit.json",
+    "files": [
+        {
+            "date": 1762932324902,
+            "name": "logs\\requests\\daily\\2025-11-12.log",
+            "hash": "17df82c41386d761981748fce5399d300df8695cf8fd8ad326e016a7e5c2e488"
+        },
+        {
+            "date": 1763035270060,
+            "name": "logs\\requests\\daily\\2025-11-13.log",
+            "hash": "711450c8ed10b175b62bb58dd15bd6118ec23512a673b95a39bfa8d86cf78ae2"
+        },
+        {
+            "date": 1763452413441,
+            "name": "logs\\requests\\daily\\2025-11-18.log",
+            "hash": "2d968e0744df86b6575866d98d71ad974608ecad66bc2a7b66368a46516d92c2"
+        },
+        {
+            "date": 1763570011340,
+            "name": "logs\\requests\\daily\\2025-11-19.log",
+            "hash": "9552d327269b6b930fb86cd58ef3168cd59da66af4d8fbf61d28b0ab7370651d"
+        },
+        {
+            "date": 1763577980021,
+            "name": "logs\\requests\\daily\\2025-11-20.log",
+            "hash": "ecc459e0c76122e3832c0ab263f8f287d3e3b8bed14e1c25f7d104d3f343047e"
+        },
+        {
+            "date": 1763749268142,
+            "name": "logs\\requests\\daily\\2025-11-21.log",
+            "hash": "fb8c906072346ec5699798194c2a925429481db0bdad45a69a85311ba9e8b786"
+        },
+        {
+            "date": 1763749858046,
+            "name": "logs\\requests\\daily\\2025-11-22.log",
+            "hash": "67c18ff5401b78386b75f546ab563c38f9c63b7bfcb6933c1fac54da0418a055"
+        },
+        {
+            "date": 1763991498196,
+            "name": "logs\\requests\\daily\\2025-11-24.log",
+            "hash": "4779ef194e166aca3ca8185c11d2d34a08e09cd701ba38ddf332ecf17f319f13"
+        },
+        {
+            "date": 1764043782228,
+            "name": "logs\\requests\\daily\\2025-11-25.log",
+            "hash": "43323875c88d62e9c9f680afaee5e0ff2963a597287ebdbf8fff79ca27d5b27f"
+        }
+    ],
+    "hashType": "sha256"
+}

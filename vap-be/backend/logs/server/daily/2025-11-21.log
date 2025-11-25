@@ -1,0 +1,60 @@
+info: ✅ Connected to stock_market database. {"timestamp":"2025-11-21T18:21:17.672Z"}
+info: ✅ stock_market database synced. {"timestamp":"2025-11-21T18:21:17.764Z"}
+info: ✅ Connected to bhavcopy database. {"timestamp":"2025-11-21T18:21:17.784Z"}
+info: ✅ bhavcopy database synced. {"timestamp":"2025-11-21T18:21:17.880Z"}
+info: ✅ Connected to screener_data database. {"timestamp":"2025-11-21T18:21:17.897Z"}
+info: ✅ screener_data database synced. {"timestamp":"2025-11-21T18:21:17.986Z"}
+info: ✅ Connected to third_db database. {"timestamp":"2025-11-21T18:21:18.003Z"}
+info: ✅ third_db database synced. {"timestamp":"2025-11-21T18:21:18.031Z"}
+info: ✅ Connected to ipo_data_fastapi database. {"timestamp":"2025-11-21T18:21:18.047Z"}
+info: ✅ ipo_data_fastapi database synced. {"timestamp":"2025-11-21T18:21:18.095Z"}
+info: ✅ Connected to bse_data database. {"timestamp":"2025-11-21T18:21:18.112Z"}
+info: ✅ bse_data database synced. {"timestamp":"2025-11-21T18:21:18.130Z"}
+info: ✅ Connected to stock_market database. {"timestamp":"2025-11-21T18:21:38.932Z"}
+info: ✅ stock_market database synced. {"timestamp":"2025-11-21T18:21:39.095Z"}
+info: ✅ Connected to bhavcopy database. {"timestamp":"2025-11-21T18:21:39.115Z"}
+info: ✅ bhavcopy database synced. {"timestamp":"2025-11-21T18:21:39.487Z"}
+info: ✅ Connected to screener_data database. {"timestamp":"2025-11-21T18:21:39.501Z"}
+info: ✅ screener_data database synced. {"timestamp":"2025-11-21T18:21:39.552Z"}
+info: ✅ Connected to third_db database. {"timestamp":"2025-11-21T18:21:39.570Z"}
+info: ✅ third_db database synced. {"timestamp":"2025-11-21T18:21:39.578Z"}
+info: ✅ Connected to ipo_data_fastapi database. {"timestamp":"2025-11-21T18:21:39.592Z"}
+info: ✅ ipo_data_fastapi database synced. {"timestamp":"2025-11-21T18:21:39.604Z"}
+info: ✅ Connected to bse_data database. {"timestamp":"2025-11-21T18:21:39.620Z"}
+info: ✅ bse_data database synced. {"timestamp":"2025-11-21T18:21:39.633Z"}
+info: ✅ Connected to stock_market database. {"timestamp":"2025-11-21T18:28:00.288Z"}
+info: ✅ stock_market database synced. {"timestamp":"2025-11-21T18:28:00.335Z"}
+info: ✅ Connected to bhavcopy database. {"timestamp":"2025-11-21T18:28:00.349Z"}
+info: ✅ bhavcopy database synced. {"timestamp":"2025-11-21T18:28:00.425Z"}
+info: ✅ Connected to screener_data database. {"timestamp":"2025-11-21T18:28:00.440Z"}
+info: ✅ screener_data database synced. {"timestamp":"2025-11-21T18:28:00.494Z"}
+info: ✅ Connected to third_db database. {"timestamp":"2025-11-21T18:28:00.508Z"}
+info: ✅ third_db database synced. {"timestamp":"2025-11-21T18:28:00.518Z"}
+info: ✅ Connected to ipo_data_fastapi database. {"timestamp":"2025-11-21T18:28:00.532Z"}
+info: ✅ ipo_data_fastapi database synced. {"timestamp":"2025-11-21T18:28:00.546Z"}
+info: ✅ Connected to bse_data database. {"timestamp":"2025-11-21T18:28:00.561Z"}
+info: ✅ bse_data database synced. {"timestamp":"2025-11-21T18:28:00.568Z"}
+info: ✅ Connected to stock_market database. {"timestamp":"2025-11-21T18:29:35.663Z"}
+info: ✅ stock_market database synced. {"timestamp":"2025-11-21T18:29:35.714Z"}
+info: ✅ Connected to bhavcopy database. {"timestamp":"2025-11-21T18:29:35.734Z"}
+info: ✅ bhavcopy database synced. {"timestamp":"2025-11-21T18:29:35.795Z"}
+info: ✅ Connected to screener_data database. {"timestamp":"2025-11-21T18:29:35.810Z"}
+info: ✅ screener_data database synced. {"timestamp":"2025-11-21T18:29:35.867Z"}
+info: ✅ Connected to third_db database. {"timestamp":"2025-11-21T18:29:35.881Z"}
+info: ✅ third_db database synced. {"timestamp":"2025-11-21T18:29:35.893Z"}
+info: ✅ Connected to ipo_data_fastapi database. {"timestamp":"2025-11-21T18:29:35.915Z"}
+info: ✅ ipo_data_fastapi database synced. {"timestamp":"2025-11-21T18:29:35.940Z"}
+info: ✅ Connected to bse_data database. {"timestamp":"2025-11-21T18:29:35.963Z"}
+info: ✅ bse_data database synced. {"timestamp":"2025-11-21T18:29:35.978Z"}
+info: ✅ Connected to stock_market database. {"timestamp":"2025-11-21T18:29:44.200Z"}
+info: ✅ stock_market database synced. {"timestamp":"2025-11-21T18:29:44.261Z"}
+info: ✅ Connected to bhavcopy database. {"timestamp":"2025-11-21T18:29:44.279Z"}
+info: ✅ bhavcopy database synced. {"timestamp":"2025-11-21T18:29:44.390Z"}
+info: ✅ Connected to screener_data database. {"timestamp":"2025-11-21T18:29:44.407Z"}
+info: ✅ screener_data database synced. {"timestamp":"2025-11-21T18:29:44.490Z"}
+info: ✅ Connected to third_db database. {"timestamp":"2025-11-21T18:29:44.513Z"}
+info: ✅ third_db database synced. {"timestamp":"2025-11-21T18:29:44.530Z"}
+info: ✅ Connected to ipo_data_fastapi database. {"timestamp":"2025-11-21T18:29:44.557Z"}
+info: ✅ ipo_data_fastapi database synced. {"timestamp":"2025-11-21T18:29:44.577Z"}
+info: ✅ Connected to bse_data database. {"timestamp":"2025-11-21T18:29:44.606Z"}
+info: ✅ bse_data database synced. {"timestamp":"2025-11-21T18:29:44.614Z"}

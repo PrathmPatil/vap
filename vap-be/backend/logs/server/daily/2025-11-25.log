@@ -1,0 +1,26 @@
+info: ✅ Connected to stock_market database. {"timestamp":"2025-11-25T04:19:58.650Z"}
+info: ✅ stock_market database synced. {"timestamp":"2025-11-25T04:19:59.850Z"}
+info: ✅ Connected to bhavcopy database. {"timestamp":"2025-11-25T04:20:00.184Z"}
+info: ✅ bhavcopy database synced. {"timestamp":"2025-11-25T04:20:00.535Z"}
+info: ✅ Connected to screener_data database. {"timestamp":"2025-11-25T04:20:00.757Z"}
+info: ✅ screener_data database synced. {"timestamp":"2025-11-25T04:20:01.037Z"}
+info: ✅ Connected to third_db database. {"timestamp":"2025-11-25T04:20:01.182Z"}
+info: ✅ third_db database synced. {"timestamp":"2025-11-25T04:20:01.280Z"}
+info: ✅ Connected to ipo_data_fastapi database. {"timestamp":"2025-11-25T04:20:01.324Z"}
+info: ✅ ipo_data_fastapi database synced. {"timestamp":"2025-11-25T04:20:01.425Z"}
+info: ✅ Connected to bse_data database. {"timestamp":"2025-11-25T04:20:01.531Z"}
+info: ✅ bse_data database synced. {"timestamp":"2025-11-25T04:20:01.569Z"}
+info: 🚀 Server running on http://localhost:8000/vap/ {"timestamp":"2025-11-25T04:20:01.599Z"}
+info: ✅ Connected to stock_market database. {"timestamp":"2025-11-25T04:20:20.467Z"}
+info: ✅ stock_market database synced. {"timestamp":"2025-11-25T04:20:20.530Z"}
+info: ✅ Connected to bhavcopy database. {"timestamp":"2025-11-25T04:20:20.573Z"}
+info: ✅ bhavcopy database synced. {"timestamp":"2025-11-25T04:20:20.655Z"}
+info: ✅ Connected to screener_data database. {"timestamp":"2025-11-25T04:20:20.669Z"}
+info: ✅ screener_data database synced. {"timestamp":"2025-11-25T04:20:20.742Z"}
+info: ✅ Connected to third_db database. {"timestamp":"2025-11-25T04:20:20.759Z"}
+info: ✅ third_db database synced. {"timestamp":"2025-11-25T04:20:20.769Z"}
+info: ✅ Connected to ipo_data_fastapi database. {"timestamp":"2025-11-25T04:20:20.839Z"}
+info: ✅ ipo_data_fastapi database synced. {"timestamp":"2025-11-25T04:20:20.858Z"}
+info: ✅ Connected to bse_data database. {"timestamp":"2025-11-25T04:20:20.895Z"}
+info: ✅ bse_data database synced. {"timestamp":"2025-11-25T04:20:20.914Z"}
+info: 🚀 Server running on http://localhost:8000/vap/ {"timestamp":"2025-11-25T04:20:20.926Z"}

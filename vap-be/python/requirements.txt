@@ -1,0 +1,19 @@
+fastapi==0.104.1
+uvicorn==0.24.0
+pymysql==1.1.0
+sqlalchemy==2.0.23
+pandas==2.2.2  # Latest version with better Python 3.13 support
+requests==2.31.0
+beautifulsoup4==4.12.2
+yfinance==0.2.18
+apscheduler==3.10.4
+python-dotenv==1.0.0
+python-multipart==0.0.6
+# numpy==2.0.0  # Use numpy 2.0 which has Python 3.13 support
+
+# requirements.txt
+lxml==4.9.3
+openpyxl==3.1.2
+matplotlib==3.7.2
+seaborn==0.12.2
+schedule==1.2.0

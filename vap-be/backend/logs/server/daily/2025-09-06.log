@@ -1,0 +1,28 @@
+info: ✅ Connected to stock_market database. {"timestamp":"2025-09-06T18:16:24.366Z"}
+info: ✅ stock_market database synced. {"timestamp":"2025-09-06T18:16:26.433Z"}
+info: ✅ Connected to bhavcopy database. {"timestamp":"2025-09-06T18:16:26.480Z"}
+info: ✅ bhavcopy database synced. {"timestamp":"2025-09-06T18:16:26.914Z"}
+info: ✅ Connected to screener_data database. {"timestamp":"2025-09-06T18:16:26.964Z"}
+info: ✅ screener_data database synced. {"timestamp":"2025-09-06T18:16:27.668Z"}
+info: 🚀 Server running on http://localhost:8000/vap/ {"timestamp":"2025-09-06T18:16:27.856Z"}
+info: ✅ Connected to stock_market database. {"timestamp":"2025-09-06T18:20:53.904Z"}
+info: ✅ stock_market database synced. {"timestamp":"2025-09-06T18:20:54.039Z"}
+info: ✅ Connected to bhavcopy database. {"timestamp":"2025-09-06T18:20:54.062Z"}
+info: ✅ bhavcopy database synced. {"timestamp":"2025-09-06T18:20:54.421Z"}
+info: ✅ Connected to screener_data database. {"timestamp":"2025-09-06T18:20:54.490Z"}
+info: ✅ screener_data database synced. {"timestamp":"2025-09-06T18:20:54.602Z"}
+info: 🚀 Server running on http://localhost:8000/vap/ {"timestamp":"2025-09-06T18:20:54.607Z"}
+info: ✅ Connected to stock_market database. {"timestamp":"2025-09-06T18:23:29.540Z"}
+info: ✅ stock_market database synced. {"timestamp":"2025-09-06T18:23:30.175Z"}
+info: ✅ Connected to bhavcopy database. {"timestamp":"2025-09-06T18:23:30.279Z"}
+info: ✅ bhavcopy database synced. {"timestamp":"2025-09-06T18:23:30.507Z"}
+info: ✅ Connected to screener_data database. {"timestamp":"2025-09-06T18:23:30.527Z"}
+info: ✅ screener_data database synced. {"timestamp":"2025-09-06T18:23:30.767Z"}
+info: 🚀 Server running on http://localhost:8000/vap/ {"timestamp":"2025-09-06T18:23:30.780Z"}
+info: ✅ Connected to stock_market database. {"timestamp":"2025-09-06T18:27:20.933Z"}
+info: ✅ stock_market database synced. {"timestamp":"2025-09-06T18:27:21.492Z"}
+info: ✅ Connected to bhavcopy database. {"timestamp":"2025-09-06T18:27:21.529Z"}
+info: ✅ bhavcopy database synced. {"timestamp":"2025-09-06T18:27:21.687Z"}
+info: ✅ Connected to screener_data database. {"timestamp":"2025-09-06T18:27:21.696Z"}
+info: ✅ screener_data database synced. {"timestamp":"2025-09-06T18:27:21.790Z"}
+info: 🚀 Server running on http://localhost:8000/vap/ {"timestamp":"2025-09-06T18:27:21.793Z"}
