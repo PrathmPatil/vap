@@ -1,14 +1,14 @@
+import { FinancialMetric } from "@/lib/financial";
 import React from "react";
-import type { FinancialMetric } from "../types/financial";
 
 interface FinancialTableProps {
-  title: string;
+  title?: string;
   data: FinancialMetric[];
   className?: string;
 }
 
 const FinancialTable: React.FC<FinancialTableProps> = ({
-  title,
+  title="",
   data,
   className = "",
 }) => {

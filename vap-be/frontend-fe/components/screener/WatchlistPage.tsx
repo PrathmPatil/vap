@@ -113,9 +113,10 @@ const WatchlistPage = () => {
   useEffect(() => {
     const filtered = watchlist.filter(
       (item) =>
-        item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (item.name?.toLowerCase() ?? "").includes(searchQuery.toLowerCase()) ||
         item.symbol.toLowerCase().includes(searchQuery.toLowerCase())
     );
+
     setFilteredWatchlist(filtered);
   }, [watchlist, searchQuery]);
 

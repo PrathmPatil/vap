@@ -2,16 +2,15 @@
 
 import { analyzeCompanies } from "../services/companiesService";
 
-// 🔍 Controller to handle GET /formula/all-companies?date=YYYY-MM-DD
+// GET /formula/all-companies?date=YYYY-MM-DD
 export const getAnalyzeCompaniesData = async (req, res) => {
   try {
-    const { date } = req.query;
+    let { date } = req.query;
 
+    // ✅ If date not provided, use today's date
     if (!date) {
-      return res.status(400).json({
-        success: false,
-        message: "Date is required in query. Example: /formula/all-companies?date=2024-11-15"
-      });
+      date = new Date().toISOString().split("T")[0];
+      console.log("⚠️ Date not provided. Using today's date:", date);
     }
 
     console.log("Controller received date:", date);

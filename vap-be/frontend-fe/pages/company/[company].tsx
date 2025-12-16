@@ -4,38 +4,14 @@ import Navigation from "@/components/Navigation";
 import { StockCharts } from "@/components/StockCharts";
 import { Button } from "@/components/ui/button";
 import { bhavcopyCategories, bhavcopyColumns } from "@/lib/bhavcopylist";
+import { getCompanyData } from "@/utils";
 import { callApi } from "@/utils/apis";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import React, { useEffect, useState } from "react";
 
-// interface Company {
-//   id: number;
-//   symbol: string;
-//   company_name: string;
-//   series: string;
-//   date_of_listing: string;
-//   paid_up_value: number;
-//   market_lot: number;
-//   isin: string;
-//   face_value: number;
-//   created_at: string;
-// }
-// {
-//     "id": 1,
-//     "symbol": "20MICRONS",
-//     "date": "2018-07-30",
-//     "open": 38.7878,
-//     "high": 38.7878,
-//     "low": 37.0765,
-//     "close": 37.4093,
-//     "volume": 8062,
-//     "dividends": 0,
-//     "stock_splits": 0
-// }
-
-interface Company {
+interface CompanyData {
   id: number;
   symbol: string;
   date: string;
@@ -48,12 +24,13 @@ interface Company {
   stock_splits: number;
 }
 
-interface CompaniesResponse {
+interface CompanyDataResponse {
   success: boolean;
-  total: number;
-  page: number;
-  pages: number;
-  data: Company[];
+  data: CompanyData[];
+  total?: number;
+  page?: number;
+  pages?: number;
+  message?: string;
 }
 
 const Index = () => {
@@ -68,19 +45,8 @@ const Index = () => {
   const [limit, setLimit] = useState(10);
   const [totalPages, setTotalPages] = useState(1);
   const [totalCompanies, setTotalCompanies] = useState(0);
-  const [companies, setCompanies] = useState<Company[]>([]);
-  // {
-  //           "id": 260946,
-  //           "symbol": "ATLASCYCLE",
-  //           "date": "2018-07-30",
-  //           "open": 138,
-  //           "high": 139.9,
-  //           "low": 132.5,
-  //           "close": 137.75,
-  //           "volume": 4845,
-  //           "dividends": 0,
-  //           "stock_splits": 0
-  //       }
+  const [companies, setCompanies] = useState<CompanyData[]>([]);
+
   const columns = [
     { key: "symbol", label: "Symbol", type: "text" as const },
     { key: "date", label: "Date", type: "text" as const },
@@ -98,15 +64,29 @@ const Index = () => {
     const fetchCompanies = async () => {
       setLoading(true);
       try {
-        const url = `http://localhost:8000/vap/company-data/${companyStr}?page=${currentPage}&limit=${limit}${
-          searchTerm ? `&search=${searchTerm}` : ""
-        }`;
-        const response = await fetch(url);
-        if (response.ok) {
-          const data: CompaniesResponse = await response.json();
+        const response = await getCompanyData(companyStr, currentPage, limit, searchTerm);
+        
+        // Cast to the correct type
+        const data = response as CompanyDataResponse;
+        
+        if (data.success) {
           setCompanies(data.data || []);
-          setTotalPages(data.pages || 1);
-          setTotalCompanies(data.total || 0);
+          
+          // Handle pagination with fallbacks
+          if (data.pages !== undefined) {
+            setTotalPages(data.pages);
+          } else if (data.total !== undefined) {
+            // Calculate pages from total and limit
+            setTotalPages(Math.ceil(data.total / limit));
+          } else {
+            setTotalPages(1);
+          }
+          
+          if (data.total !== undefined) {
+            setTotalCompanies(data.total);
+          } else {
+            setTotalCompanies(data.data?.length || 0);
+          }
         }
       } catch (error) {
         console.error("Failed to fetch companies:", error);
@@ -160,4 +140,3 @@ const Index = () => {
 };
 
 export default Index;
-

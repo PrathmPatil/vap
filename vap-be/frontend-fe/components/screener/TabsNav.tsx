@@ -1,4 +1,7 @@
-export default function TabsNav({ tabs }) {
+interface TabsNavProps {
+  tabs: string[];
+}
+export default function TabsNav({ tabs }: TabsNavProps) {
   return (
     <div className="flex gap-4 overflow-x-auto py-4 border-b">
       {tabs.map((tab) => (

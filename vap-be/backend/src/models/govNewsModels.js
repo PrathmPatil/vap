@@ -17,6 +17,19 @@ const sequelize = new Sequelize(
   }
 );
 
+// DB_BSE_INDICES
+// const bse_indices= new Sequelize(
+//   process.env.DB_BSE_INDICES,
+//   process.env.DB_BSE_INDICES_USER,
+//   process.env.DB_BSE_INDICES_PASS,
+//   {
+//     host: process.env.DB_BSE_INDICES_HOST,
+//     dialect: process.env.DB_BSE_INDICES_DIALECT || 'mysql',
+//     logging: false
+//   }
+// );
+
+
 const db = {};
 
 /* ----------------------------------------

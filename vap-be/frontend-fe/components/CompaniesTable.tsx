@@ -9,6 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '.
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import Link from 'next/link';
+import { getListedCompaniesData } from '@/utils';
 
 interface Company {
   id: number;
@@ -31,6 +32,16 @@ interface CompaniesResponse {
   data: Company[];
 }
 
+// Add this type to match what getListedCompaniesData actually returns
+interface ListedCompaniesApiResponse {
+  success: boolean;
+  data: Company[];
+  pages?: number;
+  page?: number;
+  total?: number;
+  message?: string;
+}
+
 export function CompaniesTable() {
   const [companies, setCompanies] = useState<Company[]>([]);
   const [loading, setLoading] = useState(true);
@@ -44,14 +55,30 @@ export function CompaniesTable() {
     const fetchCompanies = async () => {
       setLoading(true);
       try {
-        const url = `http://localhost:8000/vap/company-data/listed-companies?page=${currentPage}&limit=${limit}${searchTerm ? `&search=${searchTerm}` : ''}`;
-        const response = await fetch(url);
+        // Call the API function
+        const response = await getListedCompaniesData(currentPage, limit, searchTerm);
         
-        if (response.ok) {
-          const data: CompaniesResponse = await response.json();
+        // Cast the response to the correct type
+        const data = response as ListedCompaniesApiResponse;
+        
+        if (data.success) {
           setCompanies(data.data || []);
-          setTotalPages(data.pages || 1);
-          setTotalCompanies(data.total || 0);
+          
+          // Handle pagination properties with fallbacks
+          if (data.pages !== undefined) {
+            setTotalPages(data.pages);
+          } else if (data.total !== undefined) {
+            // Calculate pages from total and limit if pages is not provided
+            setTotalPages(Math.ceil(data.total / limit));
+          } else {
+            setTotalPages(1);
+          }
+          
+          if (data.total !== undefined) {
+            setTotalCompanies(data.total);
+          } else {
+            setTotalCompanies(data.data?.length || 0);
+          }
         }
       } catch (error) {
         console.error('Failed to fetch companies:', error);
@@ -152,9 +179,11 @@ export function CompaniesTable() {
                     ) : (
                       companies.map((company) => (
                         <TableRow key={company.id} className="hover:bg-slate-50 transition-colors">
-                          <TableCell className="font-semibold text-blue-600"> <Link href={`/company/${company.symbol}`}>
-        {company.symbol}
-      </Link></TableCell>
+                          <TableCell className="font-semibold text-blue-600">
+                            <Link href={`/company/${company.symbol}`}>
+                              {company.symbol}
+                            </Link>
+                          </TableCell>
                           <TableCell className="max-w-xs truncate">{company.company_name}</TableCell>
                           <TableCell><Badge variant="secondary">{company.series}</Badge></TableCell>
                           <TableCell className="flex items-center space-x-1">

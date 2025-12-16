@@ -4,12 +4,30 @@ import { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { TrendingUp, TrendingDown, Building2, AlertTriangle } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
+import { getFailedSymbols, getListedCompanies } from '@/utils';
 
 interface MarketStats {
   totalCompanies: number;
   totalDataPoints: number;
   failedSymbols: number;
   activeSymbols: number;
+}
+
+// Define response types for your API calls
+interface ListedCompaniesResponse {
+  success: boolean;
+  total?: number;
+  page?: number;
+  pages?: number;
+  data?: any[];
+  message?: string;
+}
+
+interface FailedSymbolsResponse {
+  success: boolean;
+  total?: number;
+  data?: any[];
+  message?: string;
 }
 
 export function MarketOverview() {
@@ -20,53 +38,48 @@ export function MarketOverview() {
     const fetchStats = async () => {
       try {
         // Fetch data from multiple endpoints with proper error handling
-        const [companiesRes, failedRes] = await Promise.all([
-          fetch('http://localhost:8000/vap/company-data/listed-companies').catch(() => null),
-          fetch('http://localhost:8000/vap/company-data/failed-symbols').catch(() => null)
+        const [companiesRes, failedRes] = await Promise.allSettled([
+          getListedCompanies(),
+          getFailedSymbols()
         ]);
 
-        let companiesData = { total: 0 };
-        let failedData = { total: 0 };
+        let companiesTotal = 2148; // Default mock data
+        let failedTotal = 4; // Default mock data
 
-        // Check if responses are valid and contain JSON
-        if (companiesRes && companiesRes.ok) {
-          const contentType = companiesRes.headers.get('content-type');
-          if (contentType && contentType.includes('application/json')) {
-            companiesData = await companiesRes.json();
+        // Handle companies response
+        if (companiesRes.status === 'fulfilled') {
+          const companiesData = companiesRes.value as ListedCompaniesResponse;
+          if (companiesData.success) {
+            companiesTotal = companiesData.total || 2148;
           }
         }
 
-        if (failedRes && failedRes.ok) {
-          const contentType = failedRes.headers.get('content-type');
-          if (contentType && contentType.includes('application/json')) {
-            failedData = await failedRes.json();
+        // Handle failed symbols response
+        if (failedRes.status === 'fulfilled') {
+          const failedData = failedRes.value as FailedSymbolsResponse;
+          if (failedData.success) {
+            failedTotal = failedData.total || 4;
           }
         }
 
-        // Use mock data if API is not available
-        if (!companiesRes || !companiesRes.ok) {
-          companiesData = { total: 2148 }; // Mock data based on your example
-        }
-
-        if (!failedRes || !failedRes.ok) {
-          failedData = { total: 4 }; // Mock data
-        }
-
+        // Calculate active symbols
+        const activeSymbols = Math.max(0, companiesTotal - failedTotal);
+        
         setStats({
-          totalCompanies: companiesData.total || 0,
-          totalDataPoints: (companiesData.total || 0) * 365, // Estimated
-          failedSymbols: failedData.total || 0,
-          activeSymbols: (companiesData.total || 0) - (failedData.total || 0)
+          totalCompanies: companiesTotal,
+          totalDataPoints: companiesTotal * 365, // Estimated
+          failedSymbols: failedTotal,
+          activeSymbols: activeSymbols
         });
       } catch (error) {
         console.error('Failed to fetch market stats:', error);
         // Fallback to mock data when API is unavailable
-        // setStats({
-        //   totalCompanies: 2148,
-        //   totalDataPoints: 2148 * 365,
-        //   failedSymbols: 4,
-        //   activeSymbols: 2144
-        // });
+        setStats({
+          totalCompanies: 2148,
+          totalDataPoints: 2148 * 365,
+          failedSymbols: 4,
+          activeSymbols: 2144
+        });
       } finally {
         setLoading(false);
       }

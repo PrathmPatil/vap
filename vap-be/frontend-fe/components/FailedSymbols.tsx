@@ -13,6 +13,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { AlertTriangle, Clock, XCircle } from 'lucide-react';
+import { getFailedSymbolsList } from '@/utils';
 
 interface FailedSymbol {
   id: number;
@@ -25,6 +26,7 @@ interface FailedSymbolsResponse {
   success: boolean;
   data: FailedSymbol[];
   total?: number;
+  message?: string;
 }
 
 export function FailedSymbols() {
@@ -34,18 +36,25 @@ export function FailedSymbols() {
   useEffect(() => {
     const fetchFailedSymbols = async () => {
       try {
-        const response = await fetch('http://localhost:8000/vap/company-data/failed-symbols');
+        // OPTION 1: Type assertion (quick fix)
+        const response = await getFailedSymbolsList() as FailedSymbolsResponse;
         
-        if (response.ok) {
-          const contentType = response.headers.get('content-type');
-          if (contentType && contentType.includes('application/json')) {
-            const data: FailedSymbolsResponse = await response.json();
-            if (data.success && data.data) {
-              setFailedSymbols(data.data);
-              return;
-            }
+        // OPTION 2: Type guard approach (safer)
+        // const response = await getFailedSymbolsList();
+        // if (!response || typeof response !== 'object') {
+        //   throw new Error('Invalid response format');
+        // }
+        // const data = response as FailedSymbolsResponse;
+        
+        // Check if the response indicates success
+        if (response.success) {
+          // The data is already in the response object, no need to parse JSON
+          if (response.data) {
+            setFailedSymbols(response.data);
           }
-        }       
+        } else {
+          console.error('Failed to fetch symbols:', response.message);
+        }
       } catch (error) {
         console.error('Failed to fetch failed symbols:', error);
       } finally {

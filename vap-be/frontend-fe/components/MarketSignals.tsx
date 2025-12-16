@@ -38,16 +38,18 @@ import Navigation from "./Navigation";
 import CalendarPicker from "./CalendarPicker";
 import { getAnalyzeCompaniesData } from "@/utils";
 
-interface MarketSignal {
+
+export interface MarketSignal {
   symbol: string;
   date: string;
 }
 
-interface MarketSignalsData {
+export interface MarketSignalsData {
   RallyAttemptDay: MarketSignal[];
   FollowThroughDay: MarketSignal[];
   BuyDay: MarketSignal[];
 }
+
 
 export default function MarketSignalsPage() {
   const [data, setData] = useState<MarketSignalsData | null>(null);
@@ -69,7 +71,6 @@ export default function MarketSignalsPage() {
   const fetchData = async (date:string) => {
     setLoading(true);
     try {
-      // http://localhost:8000/vap/company-data/formula/all-companies
       const response = await getAnalyzeCompaniesData(date);
       console.log("Response from analyze companies API:", response);
       setData(response );

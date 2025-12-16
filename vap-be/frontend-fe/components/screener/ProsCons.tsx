@@ -1,4 +1,8 @@
-export default function ProsCons({ pros, cons }) {
+interface ProsConsProps {
+  pros: string[];
+  cons: string[];
+}
+export default function ProsCons({ pros, cons }: ProsConsProps) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 py-6">
       <div>

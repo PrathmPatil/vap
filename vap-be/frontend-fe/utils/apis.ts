@@ -16,7 +16,7 @@ export async function callApi<T>({
   headers = {},
 }: ApiOptions): Promise<T> {
   const config: AxiosRequestConfig = {
-    url:"http://localhost:8000/vap/"+ url,
+    url:process.env.NEXT_PUBLIC_API_URL + url,
     method,
     headers: {
       'Content-Type': 'application/json',

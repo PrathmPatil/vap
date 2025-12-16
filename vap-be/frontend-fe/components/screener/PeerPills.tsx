@@ -1,4 +1,7 @@
-export default function PeerPills({ peers }) {
+interface PeerPillsProps {
+  peers: string[];
+}
+export default function PeerPills({ peers }: PeerPillsProps) {
   return (
     <div className="flex flex-wrap gap-2 py-6">
       {peers.map((peer) => (

@@ -44,7 +44,7 @@ interface IpoData {
   _URLRewrite_Folder_Name: string;
   Total_Issue_Amount_Incl_Firm_reservations_Rs_cr_: string;
   created_at: string;
-  type: "mainboard" | "sme";
+  type: "mainboard_data" | "sme_data";
 }
 
 interface IpoResponse {
