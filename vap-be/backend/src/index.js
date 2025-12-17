@@ -20,6 +20,7 @@ import screenerDataRoutes from './routes/screenerData.routes.js';
 import ipoRoutes from './routes/ipoDataRoutes.js';
 import announcementsRoutes from './routes/announcementsRoutes.js';
 import govNewsRouter from './routes/govNewsRouter.js';
+import indicesRoute from './routes/ingestRoutes.js';
 // DB connections
 import { sequelizeStockMarket, sequelizeBhavcopy, sequelizeYFinanceDB, sequelizeScreener, sequelizeIPO, sequelizeAnnouncement  } from './models/index.js';
 
@@ -101,6 +102,8 @@ app.use('/vap/screener', screenerDataRoutes);
 app.use("/vap/ipo", ipoRoutes);
 app.use("/vap/bse-news", announcementsRoutes); // Placeholder for BSE news routes
 app.use('/vap/gov-news', govNewsRouter);
+app.use("/vap/indices", indicesRoute);
+
 app.get('/vap/welcome', (req, res) => {
   res.send('📂 Welcome to the Corporate Events Ingestion API.');
 });

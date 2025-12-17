@@ -8,10 +8,11 @@ import PeerPills from "./screener/PeerPills";
 import ProsCons from "./screener/ProsCons";
 import TabsNav from "./screener/TabsNav";
 
+import { FinancialMetric } from "@/lib/financial"; // Library type
 
 export default function CompanyPage({ symbol }: { symbol: string }) {
-    console.log("Rendering CompanyPage for symbol:", symbol);
-  // Dummy Data (replace with API/db fetch later)
+  console.log("Rendering CompanyPage for symbol:", symbol);
+
   const data = {
     header: {
       name: "Tata Consultancy Services",
@@ -45,20 +46,20 @@ export default function CompanyPage({ symbol }: { symbol: string }) {
         title: "Quarterly Results",
         columns: ["Jun 23", "Sep 23", "Dec 23", "Mar 24"],
         rows: [
-          { metric: "Sales", values: ["59,381", "60,698", "61,237", "62,728"] },
-          { metric: "Expenses", values: ["40,211", "41,232", "41,789", "42,300"] },
-          { metric: "Operating Profit", values: ["19,170", "19,466", "19,448", "20,428"] },
-          { metric: "OPM %", values: ["32%", "32%", "32%", "33%"] },
-        ],
+          { symbol: "TCS", col_unknown: "Sales", Jun_23: "59,381", Sep_23: "60,698", Dec_23: "61,237", Mar_24: "62,728" },
+          { symbol: "TCS", col_unknown: "Expenses", Jun_23: "40,211", Sep_23: "41,232", Dec_23: "41,789", Mar_24: "42,300" },
+          { symbol: "TCS", col_unknown: "Operating Profit", Jun_23: "19,170", Sep_23: "19,466", Dec_23: "19,448", Mar_24: "20,428" },
+          { symbol: "TCS", col_unknown: "OPM %", Jun_23: "32%", Sep_23: "32%", Dec_23: "32%", Mar_24: "33%" },
+        ] as unknown as FinancialMetric[],
       },
       {
         title: "Profit & Loss",
         columns: ["Mar 21", "Mar 22", "Mar 23", "Mar 24"],
         rows: [
-          { metric: "Sales", values: ["1,67,311", "1,91,754", "2,25,458", "2,40,893"] },
-          { metric: "Net Profit", values: ["32,430", "38,327", "42,303", "45,902"] },
-          { metric: "EPS", values: ["85.8", "101.3", "112.6", "122.3"] },
-        ],
+          { symbol: "TCS", col_unknown: "Sales", Mar_21: "1,67,311", Mar_22: "1,91,754", Mar_23: "2,25,458", Mar_24: "2,40,893" },
+          { symbol: "TCS", col_unknown: "Net Profit", Mar_21: "32,430", Mar_22: "38,327", Mar_23: "42,303", Mar_24: "45,902" },
+          { symbol: "TCS", col_unknown: "EPS", Mar_21: "85.8", Mar_22: "101.3", Mar_23: "112.6", Mar_24: "122.3" },
+        ] as unknown as FinancialMetric[],
       },
     ],
     documents: [
@@ -81,7 +82,7 @@ export default function CompanyPage({ symbol }: { symbol: string }) {
       {data.tables.map(({ title, columns, rows }) => (
         <section key={title} className="py-8">
           <h2 className="text-2xl font-semibold mb-4">{title}</h2>
-          <FinancialTable columns={columns} data={rows} />
+          <FinancialTable data={rows} />
         </section>
       ))}
 

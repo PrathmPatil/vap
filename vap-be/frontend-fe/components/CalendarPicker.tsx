@@ -1,8 +1,16 @@
-import React, { useState } from "react";
+import React from "react";
 
-export default function CalendarPicker({selectedDate, setSelectedDate}) {
+interface CalendarPickerProps {
+  selectedDate: string;
+  setSelectedDate: (date: string) => void;
+}
 
-  const handleChange = (e) => {
+export default function CalendarPicker({
+  selectedDate,
+  setSelectedDate,
+}: CalendarPickerProps) {
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSelectedDate(e.target.value);
   };
 
@@ -17,6 +25,7 @@ export default function CalendarPicker({selectedDate, setSelectedDate}) {
       }}
     >
       <h2>Select a Date</h2>
+
       <input
         type="date"
         value={selectedDate}
@@ -29,6 +38,7 @@ export default function CalendarPicker({selectedDate, setSelectedDate}) {
           cursor: "pointer",
         }}
       />
+
       {selectedDate && (
         <p style={{ marginTop: "15px", fontSize: "18px" }}>
           You selected: <b>{selectedDate}</b>

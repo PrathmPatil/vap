@@ -1,20 +1,11 @@
 import Image from "next/image";
-import { Geist, Geist_Mono } from "next/font/google";
+// import { Geist, Geist_Mono } from "next/font/google";
 import  Navigation  from "@/components/Navigation";
 import { MarketOverview } from "@/components/MarketOverview";
 // import { StockCharts } from "@/components/StockCharts";
 import { CompaniesTable } from "@/components/CompaniesTable";
 import { FailedSymbols } from "@/components/FailedSymbols";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
 
 export default function Home() {
   return (

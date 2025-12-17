@@ -9,7 +9,7 @@ from app.routes import (
     yfinance,
     ipo_scraper,
     bse_ann_api,
-    gov_news_api
+    gov_news_api, nse_master_ingest
 )
 
 from app.config import config
@@ -38,8 +38,7 @@ app.include_router(yfinance.router, prefix="/yfinance", tags=["YFinance Data"])
 app.include_router(ipo_scraper.router, prefix="/ipo-scraper", tags=["IPO Scraper"])
 app.include_router(bse_ann_api.router, prefix="/bse", tags=["BSE Announcements"])
 app.include_router(gov_news_api.router, prefix="/gov-news", tags=["Government News"])
-
-
+app.include_router(nse_master_ingest.router, prefix="/ingest", tags=["NSE Master Ingest"])
 # ---------------------------------------------------------
 # 🌐 Root Endpoint
 # ---------------------------------------------------------
@@ -55,7 +54,8 @@ async def root():
             "yfinance": "/yfinance",
             "ipo_scraper": "/ipo-scraper",
             "bse_announcements": "/bse",
-            "gov_news": "/gov-news"
+            "gov_news": "/gov-news",
+            "ingest": "/ingest"
         },
         "docs": "/docs",
         "scheduler": "enabled"
@@ -78,7 +78,8 @@ async def health_check():
             "yfinance",
             "ipo_scraper",
             "bse_announcements",
-            "gov_news"
+            "gov_news",
+            "ingest"
         ]
     }
 

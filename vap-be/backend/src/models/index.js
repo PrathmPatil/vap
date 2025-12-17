@@ -91,6 +91,19 @@ const sequelizeAnnouncement = new Sequelize(
   }
 );
 
+// new database name nse_dynamic
+const sequelizeNseDynamic = new Sequelize(
+  process.env.NSE_DYNAMIC_DB_NAME,
+  process.env.NSE_DYNAMIC_DB_USER,
+  process.env.NSE_DYNAMIC_DB_PASS,
+  {
+    host: process.env.NSE_DYNAMIC_DB_HOST,
+    dialect: process.env.NSE_DYNAMIC_DB_DIALECT || 'mysql',
+    logging: false
+  }
+);
+
+
 // Stock Market Models
 import AllCompaniesDataModel from './all_companies_data.js';
 import CompaniesDataModel from './companies_data.js';
@@ -123,7 +136,9 @@ import UnknownSectionModel from './screener/otherDataUnknownSection.js';
 import YFinanceCompaniesModel from './screener/YFinanceCompanies.js';
 import IpoModels from './ipo/ipoModel.js';
 import Announcements from './announcements_model.js';
-
+import NseDynamic from './ingestModel.js';
+import MainboardDataModel from './ipo/MainboardData.js';
+import SmeDataModel from './ipo/SmeData.js';
 // -------------------------
 // Initialize Models
 // -------------------------
@@ -159,11 +174,14 @@ const Shareholding = ShareholdingModel(sequelizeScreener, DataTypes);
 const UnknownSection = UnknownSectionModel(sequelizeScreener, DataTypes);
 
 const YCompanies = YFinanceCompaniesModel(sequelizeYFinanceDB, DataTypes);
-// sequelizeIPO
-const { MainboardData, SmeData } = IpoModels(sequelizeIPO, Sequelize.DataTypes);
-
+  const MainboardData = MainboardDataModel(sequelizeIPO, DataTypes);
+  const SmeData = SmeDataModel(sequelizeIPO, DataTypes);
 // news announcements model can be added here similarly
 const AnnouncementsModel = Announcements(sequelizeAnnouncement, DataTypes);
+
+// sequelizeNseDynamic
+// You can initialize models for the nse_dynamic database here similarly
+const nseModel = NseDynamic(sequelizeNseDynamic, DataTypes);
 // -------------------------
 // Export
 // -------------------------
@@ -175,6 +193,7 @@ export {
   sequelizeYFinanceDB,
   sequelizeIPO,
   sequelizeAnnouncement,
+  sequelizeNseDynamic,
 
   // Stock Market Models
   AllCompaniesData,
@@ -210,7 +229,8 @@ export {
   YCompanies,
   MainboardData,
   SmeData,
-  AnnouncementsModel
+  AnnouncementsModel,
+  nseModel
 };
 
 export const dbModels = {

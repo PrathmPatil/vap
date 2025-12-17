@@ -24,7 +24,7 @@ interface IpoData {
   _URLRewrite_Folder_Name: string;
   Total_Issue_Amount_Incl_Firm_reservations_Rs_cr_: string;
   created_at: string;
-  type: "mainboard" | "sme";
+  type: "mainboard_data" | "sme_data";
 }
 
 interface IpoResponse {
@@ -40,14 +40,31 @@ interface SortConfig {
   direction: "asc" | "desc";
 }
 
+// types/ipo.ts
+export interface IpoItem {
+  name: string;
+  symbol: string;
+  issuePrice: number;
+  lotSize: number;
+  listingDate: string;
+  [key: string]: any; // for extra fields
+}
+
+export interface IpoResponse2 {
+  success: boolean;
+  data: IpoItem[];
+  totalRecords?: number;
+  message?: string;
+}
+
 const Index = () => {
-  const [ipoType, setIpoType] = useState<"mainboard" | "sme">("mainboard");
+  const [ipoType, setIpoType] = useState<"mainboard_data" | "sme_data">("mainboard_data");
   const [ipoData, setIpoData] = useState<{
-    mainboard: IpoResponse;
-    sme: IpoResponse;
+    mainboard_data: IpoResponse;
+    sme_data: IpoResponse;
   }>({
-    mainboard: { success: false, total: 0, page: 1, pages: 0, data: [] },
-    sme: { success: false, total: 0, page: 1, pages: 0, data: [] },
+    mainboard_data: { success: false, total: 0, page: 1, pages: 0, data: [] },
+    sme_data: { success: false, total: 0, page: 1, pages: 0, data: [] },
   });
 
   const [loading, setLoading] = useState(false);
@@ -60,10 +77,11 @@ const Index = () => {
   });
 
   // Fetch data for selected IPO type
-  const fetchIpoData = async (type: "mainboard" | "sme") => {
+  const fetchIpoData = async (type: "mainboard_data" | "sme_data") => {
     setLoading(true);
     try {
       const response = await getIpoData(type, currentPage, recordsPerPage);
+
       if (response.success) {
         setIpoData((prev) => ({
           ...prev,
@@ -71,7 +89,7 @@ const Index = () => {
         }));
         setError(null);
       } else {
-        setError("Failed to fetch data");
+        setError(response.message || "Failed to fetch data");
       }
     } catch (err) {
       console.error("Error fetching IPO data:", err);
@@ -144,37 +162,37 @@ const Index = () => {
       <main className="container mx-auto px-4 py-8 space-y-6">
         {/* Header */}
         <h2 className="text-2xl font-bold text-gray-900">
-          IPO Listing - {ipoType === "mainboard" ? "Mainboard" : "SME"}
+          IPO Listing - {ipoType === "mainboard_data" ? "Mainboard" : "SME"}
         </h2>
 
         {/* Tabs */}
         <Tabs
           value={ipoType}
           onValueChange={(val) => {
-            setIpoType(val as "mainboard" | "sme");
+            setIpoType(val as "mainboard_data" | "sme_data");
             setCurrentPage(1); // 🔥 Reset pagination on tab change
           }}
         >
           <TabsList className="grid w-full grid-cols-2">
-            {["mainboard", "sme"].map((type) => (
+            {["mainboard_data", "sme_data"].map((type) => (
               <TabsTrigger key={type} value={type}>
-                {type === "mainboard" ? "Mainboard" : "SME"}
+                {type === "mainboard_data" ? "Mainboard" : "SME"}
                 <Badge className="ml-2">
-                  {ipoData[type as "mainboard" | "sme"].total}
+                  {ipoData[type as "mainboard_data" | "sme_data"].total}
                 </Badge>
               </TabsTrigger>
             ))}
           </TabsList>
 
-          {["mainboard", "sme"].map((type) => (
+          {["mainboard_data", "sme_data"].map((type) => (
             <TabsContent key={type} value={type}>
               <IpoTable
-                data={ipoData[type as "mainboard" | "sme"].data}
+                data={ipoData[type as "mainboard_data" | "sme_data"].data}
                 loading={loading}
                 currentPage={currentPage}
                 recordsPerPage={recordsPerPage}
-                totalItems={ipoData[type as "mainboard" | "sme"].total}
-                totalPages={ipoData[type as "mainboard" | "sme"].pages}
+                totalItems={ipoData[type as "mainboard_data" | "sme_data"].total}
+                totalPages={ipoData[type as "mainboard_data" | "sme_data"].pages}
                 onPageChange={handlePageChange}
                 onRecordsPerPageChange={handleRecordsPerPageChange}
                 sortConfig={sortConfig}

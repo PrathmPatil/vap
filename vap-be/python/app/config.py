@@ -26,6 +26,7 @@ class Config:
     DB_IPO = os.getenv("DB_IPO", "ipo_data_fastapi")
     DB_BSE = os.getenv("DB_BSE", "bse_data_fastapi")  
     DB_NEWS = os.getenv("DB_NEWS", "gov_news_data_fastapi")
+    DB_BSE_INDICES = os.getenv("DB_BSE_INDICES", "bse_indices_fastapi")
 
     # SQLite fallback or additional storage paths
     DATABASE_CONFIG = {

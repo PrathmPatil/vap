@@ -1,11 +1,83 @@
 import React, { useState } from 'react';
 
-const NewsTableView = ({ data }) => {
-  const [activeTab, setActiveTab] = useState('news_on_air');
-  const [expandedRows, setExpandedRows] = useState({});
+// Define TypeScript interfaces
+interface NewsOnAirItem {
+  id: number;
+  title: string;
+  body: string;
+  image?: string;
+  news_category: string;
+  updatedAt: string;
+  url: string;
+}
 
+interface PIBNewsItem {
+  id: number;
+  title: string;
+  ministry_title: string;
+  source: string;
+  createdAt: string;
+  url: string;
+}
+
+interface PIBMinistryItem {
+  id: number;
+  ministry_id: string;
+  title: string;
+}
+
+interface DDNewsItem {
+  id: number;
+  title: string;
+  image?: string;
+  news_category: string;
+  source: string;
+  createdAt: string;
+  url: string;
+}
+
+interface NewsData {
+  news_on_air: NewsOnAirItem[];
+  pib_news: PIBNewsItem[];
+  pib_ministry: PIBMinistryItem[];
+  dd_news: DDNewsItem[];
+}
+
+interface TotalRecords {
+  news_on_air: number;
+  pib_news: number;
+  pib_ministry: number;
+  dd_news: number;
+}
+
+interface NewsTableViewData {
+  total_records: TotalRecords;
+  data: NewsData;
+}
+
+interface NewsTableViewProps {
+  data: NewsTableViewData;
+}
+
+interface ExpandedRows {
+  [key: string]: boolean;
+}
+
+type TabKey = 'news_on_air' | 'pib_news' | 'pib_ministry' | 'dd_news';
+
+interface Tab {
+  key: TabKey;
+  label: string;
+  count: number;
+}
+
+const NewsTableView: React.FC<NewsTableViewProps> = ({ data }) => {
+  const [activeTab, setActiveTab] = useState<TabKey>('news_on_air');
+  const [expandedRows, setExpandedRows] = useState<ExpandedRows>({});
+
+  console.log('NewsTableView data:', data);
   // Toggle row expansion
-  const toggleRowExpansion = (section, id) => {
+  const toggleRowExpansion = (section: TabKey, id: number) => {
     setExpandedRows(prev => ({
       ...prev,
       [`${section}_${id}`]: !prev[`${section}_${id}`]
@@ -13,7 +85,7 @@ const NewsTableView = ({ data }) => {
   };
 
   // Format date function
-  const formatDate = (dateString) => {
+  const formatDate = (dateString: string): string => {
     if (!dateString) return 'N/A';
     try {
       return new Date(dateString).toLocaleDateString('en-US', {
@@ -29,39 +101,43 @@ const NewsTableView = ({ data }) => {
   };
 
   // Truncate text function
-  const truncateText = (text, length = 100) => {
+  const truncateText = (text: string, length: number = 100): string => {
     if (!text) return 'No content available';
     return text.length > length ? text.substring(0, length) + '...' : text;
   };
 
   // Tab configuration
-  const tabs = [
-    { key: 'news_on_air', label: 'News on Air', count: data.total_records.news_on_air },
-    { key: 'pib_news', label: 'PIB News', count: data.total_records.pib_news },
-    { key: 'pib_ministry', label: 'PIB Ministry', count: data.total_records.pib_ministry },
-    { key: 'dd_news', label: 'DD News', count: data.total_records.dd_news },
+  const tabs: Tab[] = [
+    { 
+      key: 'news_on_air', 
+      label: 'News on Air', 
+      count: data?.total_records?.news_on_air || 0 
+    },
+    { 
+      key: 'pib_news', 
+      label: 'PIB News', 
+      count: data?.total_records?.pib_news || 0 
+    },
+    { 
+      key: 'pib_ministry', 
+      label: 'PIB Ministry', 
+      count: data?.total_records?.pib_ministry || 0 
+    },
+    { 
+      key: 'dd_news', 
+      label: 'DD News', 
+      count: data?.total_records?.dd_news || 0 
+    },
   ];
 
-  // Render different tables based on section
-  const renderTable = () => {
-    const sectionData = data.data[activeTab] || [];
-
-    switch (activeTab) {
-      case 'news_on_air':
-        return renderNewsOnAirTable(sectionData);
-      case 'pib_news':
-        return renderPibNewsTable(sectionData);
-      case 'pib_ministry':
-        return renderPibMinistryTable(sectionData);
-      case 'dd_news':
-        return renderDDNewsTable(sectionData);
-      default:
-        return null;
-    }
+  // Safe data access
+  const getSectionData = (): any[] => {
+    if (!data?.data) return [];
+    return data.data[activeTab] || [];
   };
 
   // News on Air Table
-  const renderNewsOnAirTable = (newsData) => (
+  const renderNewsOnAirTable = (newsData: NewsOnAirItem[]) => (
     <div className="overflow-x-auto">
       <table className="min-w-full bg-white border border-gray-200">
         <thead className="bg-gray-50">
@@ -73,63 +149,68 @@ const NewsTableView = ({ data }) => {
           </tr>
         </thead>
         <tbody className="divide-y divide-gray-200">
-          {newsData.map((news) => (
-            <React.Fragment key={news.id}>
-              <tr className="hover:bg-gray-50">
-                <td className="px-6 py-4">
-                  <div className="flex items-start space-x-3">
-                    {news.image && (
-                      <img 
-                        src={news.image} 
-                        alt={news.title}
-                        className="w-16 h-16 object-cover rounded-lg"
-                      />
-                    )}
-                    <div className="flex-1">
-                      <h3 className="text-sm font-medium text-gray-900">{news.title}</h3>
-                      <p className="text-sm text-gray-500 mt-1">
-                        {expandedRows[`news_on_air_${news.id}`] 
-                          ? news.body 
-                          : truncateText(news.body, 150)
-                        }
-                      </p>
-                      <button
-                        onClick={() => toggleRowExpansion('news_on_air', news.id)}
-                        className="text-blue-600 hover:text-blue-800 text-xs mt-1"
-                      >
-                        {expandedRows[`news_on_air_${news.id}`] ? 'Show Less' : 'Read More'}
-                      </button>
+          {newsData.map((news) => {
+            const rowKey = `news_on_air_${news.id}`;
+            const isExpanded = expandedRows[rowKey] || false;
+            
+            return (
+              <React.Fragment key={news.id}>
+                <tr className="hover:bg-gray-50">
+                  <td className="px-6 py-4">
+                    <div className="flex items-start space-x-3">
+                      {news.image && (
+                        <img 
+                          src={news.image} 
+                          alt={news.title}
+                          className="w-16 h-16 object-cover rounded-lg"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).style.display = 'none';
+                          }}
+                        />
+                      )}
+                      <div className="flex-1">
+                        <h3 className="text-sm font-medium text-gray-900">{news.title}</h3>
+                        <p className="text-sm text-gray-500 mt-1">
+                          {isExpanded ? news.body : truncateText(news.body, 150)}
+                        </p>
+                        <button
+                          onClick={() => toggleRowExpansion('news_on_air', news.id)}
+                          className="text-blue-600 hover:text-blue-800 text-xs mt-1"
+                        >
+                          {isExpanded ? 'Show Less' : 'Read More'}
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                </td>
-                <td className="px-6 py-4">
-                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                    {news.news_category}
-                  </span>
-                </td>
-                <td className="px-6 py-4 text-sm text-gray-500">
-                  {formatDate(news.updatedAt)}
-                </td>
-                <td className="px-6 py-4 text-sm">
-                  <a
-                    href={news.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-blue-600 hover:text-blue-900 font-medium"
-                  >
-                    View
-                  </a>
-                </td>
-              </tr>
-            </React.Fragment>
-          ))}
+                  </td>
+                  <td className="px-6 py-4">
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                      {news.news_category}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 text-sm text-gray-500">
+                    {formatDate(news.updatedAt)}
+                  </td>
+                  <td className="px-6 py-4 text-sm">
+                    <a
+                      href={news.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-600 hover:text-blue-900 font-medium"
+                    >
+                      View
+                    </a>
+                  </td>
+                </tr>
+              </React.Fragment>
+            );
+          })}
         </tbody>
       </table>
     </div>
   );
 
   // PIB News Table
-  const renderPibNewsTable = (newsData) => (
+  const renderPibNewsTable = (newsData: PIBNewsItem[]) => (
     <div className="overflow-x-auto">
       <table className="min-w-full bg-white border border-gray-200">
         <thead className="bg-gray-50">
@@ -176,7 +257,7 @@ const NewsTableView = ({ data }) => {
   );
 
   // PIB Ministry Table
-  const renderPibMinistryTable = (ministryData) => (
+  const renderPibMinistryTable = (ministryData: PIBMinistryItem[]) => (
     <div className="overflow-x-auto">
       <table className="min-w-full bg-white border border-gray-200">
         <thead className="bg-gray-50">
@@ -208,7 +289,7 @@ const NewsTableView = ({ data }) => {
   );
 
   // DD News Table
-  const renderDDNewsTable = (newsData) => (
+  const renderDDNewsTable = (newsData: DDNewsItem[]) => (
     <div className="overflow-x-auto">
       <table className="min-w-full bg-white border border-gray-200">
         <thead className="bg-gray-50">
@@ -230,6 +311,9 @@ const NewsTableView = ({ data }) => {
                       src={news.image} 
                       alt={news.title}
                       className="w-16 h-16 object-cover rounded-lg"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).style.display = 'none';
+                      }}
                     />
                   )}
                   <div className="flex-1">
@@ -264,6 +348,44 @@ const NewsTableView = ({ data }) => {
       </table>
     </div>
   );
+
+  // Render table based on active tab
+  const renderTable = () => {
+    const sectionData = getSectionData();
+    
+    if (sectionData.length === 0) {
+      return null;
+    }
+
+    switch (activeTab) {
+      case 'news_on_air':
+        return renderNewsOnAirTable(sectionData as NewsOnAirItem[]);
+      case 'pib_news':
+        return renderPibNewsTable(sectionData as PIBNewsItem[]);
+      case 'pib_ministry':
+        return renderPibMinistryTable(sectionData as PIBMinistryItem[]);
+      case 'dd_news':
+        return renderDDNewsTable(sectionData as DDNewsItem[]);
+      default:
+        return null;
+    }
+  };
+
+  // Check if data is available
+  if (!data || !data.total_records || !data.data) {
+    return (
+      <div className="max-w-7xl mx-auto p-6">
+        <div className="text-center py-12">
+          <div className="text-gray-400 text-6xl mb-4">📰</div>
+          <h3 className="text-lg font-medium text-gray-900 mb-2">No data available</h3>
+          <p className="text-gray-500">Unable to load news data.</p>
+        </div>
+      </div>
+    );
+  }
+
+  const sectionData = getSectionData();
+  const hasData = sectionData.length > 0;
 
   return (
     <div className="max-w-7xl mx-auto p-6">
@@ -314,12 +436,11 @@ const NewsTableView = ({ data }) => {
       </div>
 
       {/* Table */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-        {renderTable()}
-      </div>
-
-      {/* Empty State */}
-      {(!data.data[activeTab] || data.data[activeTab].length === 0) && (
+      {hasData ? (
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+          {renderTable()}
+        </div>
+      ) : (
         <div className="text-center py-12">
           <div className="text-gray-400 text-6xl mb-4">📰</div>
           <h3 className="text-lg font-medium text-gray-900 mb-2">No news available</h3>

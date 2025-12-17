@@ -1,8 +1,0 @@
-info: ::1 - - [25/Nov/2025:04:22:29 +0000] "GET /vap/bse-news?search=&page=1&limit=20&sortField=DT_TM&sortOrder=DESC HTTP/1.1" 200 21471 "http://localhost:3000/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36"
-
-info: ::1 - - [25/Nov/2025:04:22:30 +0000] "GET /vap/gov-news/all?search=&page=1&limit=20&sortField=DT_TM&sortOrder=DESC HTTP/1.1" 200 131548 "http://localhost:3000/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36"
-
-info: ::1 - - [25/Nov/2025:04:22:37 +0000] "GET /vap/bse-news?search=&page=1&limit=20&sortField=DT_TM&sortOrder=DESC HTTP/1.1" 304 - "http://localhost:3000/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36"
-
-info: ::1 - - [25/Nov/2025:04:22:37 +0000] "GET /vap/bse-news?search=&page=1&limit=20&sortField=DT_TM&sortOrder=DESC HTTP/1.1" 304 - "http://localhost:3000/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36"
-

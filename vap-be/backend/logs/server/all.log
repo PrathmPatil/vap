@@ -7307,3 +7307,737 @@ info: ✅ ipo_data_fastapi database synced. {"timestamp":"2025-11-25T04:20:20.85
 info: ✅ Connected to bse_data database. {"timestamp":"2025-11-25T04:20:20.895Z"}
 info: ✅ bse_data database synced. {"timestamp":"2025-11-25T04:20:20.914Z"}
 info: 🚀 Server running on http://localhost:8000/vap/ {"timestamp":"2025-11-25T04:20:20.926Z"}
+info: ✅ Connected to stock_market database. {"timestamp":"2025-12-05T18:52:54.503Z"}
+info: ✅ stock_market database synced. {"timestamp":"2025-12-05T18:52:54.617Z"}
+info: ✅ Connected to bhavcopy database. {"timestamp":"2025-12-05T18:52:54.636Z"}
+info: ✅ bhavcopy database synced. {"timestamp":"2025-12-05T18:52:54.741Z"}
+info: ✅ Connected to screener_data database. {"timestamp":"2025-12-05T18:52:54.760Z"}
+info: ✅ screener_data database synced. {"timestamp":"2025-12-05T18:52:54.856Z"}
+info: ✅ Connected to third_db database. {"timestamp":"2025-12-05T18:52:54.872Z"}
+info: ✅ third_db database synced. {"timestamp":"2025-12-05T18:52:54.894Z"}
+info: ✅ Connected to ipo_data_fastapi database. {"timestamp":"2025-12-05T18:52:54.920Z"}
+info: ✅ ipo_data_fastapi database synced. {"timestamp":"2025-12-05T18:52:54.959Z"}
+info: ✅ Connected to bse_data database. {"timestamp":"2025-12-05T18:52:54.978Z"}
+info: ✅ bse_data database synced. {"timestamp":"2025-12-05T18:52:55.000Z"}
+info: 🚀 Server running on http://localhost:8000/vap/ {"timestamp":"2025-12-05T18:52:55.006Z"}
+info: ✅ Connected to stock_market database. {"timestamp":"2025-12-05T19:07:05.027Z"}
+info: ✅ stock_market database synced. {"timestamp":"2025-12-05T19:07:05.084Z"}
+info: ✅ Connected to bhavcopy database. {"timestamp":"2025-12-05T19:07:05.109Z"}
+info: ✅ bhavcopy database synced. {"timestamp":"2025-12-05T19:07:05.200Z"}
+info: ✅ Connected to screener_data database. {"timestamp":"2025-12-05T19:07:05.218Z"}
+info: ✅ screener_data database synced. {"timestamp":"2025-12-05T19:07:05.289Z"}
+info: ✅ Connected to third_db database. {"timestamp":"2025-12-05T19:07:05.301Z"}
+info: ✅ third_db database synced. {"timestamp":"2025-12-05T19:07:05.316Z"}
+info: ✅ Connected to ipo_data_fastapi database. {"timestamp":"2025-12-05T19:07:05.330Z"}
+info: ✅ ipo_data_fastapi database synced. {"timestamp":"2025-12-05T19:07:05.352Z"}
+info: ✅ Connected to bse_data database. {"timestamp":"2025-12-05T19:07:05.370Z"}
+info: ✅ bse_data database synced. {"timestamp":"2025-12-05T19:07:05.384Z"}
+info: 🚀 Server running on http://localhost:8000/vap/ {"timestamp":"2025-12-05T19:07:05.394Z"}
+info: ✅ Connected to stock_market database. {"timestamp":"2025-12-05T19:07:21.346Z"}
+info: ✅ stock_market database synced. {"timestamp":"2025-12-05T19:07:21.400Z"}
+info: ✅ Connected to bhavcopy database. {"timestamp":"2025-12-05T19:07:21.422Z"}
+info: ✅ bhavcopy database synced. {"timestamp":"2025-12-05T19:07:21.501Z"}
+info: ✅ Connected to screener_data database. {"timestamp":"2025-12-05T19:07:21.514Z"}
+info: ✅ screener_data database synced. {"timestamp":"2025-12-05T19:07:21.584Z"}
+info: ✅ Connected to third_db database. {"timestamp":"2025-12-05T19:07:21.597Z"}
+info: ✅ third_db database synced. {"timestamp":"2025-12-05T19:07:21.612Z"}
+info: ✅ Connected to ipo_data_fastapi database. {"timestamp":"2025-12-05T19:07:21.634Z"}
+info: ✅ ipo_data_fastapi database synced. {"timestamp":"2025-12-05T19:07:21.654Z"}
+info: ✅ Connected to bse_data database. {"timestamp":"2025-12-05T19:07:21.676Z"}
+info: ✅ bse_data database synced. {"timestamp":"2025-12-05T19:07:21.698Z"}
+info: 🚀 Server running on http://localhost:8000/vap/ {"timestamp":"2025-12-05T19:07:21.714Z"}
+error: uncaughtException: Cannot find module '../services/nseService.js'
+Require stack:
+- E:\Desktop_copy\Projects\vap\vap-be\backend\src\routes\ingestRoutes.js
+- E:\Desktop_copy\Projects\vap\vap-be\backend\src\index.js
+Error: Cannot find module '../services/nseService.js'
+Require stack:
+- E:\Desktop_copy\Projects\vap\vap-be\backend\src\routes\ingestRoutes.js
+- E:\Desktop_copy\Projects\vap\vap-be\backend\src\index.js
+    at Function.Module._resolveFilename (node:internal/modules/cjs/loader:1207:15)
+    at Function.Module._load (node:internal/modules/cjs/loader:1038:27)
+    at Module.require (node:internal/modules/cjs/loader:1289:19)
+    at require (node:internal/modules/helpers:182:18)
+    at Object.<anonymous> (E:\Desktop_copy\Projects\vap\vap-be\backend\src\routes\/ingestRoutes.js:2:1)
+    at Module._compile (node:internal/modules/cjs/loader:1521:14)
+    at Module._compile (E:\Desktop_copy\Projects\vap\vap-be\backend\node_modules\pirates\lib\index.js:129:24)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1623:10)
+    at Object.newLoader [as .js] (E:\Desktop_copy\Projects\vap\vap-be\backend\node_modules\pirates\lib\index.js:134:7)
+    at Module.load (node:internal/modules/cjs/loader:1266:32)
+    at Function.Module._load (node:internal/modules/cjs/loader:1091:12)
+    at Module.require (node:internal/modules/cjs/loader:1289:19)
+    at require (node:internal/modules/helpers:182:18)
+    at Object.<anonymous> (E:\Desktop_copy\Projects\vap\vap-be\backend\src\/index.js:23:1)
+    at Module._compile (node:internal/modules/cjs/loader:1521:14)
+    at Module._compile (E:\Desktop_copy\Projects\vap\vap-be\backend\node_modules\pirates\lib\index.js:129:24)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1623:10)
+    at Object.newLoader [as .js] (E:\Desktop_copy\Projects\vap\vap-be\backend\node_modules\pirates\lib\index.js:134:7)
+    at Module.load (node:internal/modules/cjs/loader:1266:32)
+    at Function.Module._load (node:internal/modules/cjs/loader:1091:12)
+    at Function.runMain (node:internal/modules/run_main:164:12)
+    at Object.<anonymous> (E:\Desktop_copy\Projects\vap\vap-be\backend\node_modules\@babel\node\src\_babel-node.ts:159:12)
+    at Module._compile (node:internal/modules/cjs/loader:1521:14)
+    at Object.Module._extensions..js (node:internal/modules/cjs/loader:1623:10)
+    at Module.load (node:internal/modules/cjs/loader:1266:32)
+    at Function.Module._load (node:internal/modules/cjs/loader:1091:12)
+    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:164:12)
+    at node:internal/main/run_main_module:28:49 {"date":"Sat Dec 06 2025 00:42:04 GMT+0530 (India Standard Time)","error":{"code":"MODULE_NOT_FOUND","requireStack":["E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\src\\routes\\ingestRoutes.js","E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\src\\index.js"]},"exception":true,"os":{"loadavg":[0,0,0],"uptime":27943.718},"process":{"argv":["node","E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\src\\index.js"],"cwd":"E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend","execPath":"C:\\Program Files\\nodejs\\node.exe","gid":null,"memoryUsage":{"arrayBuffers":53992,"external":3089913,"heapTotal":93171712,"heapUsed":73473352,"rss":131133440},"pid":9268,"uid":null,"version":"v20.19.5"},"stack":"Error: Cannot find module '../services/nseService.js'\nRequire stack:\n- E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\src\\routes\\ingestRoutes.js\n- E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\src\\index.js\n    at Function.Module._resolveFilename (node:internal/modules/cjs/loader:1207:15)\n    at Function.Module._load (node:internal/modules/cjs/loader:1038:27)\n    at Module.require (node:internal/modules/cjs/loader:1289:19)\n    at require (node:internal/modules/helpers:182:18)\n    at Object.<anonymous> (E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\src\\routes\\/ingestRoutes.js:2:1)\n    at Module._compile (node:internal/modules/cjs/loader:1521:14)\n    at Module._compile (E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\node_modules\\pirates\\lib\\index.js:129:24)\n    at Module._extensions..js (node:internal/modules/cjs/loader:1623:10)\n    at Object.newLoader [as .js] (E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\node_modules\\pirates\\lib\\index.js:134:7)\n    at Module.load (node:internal/modules/cjs/loader:1266:32)\n    at Function.Module._load (node:internal/modules/cjs/loader:1091:12)\n    at Module.require (node:internal/modules/cjs/loader:1289:19)\n    at require (node:internal/modules/helpers:182:18)\n    at Object.<anonymous> (E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\src\\/index.js:23:1)\n    at Module._compile (node:internal/modules/cjs/loader:1521:14)\n    at Module._compile (E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\node_modules\\pirates\\lib\\index.js:129:24)\n    at Module._extensions..js (node:internal/modules/cjs/loader:1623:10)\n    at Object.newLoader [as .js] (E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\node_modules\\pirates\\lib\\index.js:134:7)\n    at Module.load (node:internal/modules/cjs/loader:1266:32)\n    at Function.Module._load (node:internal/modules/cjs/loader:1091:12)\n    at Function.runMain (node:internal/modules/run_main:164:12)\n    at Object.<anonymous> (E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\node_modules\\@babel\\node\\src\\_babel-node.ts:159:12)\n    at Module._compile (node:internal/modules/cjs/loader:1521:14)\n    at Object.Module._extensions..js (node:internal/modules/cjs/loader:1623:10)\n    at Module.load (node:internal/modules/cjs/loader:1266:32)\n    at Function.Module._load (node:internal/modules/cjs/loader:1091:12)\n    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:164:12)\n    at node:internal/main/run_main_module:28:49","timestamp":"2025-12-05T19:12:04.991Z","trace":[{"column":15,"file":"node:internal/modules/cjs/loader","function":"Module._resolveFilename","line":1207,"method":"_resolveFilename","native":false},{"column":27,"file":"node:internal/modules/cjs/loader","function":"Module._load","line":1038,"method":"_load","native":false},{"column":19,"file":"node:internal/modules/cjs/loader","function":"Module.require","line":1289,"method":"require","native":false},{"column":18,"file":"node:internal/modules/helpers","function":"require","line":182,"method":null,"native":false},{"column":1,"file":"E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\src\\routes\\/ingestRoutes.js","function":null,"line":2,"method":null,"native":false},{"column":14,"file":"node:internal/modules/cjs/loader","function":"Module._compile","line":1521,"method":"_compile","native":false},{"column":24,"file":"E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\node_modules\\pirates\\lib\\index.js","function":"Module._compile","line":129,"method":"_compile","native":false},{"column":10,"file":"node:internal/modules/cjs/loader","function":"Module._extensions..js","line":1623,"method":".js","native":false},{"column":7,"file":"E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\node_modules\\pirates\\lib\\index.js","function":"Object.newLoader [as .js]","line":134,"method":"js]","native":false},{"column":32,"file":"node:internal/modules/cjs/loader","function":"Module.load","line":1266,"method":"load","native":false},{"column":12,"file":"node:internal/modules/cjs/loader","function":"Module._load","line":1091,"method":"_load","native":false},{"column":19,"file":"node:internal/modules/cjs/loader","function":"Module.require","line":1289,"method":"require","native":false},{"column":18,"file":"node:internal/modules/helpers","function":"require","line":182,"method":null,"native":false},{"column":1,"file":"E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\src\\/index.js","function":null,"line":23,"method":null,"native":false},{"column":14,"file":"node:internal/modules/cjs/loader","function":"Module._compile","line":1521,"method":"_compile","native":false},{"column":24,"file":"E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\node_modules\\pirates\\lib\\index.js","function":"Module._compile","line":129,"method":"_compile","native":false},{"column":10,"file":"node:internal/modules/cjs/loader","function":"Module._extensions..js","line":1623,"method":".js","native":false},{"column":7,"file":"E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\node_modules\\pirates\\lib\\index.js","function":"Object.newLoader [as .js]","line":134,"method":"js]","native":false},{"column":32,"file":"node:internal/modules/cjs/loader","function":"Module.load","line":1266,"method":"load","native":false},{"column":12,"file":"node:internal/modules/cjs/loader","function":"Module._load","line":1091,"method":"_load","native":false},{"column":12,"file":"node:internal/modules/run_main","function":"Function.runMain","line":164,"method":"runMain","native":false},{"column":12,"file":"E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\node_modules\\@babel\\node\\src\\_babel-node.ts","function":null,"line":159,"method":null,"native":false},{"column":14,"file":"node:internal/modules/cjs/loader","function":"Module._compile","line":1521,"method":"_compile","native":false},{"column":10,"file":"node:internal/modules/cjs/loader","function":"Module._extensions..js","line":1623,"method":".js","native":false},{"column":32,"file":"node:internal/modules/cjs/loader","function":"Module.load","line":1266,"method":"load","native":false},{"column":12,"file":"node:internal/modules/cjs/loader","function":"Module._load","line":1091,"method":"_load","native":false},{"column":12,"file":"node:internal/modules/run_main","function":"Function.executeUserEntryPoint [as runMain]","line":164,"method":"executeUserEntryPoint [as runMain]","native":false},{"column":49,"file":"node:internal/main/run_main_module","function":null,"line":28,"method":null,"native":false}]}
+info: ✅ Connected to stock_market database. {"timestamp":"2025-12-05T19:12:53.311Z"}
+info: ✅ stock_market database synced. {"timestamp":"2025-12-05T19:12:53.359Z"}
+info: ✅ Connected to bhavcopy database. {"timestamp":"2025-12-05T19:12:53.379Z"}
+info: ✅ bhavcopy database synced. {"timestamp":"2025-12-05T19:12:53.474Z"}
+info: ✅ Connected to screener_data database. {"timestamp":"2025-12-05T19:12:53.489Z"}
+info: ✅ screener_data database synced. {"timestamp":"2025-12-05T19:12:53.552Z"}
+info: ✅ Connected to third_db database. {"timestamp":"2025-12-05T19:12:53.569Z"}
+info: ✅ third_db database synced. {"timestamp":"2025-12-05T19:12:53.578Z"}
+info: ✅ Connected to ipo_data_fastapi database. {"timestamp":"2025-12-05T19:12:53.596Z"}
+info: ✅ ipo_data_fastapi database synced. {"timestamp":"2025-12-05T19:12:53.615Z"}
+info: ✅ Connected to bse_data database. {"timestamp":"2025-12-05T19:12:53.633Z"}
+info: ✅ bse_data database synced. {"timestamp":"2025-12-05T19:12:53.648Z"}
+info: 🚀 Server running on http://localhost:8000/vap/ {"timestamp":"2025-12-05T19:12:53.662Z"}
+info: ✅ Connected to stock_market database. {"timestamp":"2025-12-05T19:13:37.395Z"}
+info: ✅ stock_market database synced. {"timestamp":"2025-12-05T19:13:37.442Z"}
+info: ✅ Connected to bhavcopy database. {"timestamp":"2025-12-05T19:13:37.455Z"}
+info: ✅ bhavcopy database synced. {"timestamp":"2025-12-05T19:13:37.538Z"}
+info: ✅ Connected to screener_data database. {"timestamp":"2025-12-05T19:13:37.586Z"}
+info: ✅ screener_data database synced. {"timestamp":"2025-12-05T19:13:37.653Z"}
+info: ✅ Connected to third_db database. {"timestamp":"2025-12-05T19:13:37.663Z"}
+info: ✅ third_db database synced. {"timestamp":"2025-12-05T19:13:37.673Z"}
+info: ✅ Connected to ipo_data_fastapi database. {"timestamp":"2025-12-05T19:13:37.692Z"}
+info: ✅ ipo_data_fastapi database synced. {"timestamp":"2025-12-05T19:13:37.710Z"}
+info: ✅ Connected to bse_data database. {"timestamp":"2025-12-05T19:13:37.723Z"}
+info: ✅ bse_data database synced. {"timestamp":"2025-12-05T19:13:37.735Z"}
+info: 🚀 Server running on http://localhost:8000/vap/ {"timestamp":"2025-12-05T19:13:37.742Z"}
+info: ✅ Connected to stock_market database. {"timestamp":"2025-12-05T19:19:27.815Z"}
+info: ✅ stock_market database synced. {"timestamp":"2025-12-05T19:19:27.870Z"}
+info: ✅ Connected to bhavcopy database. {"timestamp":"2025-12-05T19:19:27.886Z"}
+info: ✅ bhavcopy database synced. {"timestamp":"2025-12-05T19:19:27.969Z"}
+info: ✅ Connected to screener_data database. {"timestamp":"2025-12-05T19:19:27.986Z"}
+info: ✅ screener_data database synced. {"timestamp":"2025-12-05T19:19:28.062Z"}
+info: ✅ Connected to third_db database. {"timestamp":"2025-12-05T19:19:28.076Z"}
+info: ✅ third_db database synced. {"timestamp":"2025-12-05T19:19:28.100Z"}
+info: ✅ Connected to ipo_data_fastapi database. {"timestamp":"2025-12-05T19:19:28.116Z"}
+info: ✅ ipo_data_fastapi database synced. {"timestamp":"2025-12-05T19:19:28.137Z"}
+info: ✅ Connected to bse_data database. {"timestamp":"2025-12-05T19:19:28.154Z"}
+info: ✅ bse_data database synced. {"timestamp":"2025-12-05T19:19:28.166Z"}
+info: 🚀 Server running on http://localhost:8000/vap/ {"timestamp":"2025-12-05T19:19:28.172Z"}
+info: ✅ Connected to stock_market database. {"timestamp":"2025-12-05T19:20:04.451Z"}
+info: ✅ stock_market database synced. {"timestamp":"2025-12-05T19:20:04.518Z"}
+info: ✅ Connected to bhavcopy database. {"timestamp":"2025-12-05T19:20:04.538Z"}
+info: ✅ bhavcopy database synced. {"timestamp":"2025-12-05T19:20:04.645Z"}
+info: ✅ Connected to screener_data database. {"timestamp":"2025-12-05T19:20:04.671Z"}
+info: ✅ screener_data database synced. {"timestamp":"2025-12-05T19:20:04.773Z"}
+info: ✅ Connected to third_db database. {"timestamp":"2025-12-05T19:20:04.800Z"}
+info: ✅ third_db database synced. {"timestamp":"2025-12-05T19:20:04.831Z"}
+info: ✅ Connected to ipo_data_fastapi database. {"timestamp":"2025-12-05T19:20:04.871Z"}
+info: ✅ ipo_data_fastapi database synced. {"timestamp":"2025-12-05T19:20:04.912Z"}
+info: ✅ Connected to bse_data database. {"timestamp":"2025-12-05T19:20:04.933Z"}
+info: ✅ bse_data database synced. {"timestamp":"2025-12-05T19:20:04.950Z"}
+info: 🚀 Server running on http://localhost:8000/vap/ {"timestamp":"2025-12-05T19:20:04.957Z"}
+info: ✅ Connected to stock_market database. {"timestamp":"2025-12-05T19:20:20.024Z"}
+info: ✅ stock_market database synced. {"timestamp":"2025-12-05T19:20:20.080Z"}
+info: ✅ Connected to bhavcopy database. {"timestamp":"2025-12-05T19:20:20.107Z"}
+info: ✅ bhavcopy database synced. {"timestamp":"2025-12-05T19:20:20.198Z"}
+info: ✅ Connected to screener_data database. {"timestamp":"2025-12-05T19:20:20.213Z"}
+info: ✅ screener_data database synced. {"timestamp":"2025-12-05T19:20:20.283Z"}
+info: ✅ Connected to third_db database. {"timestamp":"2025-12-05T19:20:20.299Z"}
+info: ✅ third_db database synced. {"timestamp":"2025-12-05T19:20:20.309Z"}
+info: ✅ Connected to ipo_data_fastapi database. {"timestamp":"2025-12-05T19:20:20.326Z"}
+info: ✅ ipo_data_fastapi database synced. {"timestamp":"2025-12-05T19:20:20.347Z"}
+info: ✅ Connected to bse_data database. {"timestamp":"2025-12-05T19:20:20.366Z"}
+info: ✅ bse_data database synced. {"timestamp":"2025-12-05T19:20:20.375Z"}
+info: 🚀 Server running on http://localhost:8000/vap/ {"timestamp":"2025-12-05T19:20:20.392Z"}
+info: ✅ Connected to stock_market database. {"timestamp":"2025-12-13T13:20:31.420Z"}
+info: ✅ stock_market database synced. {"timestamp":"2025-12-13T13:20:31.768Z"}
+info: ✅ Connected to bhavcopy database. {"timestamp":"2025-12-13T13:20:31.786Z"}
+info: ✅ bhavcopy database synced. {"timestamp":"2025-12-13T13:20:31.876Z"}
+info: ✅ Connected to screener_data database. {"timestamp":"2025-12-13T13:20:31.892Z"}
+info: ✅ screener_data database synced. {"timestamp":"2025-12-13T13:20:31.988Z"}
+info: ✅ Connected to third_db database. {"timestamp":"2025-12-13T13:20:32.007Z"}
+info: ✅ third_db database synced. {"timestamp":"2025-12-13T13:20:32.038Z"}
+info: ✅ Connected to ipo_data_fastapi database. {"timestamp":"2025-12-13T13:20:32.057Z"}
+info: ✅ ipo_data_fastapi database synced. {"timestamp":"2025-12-13T13:20:32.081Z"}
+info: ✅ Connected to bse_data database. {"timestamp":"2025-12-13T13:20:32.100Z"}
+info: ✅ bse_data database synced. {"timestamp":"2025-12-13T13:20:32.118Z"}
+info: 🚀 Server running on http://localhost:8000/vap/ {"timestamp":"2025-12-13T13:20:32.127Z"}
+error: 
+    status - 500 
+    message - Error: 
+    at Query.run (E:\Desktop_copy\Projects\vap\vap-be\backend\node_modules\sequelize\src\dialects\mysql\query.js:46:25)
+    at E:\Desktop_copy\Projects\vap\vap-be\backend\node_modules\sequelize\src\sequelize.js:650:28
+    at processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at MySQLQueryInterface.select (E:\Desktop_copy\Projects\vap\vap-be\backend\node_modules\sequelize\src\dialects\abstract\query-interface.js:1001:12)
+    at Function.findAll (E:\Desktop_copy\Projects\vap\vap-be\backend\node_modules\sequelize\src\model.js:1824:21)
+    at async Promise.all (index 1)
+    at Function.findAndCountAll (E:\Desktop_copy\Projects\vap\vap-be\backend\node_modules\sequelize\src\model.js:2183:27) 
+    url - /vap/company-data/failed-symbols 
+    method - GET 
+    IP - ::1
+   {"timestamp":"2025-12-16T17:38:23.395Z"}
+error: 
+    status - 500 
+    message - Error: 
+    at Query.run (E:\Desktop_copy\Projects\vap\vap-be\backend\node_modules\sequelize\src\dialects\mysql\query.js:46:25)
+    at E:\Desktop_copy\Projects\vap\vap-be\backend\node_modules\sequelize\src\sequelize.js:650:28
+    at processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at MySQLQueryInterface.select (E:\Desktop_copy\Projects\vap\vap-be\backend\node_modules\sequelize\src\dialects\abstract\query-interface.js:1001:12)
+    at Function.findAll (E:\Desktop_copy\Projects\vap\vap-be\backend\node_modules\sequelize\src\model.js:1824:21)
+    at async Promise.all (index 1)
+    at Function.findAndCountAll (E:\Desktop_copy\Projects\vap\vap-be\backend\node_modules\sequelize\src\model.js:2183:27) 
+    url - /vap/company-data/failed-symbols 
+    method - GET 
+    IP - ::1
+   {"timestamp":"2025-12-16T17:39:13.441Z"}
+error: 
+    status - 500 
+    message - Error: 
+    at Query.run (E:\Desktop_copy\Projects\vap\vap-be\backend\node_modules\sequelize\src\dialects\mysql\query.js:46:25)
+    at E:\Desktop_copy\Projects\vap\vap-be\backend\node_modules\sequelize\src\sequelize.js:650:28
+    at processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at MySQLQueryInterface.select (E:\Desktop_copy\Projects\vap\vap-be\backend\node_modules\sequelize\src\dialects\abstract\query-interface.js:1001:12)
+    at Function.findAll (E:\Desktop_copy\Projects\vap\vap-be\backend\node_modules\sequelize\src\model.js:1824:21)
+    at async Promise.all (index 1)
+    at Function.findAndCountAll (E:\Desktop_copy\Projects\vap\vap-be\backend\node_modules\sequelize\src\model.js:2183:27) 
+    url - /vap/company-data/failed-symbols 
+    method - GET 
+    IP - ::1
+   {"timestamp":"2025-12-16T17:39:13.824Z"}
+error: 
+    status - 500 
+    message - Error: 
+    at Query.run (E:\Desktop_copy\Projects\vap\vap-be\backend\node_modules\sequelize\src\dialects\mysql\query.js:46:25)
+    at E:\Desktop_copy\Projects\vap\vap-be\backend\node_modules\sequelize\src\sequelize.js:650:28
+    at processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at MySQLQueryInterface.select (E:\Desktop_copy\Projects\vap\vap-be\backend\node_modules\sequelize\src\dialects\abstract\query-interface.js:1001:12)
+    at Function.findAll (E:\Desktop_copy\Projects\vap\vap-be\backend\node_modules\sequelize\src\model.js:1824:21)
+    at async Promise.all (index 1)
+    at Function.findAndCountAll (E:\Desktop_copy\Projects\vap\vap-be\backend\node_modules\sequelize\src\model.js:2183:27) 
+    url - /vap/company-data/failed-symbols 
+    method - GET 
+    IP - ::1
+   {"timestamp":"2025-12-16T17:43:12.151Z"}
+error: 
+    status - 500 
+    message - Error: 
+    at Query.run (E:\Desktop_copy\Projects\vap\vap-be\backend\node_modules\sequelize\src\dialects\mysql\query.js:46:25)
+    at E:\Desktop_copy\Projects\vap\vap-be\backend\node_modules\sequelize\src\sequelize.js:650:28
+    at processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at MySQLQueryInterface.select (E:\Desktop_copy\Projects\vap\vap-be\backend\node_modules\sequelize\src\dialects\abstract\query-interface.js:1001:12)
+    at Function.findAll (E:\Desktop_copy\Projects\vap\vap-be\backend\node_modules\sequelize\src\model.js:1824:21)
+    at async Promise.all (index 1)
+    at Function.findAndCountAll (E:\Desktop_copy\Projects\vap\vap-be\backend\node_modules\sequelize\src\model.js:2183:27) 
+    url - /vap/company-data/failed-symbols 
+    method - GET 
+    IP - ::1
+   {"timestamp":"2025-12-16T17:43:12.348Z"}
+error: 
+    status - 500 
+    message - Error: 
+    at Query.run (E:\Desktop_copy\Projects\vap\vap-be\backend\node_modules\sequelize\src\dialects\mysql\query.js:46:25)
+    at E:\Desktop_copy\Projects\vap\vap-be\backend\node_modules\sequelize\src\sequelize.js:650:28
+    at processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at MySQLQueryInterface.select (E:\Desktop_copy\Projects\vap\vap-be\backend\node_modules\sequelize\src\dialects\abstract\query-interface.js:1001:12)
+    at Function.findAll (E:\Desktop_copy\Projects\vap\vap-be\backend\node_modules\sequelize\src\model.js:1824:21)
+    at async Promise.all (index 1)
+    at Function.findAndCountAll (E:\Desktop_copy\Projects\vap\vap-be\backend\node_modules\sequelize\src\model.js:2183:27) 
+    url - /vap/company-data/failed-symbols 
+    method - GET 
+    IP - ::1
+   {"timestamp":"2025-12-16T17:43:26.991Z"}
+error: 
+    status - 500 
+    message - Error: 
+    at Query.run (E:\Desktop_copy\Projects\vap\vap-be\backend\node_modules\sequelize\src\dialects\mysql\query.js:46:25)
+    at E:\Desktop_copy\Projects\vap\vap-be\backend\node_modules\sequelize\src\sequelize.js:650:28
+    at processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at MySQLQueryInterface.select (E:\Desktop_copy\Projects\vap\vap-be\backend\node_modules\sequelize\src\dialects\abstract\query-interface.js:1001:12)
+    at Function.findAll (E:\Desktop_copy\Projects\vap\vap-be\backend\node_modules\sequelize\src\model.js:1824:21)
+    at async Promise.all (index 1)
+    at Function.findAndCountAll (E:\Desktop_copy\Projects\vap\vap-be\backend\node_modules\sequelize\src\model.js:2183:27) 
+    url - /vap/company-data/failed-symbols 
+    method - GET 
+    IP - ::1
+   {"timestamp":"2025-12-16T17:46:30.570Z"}
+error: 
+    status - 500 
+    message - Error: 
+    at Query.run (E:\Desktop_copy\Projects\vap\vap-be\backend\node_modules\sequelize\src\dialects\mysql\query.js:46:25)
+    at E:\Desktop_copy\Projects\vap\vap-be\backend\node_modules\sequelize\src\sequelize.js:650:28
+    at processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at MySQLQueryInterface.select (E:\Desktop_copy\Projects\vap\vap-be\backend\node_modules\sequelize\src\dialects\abstract\query-interface.js:1001:12)
+    at Function.findAll (E:\Desktop_copy\Projects\vap\vap-be\backend\node_modules\sequelize\src\model.js:1824:21)
+    at async Promise.all (index 1)
+    at Function.findAndCountAll (E:\Desktop_copy\Projects\vap\vap-be\backend\node_modules\sequelize\src\model.js:2183:27) 
+    url - /vap/company-data/failed-symbols 
+    method - GET 
+    IP - ::1
+   {"timestamp":"2025-12-16T17:46:30.903Z"}
+info: ✅ Connected to stock_market database. {"timestamp":"2025-12-16T17:51:46.099Z"}
+info: ✅ stock_market database synced. {"timestamp":"2025-12-16T17:51:46.190Z"}
+info: ✅ Connected to bhavcopy database. {"timestamp":"2025-12-16T17:51:46.201Z"}
+info: ✅ bhavcopy database synced. {"timestamp":"2025-12-16T17:51:46.275Z"}
+info: ✅ Connected to screener_data database. {"timestamp":"2025-12-16T17:51:46.287Z"}
+info: ✅ screener_data database synced. {"timestamp":"2025-12-16T17:51:46.370Z"}
+info: ✅ Connected to third_db database. {"timestamp":"2025-12-16T17:51:46.380Z"}
+info: ✅ third_db database synced. {"timestamp":"2025-12-16T17:51:46.401Z"}
+info: ✅ Connected to ipo_data_fastapi database. {"timestamp":"2025-12-16T17:51:46.415Z"}
+info: ✅ ipo_data_fastapi database synced. {"timestamp":"2025-12-16T17:51:46.437Z"}
+info: ✅ Connected to bse_data database. {"timestamp":"2025-12-16T17:51:46.451Z"}
+info: ✅ bse_data database synced. {"timestamp":"2025-12-16T17:51:46.476Z"}
+info: 🚀 Server running on http://localhost:8000/vap/ {"timestamp":"2025-12-16T17:51:46.484Z"}
+info: ✅ Connected to stock_market database. {"timestamp":"2025-12-16T17:54:03.818Z"}
+info: ✅ stock_market database synced. {"timestamp":"2025-12-16T17:54:03.872Z"}
+info: ✅ Connected to bhavcopy database. {"timestamp":"2025-12-16T17:54:03.889Z"}
+info: ✅ bhavcopy database synced. {"timestamp":"2025-12-16T17:54:03.974Z"}
+info: ✅ Connected to screener_data database. {"timestamp":"2025-12-16T17:54:03.987Z"}
+info: ✅ screener_data database synced. {"timestamp":"2025-12-16T17:54:04.064Z"}
+info: ✅ Connected to third_db database. {"timestamp":"2025-12-16T17:54:04.082Z"}
+info: ✅ third_db database synced. {"timestamp":"2025-12-16T17:54:04.096Z"}
+info: ✅ Connected to ipo_data_fastapi database. {"timestamp":"2025-12-16T17:54:04.133Z"}
+info: ✅ ipo_data_fastapi database synced. {"timestamp":"2025-12-16T17:54:04.173Z"}
+info: ✅ Connected to bse_data database. {"timestamp":"2025-12-16T17:54:04.195Z"}
+info: ✅ bse_data database synced. {"timestamp":"2025-12-16T17:54:04.215Z"}
+info: 🚀 Server running on http://localhost:8000/vap/ {"timestamp":"2025-12-16T17:54:04.228Z"}
+info: ✅ Connected to stock_market database. {"timestamp":"2025-12-16T17:54:14.259Z"}
+info: ✅ stock_market database synced. {"timestamp":"2025-12-16T17:54:14.308Z"}
+info: ✅ Connected to bhavcopy database. {"timestamp":"2025-12-16T17:54:14.326Z"}
+info: ✅ bhavcopy database synced. {"timestamp":"2025-12-16T17:54:14.411Z"}
+info: ✅ Connected to screener_data database. {"timestamp":"2025-12-16T17:54:14.425Z"}
+info: ✅ screener_data database synced. {"timestamp":"2025-12-16T17:54:14.494Z"}
+info: ✅ Connected to third_db database. {"timestamp":"2025-12-16T17:54:14.506Z"}
+info: ✅ third_db database synced. {"timestamp":"2025-12-16T17:54:14.517Z"}
+info: ✅ Connected to ipo_data_fastapi database. {"timestamp":"2025-12-16T17:54:14.539Z"}
+info: ✅ ipo_data_fastapi database synced. {"timestamp":"2025-12-16T17:54:14.555Z"}
+info: ✅ Connected to bse_data database. {"timestamp":"2025-12-16T17:54:14.569Z"}
+info: ✅ bse_data database synced. {"timestamp":"2025-12-16T17:54:14.578Z"}
+info: 🚀 Server running on http://localhost:8000/vap/ {"timestamp":"2025-12-16T17:54:14.586Z"}
+info: ✅ Connected to stock_market database. {"timestamp":"2025-12-16T17:54:25.675Z"}
+info: ✅ stock_market database synced. {"timestamp":"2025-12-16T17:54:25.718Z"}
+info: ✅ Connected to bhavcopy database. {"timestamp":"2025-12-16T17:54:25.731Z"}
+info: ✅ bhavcopy database synced. {"timestamp":"2025-12-16T17:54:25.818Z"}
+info: ✅ Connected to screener_data database. {"timestamp":"2025-12-16T17:54:25.836Z"}
+info: ✅ screener_data database synced. {"timestamp":"2025-12-16T17:54:25.910Z"}
+info: ✅ Connected to third_db database. {"timestamp":"2025-12-16T17:54:25.924Z"}
+info: ✅ third_db database synced. {"timestamp":"2025-12-16T17:54:25.931Z"}
+info: ✅ Connected to ipo_data_fastapi database. {"timestamp":"2025-12-16T17:54:25.959Z"}
+info: ✅ ipo_data_fastapi database synced. {"timestamp":"2025-12-16T17:54:25.978Z"}
+info: ✅ Connected to bse_data database. {"timestamp":"2025-12-16T17:54:25.993Z"}
+info: ✅ bse_data database synced. {"timestamp":"2025-12-16T17:54:26.004Z"}
+info: 🚀 Server running on http://localhost:8000/vap/ {"timestamp":"2025-12-16T17:54:26.011Z"}
+error: uncaughtException: MainboardDataModel is not defined
+ReferenceError: MainboardDataModel is not defined
+    at Object.<anonymous> (E:\Desktop_copy\Projects\vap\vap-be\backend\src\models\/index.js:176:20)
+    at Module._compile (node:internal/modules/cjs/loader:1521:14)
+    at Module._compile (E:\Desktop_copy\Projects\vap\vap-be\backend\node_modules\pirates\lib\index.js:129:24)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1623:10)
+    at Object.newLoader [as .js] (E:\Desktop_copy\Projects\vap\vap-be\backend\node_modules\pirates\lib\index.js:134:7)
+    at Module.load (node:internal/modules/cjs/loader:1266:32)
+    at Function.Module._load (node:internal/modules/cjs/loader:1091:12)
+    at Module.require (node:internal/modules/cjs/loader:1289:19)
+    at require (node:internal/modules/helpers:182:18)
+    at Object.<anonymous> (E:\Desktop_copy\Projects\vap\vap-be\backend\src\controllers\/stockdatacontroller.js:2:1)
+    at Module._compile (node:internal/modules/cjs/loader:1521:14)
+    at Module._compile (E:\Desktop_copy\Projects\vap\vap-be\backend\node_modules\pirates\lib\index.js:129:24)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1623:10)
+    at Object.newLoader [as .js] (E:\Desktop_copy\Projects\vap\vap-be\backend\node_modules\pirates\lib\index.js:134:7)
+    at Module.load (node:internal/modules/cjs/loader:1266:32)
+    at Function.Module._load (node:internal/modules/cjs/loader:1091:12)
+    at Module.require (node:internal/modules/cjs/loader:1289:19)
+    at require (node:internal/modules/helpers:182:18)
+    at Object.<anonymous> (E:\Desktop_copy\Projects\vap\vap-be\backend\src\routes\/stockData.routes.js:2:1)
+    at Module._compile (node:internal/modules/cjs/loader:1521:14)
+    at Module._compile (E:\Desktop_copy\Projects\vap\vap-be\backend\node_modules\pirates\lib\index.js:129:24)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1623:10)
+    at Object.newLoader [as .js] (E:\Desktop_copy\Projects\vap\vap-be\backend\node_modules\pirates\lib\index.js:134:7)
+    at Module.load (node:internal/modules/cjs/loader:1266:32)
+    at Function.Module._load (node:internal/modules/cjs/loader:1091:12)
+    at Module.require (node:internal/modules/cjs/loader:1289:19)
+    at require (node:internal/modules/helpers:182:18)
+    at Object.<anonymous> (E:\Desktop_copy\Projects\vap\vap-be\backend\src\/index.js:13:1)
+    at Module._compile (node:internal/modules/cjs/loader:1521:14)
+    at Module._compile (E:\Desktop_copy\Projects\vap\vap-be\backend\node_modules\pirates\lib\index.js:129:24)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1623:10)
+    at Object.newLoader [as .js] (E:\Desktop_copy\Projects\vap\vap-be\backend\node_modules\pirates\lib\index.js:134:7)
+    at Module.load (node:internal/modules/cjs/loader:1266:32)
+    at Function.Module._load (node:internal/modules/cjs/loader:1091:12)
+    at Function.runMain (node:internal/modules/run_main:164:12)
+    at Object.<anonymous> (E:\Desktop_copy\Projects\vap\vap-be\backend\node_modules\@babel\node\src\_babel-node.ts:159:12)
+    at Module._compile (node:internal/modules/cjs/loader:1521:14)
+    at Object.Module._extensions..js (node:internal/modules/cjs/loader:1623:10)
+    at Module.load (node:internal/modules/cjs/loader:1266:32)
+    at Function.Module._load (node:internal/modules/cjs/loader:1091:12)
+    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:164:12)
+    at node:internal/main/run_main_module:28:49 {"date":"Tue Dec 16 2025 23:24:44 GMT+0530 (India Standard Time)","error":{},"exception":true,"os":{"loadavg":[0,0,0],"uptime":276209.437},"process":{"argv":["node","E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\src\\index.js"],"cwd":"E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend","execPath":"C:\\Program Files\\nodejs\\node.exe","gid":null,"memoryUsage":{"arrayBuffers":17297,"external":3053218,"heapTotal":94220288,"heapUsed":68116200,"rss":137551872},"pid":8864,"uid":null,"version":"v20.19.5"},"stack":"ReferenceError: MainboardDataModel is not defined\n    at Object.<anonymous> (E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\src\\models\\/index.js:176:20)\n    at Module._compile (node:internal/modules/cjs/loader:1521:14)\n    at Module._compile (E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\node_modules\\pirates\\lib\\index.js:129:24)\n    at Module._extensions..js (node:internal/modules/cjs/loader:1623:10)\n    at Object.newLoader [as .js] (E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\node_modules\\pirates\\lib\\index.js:134:7)\n    at Module.load (node:internal/modules/cjs/loader:1266:32)\n    at Function.Module._load (node:internal/modules/cjs/loader:1091:12)\n    at Module.require (node:internal/modules/cjs/loader:1289:19)\n    at require (node:internal/modules/helpers:182:18)\n    at Object.<anonymous> (E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\src\\controllers\\/stockdatacontroller.js:2:1)\n    at Module._compile (node:internal/modules/cjs/loader:1521:14)\n    at Module._compile (E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\node_modules\\pirates\\lib\\index.js:129:24)\n    at Module._extensions..js (node:internal/modules/cjs/loader:1623:10)\n    at Object.newLoader [as .js] (E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\node_modules\\pirates\\lib\\index.js:134:7)\n    at Module.load (node:internal/modules/cjs/loader:1266:32)\n    at Function.Module._load (node:internal/modules/cjs/loader:1091:12)\n    at Module.require (node:internal/modules/cjs/loader:1289:19)\n    at require (node:internal/modules/helpers:182:18)\n    at Object.<anonymous> (E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\src\\routes\\/stockData.routes.js:2:1)\n    at Module._compile (node:internal/modules/cjs/loader:1521:14)\n    at Module._compile (E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\node_modules\\pirates\\lib\\index.js:129:24)\n    at Module._extensions..js (node:internal/modules/cjs/loader:1623:10)\n    at Object.newLoader [as .js] (E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\node_modules\\pirates\\lib\\index.js:134:7)\n    at Module.load (node:internal/modules/cjs/loader:1266:32)\n    at Function.Module._load (node:internal/modules/cjs/loader:1091:12)\n    at Module.require (node:internal/modules/cjs/loader:1289:19)\n    at require (node:internal/modules/helpers:182:18)\n    at Object.<anonymous> (E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\src\\/index.js:13:1)\n    at Module._compile (node:internal/modules/cjs/loader:1521:14)\n    at Module._compile (E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\node_modules\\pirates\\lib\\index.js:129:24)\n    at Module._extensions..js (node:internal/modules/cjs/loader:1623:10)\n    at Object.newLoader [as .js] (E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\node_modules\\pirates\\lib\\index.js:134:7)\n    at Module.load (node:internal/modules/cjs/loader:1266:32)\n    at Function.Module._load (node:internal/modules/cjs/loader:1091:12)\n    at Function.runMain (node:internal/modules/run_main:164:12)\n    at Object.<anonymous> (E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\node_modules\\@babel\\node\\src\\_babel-node.ts:159:12)\n    at Module._compile (node:internal/modules/cjs/loader:1521:14)\n    at Object.Module._extensions..js (node:internal/modules/cjs/loader:1623:10)\n    at Module.load (node:internal/modules/cjs/loader:1266:32)\n    at Function.Module._load (node:internal/modules/cjs/loader:1091:12)\n    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:164:12)\n    at node:internal/main/run_main_module:28:49","timestamp":"2025-12-16T17:54:44.820Z","trace":[{"column":20,"file":"E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\src\\models\\/index.js","function":null,"line":176,"method":null,"native":false},{"column":14,"file":"node:internal/modules/cjs/loader","function":"Module._compile","line":1521,"method":"_compile","native":false},{"column":24,"file":"E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\node_modules\\pirates\\lib\\index.js","function":"Module._compile","line":129,"method":"_compile","native":false},{"column":10,"file":"node:internal/modules/cjs/loader","function":"Module._extensions..js","line":1623,"method":".js","native":false},{"column":7,"file":"E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\node_modules\\pirates\\lib\\index.js","function":"Object.newLoader [as .js]","line":134,"method":"js]","native":false},{"column":32,"file":"node:internal/modules/cjs/loader","function":"Module.load","line":1266,"method":"load","native":false},{"column":12,"file":"node:internal/modules/cjs/loader","function":"Module._load","line":1091,"method":"_load","native":false},{"column":19,"file":"node:internal/modules/cjs/loader","function":"Module.require","line":1289,"method":"require","native":false},{"column":18,"file":"node:internal/modules/helpers","function":"require","line":182,"method":null,"native":false},{"column":1,"file":"E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\src\\controllers\\/stockdatacontroller.js","function":null,"line":2,"method":null,"native":false},{"column":14,"file":"node:internal/modules/cjs/loader","function":"Module._compile","line":1521,"method":"_compile","native":false},{"column":24,"file":"E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\node_modules\\pirates\\lib\\index.js","function":"Module._compile","line":129,"method":"_compile","native":false},{"column":10,"file":"node:internal/modules/cjs/loader","function":"Module._extensions..js","line":1623,"method":".js","native":false},{"column":7,"file":"E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\node_modules\\pirates\\lib\\index.js","function":"Object.newLoader [as .js]","line":134,"method":"js]","native":false},{"column":32,"file":"node:internal/modules/cjs/loader","function":"Module.load","line":1266,"method":"load","native":false},{"column":12,"file":"node:internal/modules/cjs/loader","function":"Module._load","line":1091,"method":"_load","native":false},{"column":19,"file":"node:internal/modules/cjs/loader","function":"Module.require","line":1289,"method":"require","native":false},{"column":18,"file":"node:internal/modules/helpers","function":"require","line":182,"method":null,"native":false},{"column":1,"file":"E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\src\\routes\\/stockData.routes.js","function":null,"line":2,"method":null,"native":false},{"column":14,"file":"node:internal/modules/cjs/loader","function":"Module._compile","line":1521,"method":"_compile","native":false},{"column":24,"file":"E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\node_modules\\pirates\\lib\\index.js","function":"Module._compile","line":129,"method":"_compile","native":false},{"column":10,"file":"node:internal/modules/cjs/loader","function":"Module._extensions..js","line":1623,"method":".js","native":false},{"column":7,"file":"E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\node_modules\\pirates\\lib\\index.js","function":"Object.newLoader [as .js]","line":134,"method":"js]","native":false},{"column":32,"file":"node:internal/modules/cjs/loader","function":"Module.load","line":1266,"method":"load","native":false},{"column":12,"file":"node:internal/modules/cjs/loader","function":"Module._load","line":1091,"method":"_load","native":false},{"column":19,"file":"node:internal/modules/cjs/loader","function":"Module.require","line":1289,"method":"require","native":false},{"column":18,"file":"node:internal/modules/helpers","function":"require","line":182,"method":null,"native":false},{"column":1,"file":"E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\src\\/index.js","function":null,"line":13,"method":null,"native":false},{"column":14,"file":"node:internal/modules/cjs/loader","function":"Module._compile","line":1521,"method":"_compile","native":false},{"column":24,"file":"E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\node_modules\\pirates\\lib\\index.js","function":"Module._compile","line":129,"method":"_compile","native":false},{"column":10,"file":"node:internal/modules/cjs/loader","function":"Module._extensions..js","line":1623,"method":".js","native":false},{"column":7,"file":"E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\node_modules\\pirates\\lib\\index.js","function":"Object.newLoader [as .js]","line":134,"method":"js]","native":false},{"column":32,"file":"node:internal/modules/cjs/loader","function":"Module.load","line":1266,"method":"load","native":false},{"column":12,"file":"node:internal/modules/cjs/loader","function":"Module._load","line":1091,"method":"_load","native":false},{"column":12,"file":"node:internal/modules/run_main","function":"Function.runMain","line":164,"method":"runMain","native":false},{"column":12,"file":"E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\node_modules\\@babel\\node\\src\\_babel-node.ts","function":null,"line":159,"method":null,"native":false},{"column":14,"file":"node:internal/modules/cjs/loader","function":"Module._compile","line":1521,"method":"_compile","native":false},{"column":10,"file":"node:internal/modules/cjs/loader","function":"Module._extensions..js","line":1623,"method":".js","native":false},{"column":32,"file":"node:internal/modules/cjs/loader","function":"Module.load","line":1266,"method":"load","native":false},{"column":12,"file":"node:internal/modules/cjs/loader","function":"Module._load","line":1091,"method":"_load","native":false},{"column":12,"file":"node:internal/modules/run_main","function":"Function.executeUserEntryPoint [as runMain]","line":164,"method":"executeUserEntryPoint [as runMain]","native":false},{"column":49,"file":"node:internal/main/run_main_module","function":null,"line":28,"method":null,"native":false}]}
+error: uncaughtException: MainboardDataModel is not defined
+ReferenceError: MainboardDataModel is not defined
+    at Object.<anonymous> (E:\Desktop_copy\Projects\vap\vap-be\backend\src\models\/index.js:176:20)
+    at Module._compile (node:internal/modules/cjs/loader:1521:14)
+    at Module._compile (E:\Desktop_copy\Projects\vap\vap-be\backend\node_modules\pirates\lib\index.js:129:24)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1623:10)
+    at Object.newLoader [as .js] (E:\Desktop_copy\Projects\vap\vap-be\backend\node_modules\pirates\lib\index.js:134:7)
+    at Module.load (node:internal/modules/cjs/loader:1266:32)
+    at Function.Module._load (node:internal/modules/cjs/loader:1091:12)
+    at Module.require (node:internal/modules/cjs/loader:1289:19)
+    at require (node:internal/modules/helpers:182:18)
+    at Object.<anonymous> (E:\Desktop_copy\Projects\vap\vap-be\backend\src\controllers\/stockdatacontroller.js:2:1)
+    at Module._compile (node:internal/modules/cjs/loader:1521:14)
+    at Module._compile (E:\Desktop_copy\Projects\vap\vap-be\backend\node_modules\pirates\lib\index.js:129:24)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1623:10)
+    at Object.newLoader [as .js] (E:\Desktop_copy\Projects\vap\vap-be\backend\node_modules\pirates\lib\index.js:134:7)
+    at Module.load (node:internal/modules/cjs/loader:1266:32)
+    at Function.Module._load (node:internal/modules/cjs/loader:1091:12)
+    at Module.require (node:internal/modules/cjs/loader:1289:19)
+    at require (node:internal/modules/helpers:182:18)
+    at Object.<anonymous> (E:\Desktop_copy\Projects\vap\vap-be\backend\src\routes\/stockData.routes.js:2:1)
+    at Module._compile (node:internal/modules/cjs/loader:1521:14)
+    at Module._compile (E:\Desktop_copy\Projects\vap\vap-be\backend\node_modules\pirates\lib\index.js:129:24)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1623:10)
+    at Object.newLoader [as .js] (E:\Desktop_copy\Projects\vap\vap-be\backend\node_modules\pirates\lib\index.js:134:7)
+    at Module.load (node:internal/modules/cjs/loader:1266:32)
+    at Function.Module._load (node:internal/modules/cjs/loader:1091:12)
+    at Module.require (node:internal/modules/cjs/loader:1289:19)
+    at require (node:internal/modules/helpers:182:18)
+    at Object.<anonymous> (E:\Desktop_copy\Projects\vap\vap-be\backend\src\/index.js:13:1)
+    at Module._compile (node:internal/modules/cjs/loader:1521:14)
+    at Module._compile (E:\Desktop_copy\Projects\vap\vap-be\backend\node_modules\pirates\lib\index.js:129:24)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1623:10)
+    at Object.newLoader [as .js] (E:\Desktop_copy\Projects\vap\vap-be\backend\node_modules\pirates\lib\index.js:134:7)
+    at Module.load (node:internal/modules/cjs/loader:1266:32)
+    at Function.Module._load (node:internal/modules/cjs/loader:1091:12)
+    at Function.runMain (node:internal/modules/run_main:164:12)
+    at Object.<anonymous> (E:\Desktop_copy\Projects\vap\vap-be\backend\node_modules\@babel\node\src\_babel-node.ts:159:12)
+    at Module._compile (node:internal/modules/cjs/loader:1521:14)
+    at Object.Module._extensions..js (node:internal/modules/cjs/loader:1623:10)
+    at Module.load (node:internal/modules/cjs/loader:1266:32)
+    at Function.Module._load (node:internal/modules/cjs/loader:1091:12)
+    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:164:12)
+    at node:internal/main/run_main_module:28:49 {"date":"Tue Dec 16 2025 23:25:14 GMT+0530 (India Standard Time)","error":{},"exception":true,"os":{"loadavg":[0,0,0],"uptime":276239.453},"process":{"argv":["node","E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\src\\index.js"],"cwd":"E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend","execPath":"C:\\Program Files\\nodejs\\node.exe","gid":null,"memoryUsage":{"arrayBuffers":17297,"external":3053218,"heapTotal":87928832,"heapUsed":68953472,"rss":131612672},"pid":12988,"uid":null,"version":"v20.19.5"},"stack":"ReferenceError: MainboardDataModel is not defined\n    at Object.<anonymous> (E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\src\\models\\/index.js:176:20)\n    at Module._compile (node:internal/modules/cjs/loader:1521:14)\n    at Module._compile (E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\node_modules\\pirates\\lib\\index.js:129:24)\n    at Module._extensions..js (node:internal/modules/cjs/loader:1623:10)\n    at Object.newLoader [as .js] (E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\node_modules\\pirates\\lib\\index.js:134:7)\n    at Module.load (node:internal/modules/cjs/loader:1266:32)\n    at Function.Module._load (node:internal/modules/cjs/loader:1091:12)\n    at Module.require (node:internal/modules/cjs/loader:1289:19)\n    at require (node:internal/modules/helpers:182:18)\n    at Object.<anonymous> (E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\src\\controllers\\/stockdatacontroller.js:2:1)\n    at Module._compile (node:internal/modules/cjs/loader:1521:14)\n    at Module._compile (E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\node_modules\\pirates\\lib\\index.js:129:24)\n    at Module._extensions..js (node:internal/modules/cjs/loader:1623:10)\n    at Object.newLoader [as .js] (E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\node_modules\\pirates\\lib\\index.js:134:7)\n    at Module.load (node:internal/modules/cjs/loader:1266:32)\n    at Function.Module._load (node:internal/modules/cjs/loader:1091:12)\n    at Module.require (node:internal/modules/cjs/loader:1289:19)\n    at require (node:internal/modules/helpers:182:18)\n    at Object.<anonymous> (E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\src\\routes\\/stockData.routes.js:2:1)\n    at Module._compile (node:internal/modules/cjs/loader:1521:14)\n    at Module._compile (E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\node_modules\\pirates\\lib\\index.js:129:24)\n    at Module._extensions..js (node:internal/modules/cjs/loader:1623:10)\n    at Object.newLoader [as .js] (E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\node_modules\\pirates\\lib\\index.js:134:7)\n    at Module.load (node:internal/modules/cjs/loader:1266:32)\n    at Function.Module._load (node:internal/modules/cjs/loader:1091:12)\n    at Module.require (node:internal/modules/cjs/loader:1289:19)\n    at require (node:internal/modules/helpers:182:18)\n    at Object.<anonymous> (E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\src\\/index.js:13:1)\n    at Module._compile (node:internal/modules/cjs/loader:1521:14)\n    at Module._compile (E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\node_modules\\pirates\\lib\\index.js:129:24)\n    at Module._extensions..js (node:internal/modules/cjs/loader:1623:10)\n    at Object.newLoader [as .js] (E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\node_modules\\pirates\\lib\\index.js:134:7)\n    at Module.load (node:internal/modules/cjs/loader:1266:32)\n    at Function.Module._load (node:internal/modules/cjs/loader:1091:12)\n    at Function.runMain (node:internal/modules/run_main:164:12)\n    at Object.<anonymous> (E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\node_modules\\@babel\\node\\src\\_babel-node.ts:159:12)\n    at Module._compile (node:internal/modules/cjs/loader:1521:14)\n    at Object.Module._extensions..js (node:internal/modules/cjs/loader:1623:10)\n    at Module.load (node:internal/modules/cjs/loader:1266:32)\n    at Function.Module._load (node:internal/modules/cjs/loader:1091:12)\n    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:164:12)\n    at node:internal/main/run_main_module:28:49","timestamp":"2025-12-16T17:55:14.840Z","trace":[{"column":20,"file":"E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\src\\models\\/index.js","function":null,"line":176,"method":null,"native":false},{"column":14,"file":"node:internal/modules/cjs/loader","function":"Module._compile","line":1521,"method":"_compile","native":false},{"column":24,"file":"E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\node_modules\\pirates\\lib\\index.js","function":"Module._compile","line":129,"method":"_compile","native":false},{"column":10,"file":"node:internal/modules/cjs/loader","function":"Module._extensions..js","line":1623,"method":".js","native":false},{"column":7,"file":"E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\node_modules\\pirates\\lib\\index.js","function":"Object.newLoader [as .js]","line":134,"method":"js]","native":false},{"column":32,"file":"node:internal/modules/cjs/loader","function":"Module.load","line":1266,"method":"load","native":false},{"column":12,"file":"node:internal/modules/cjs/loader","function":"Module._load","line":1091,"method":"_load","native":false},{"column":19,"file":"node:internal/modules/cjs/loader","function":"Module.require","line":1289,"method":"require","native":false},{"column":18,"file":"node:internal/modules/helpers","function":"require","line":182,"method":null,"native":false},{"column":1,"file":"E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\src\\controllers\\/stockdatacontroller.js","function":null,"line":2,"method":null,"native":false},{"column":14,"file":"node:internal/modules/cjs/loader","function":"Module._compile","line":1521,"method":"_compile","native":false},{"column":24,"file":"E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\node_modules\\pirates\\lib\\index.js","function":"Module._compile","line":129,"method":"_compile","native":false},{"column":10,"file":"node:internal/modules/cjs/loader","function":"Module._extensions..js","line":1623,"method":".js","native":false},{"column":7,"file":"E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\node_modules\\pirates\\lib\\index.js","function":"Object.newLoader [as .js]","line":134,"method":"js]","native":false},{"column":32,"file":"node:internal/modules/cjs/loader","function":"Module.load","line":1266,"method":"load","native":false},{"column":12,"file":"node:internal/modules/cjs/loader","function":"Module._load","line":1091,"method":"_load","native":false},{"column":19,"file":"node:internal/modules/cjs/loader","function":"Module.require","line":1289,"method":"require","native":false},{"column":18,"file":"node:internal/modules/helpers","function":"require","line":182,"method":null,"native":false},{"column":1,"file":"E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\src\\routes\\/stockData.routes.js","function":null,"line":2,"method":null,"native":false},{"column":14,"file":"node:internal/modules/cjs/loader","function":"Module._compile","line":1521,"method":"_compile","native":false},{"column":24,"file":"E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\node_modules\\pirates\\lib\\index.js","function":"Module._compile","line":129,"method":"_compile","native":false},{"column":10,"file":"node:internal/modules/cjs/loader","function":"Module._extensions..js","line":1623,"method":".js","native":false},{"column":7,"file":"E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\node_modules\\pirates\\lib\\index.js","function":"Object.newLoader [as .js]","line":134,"method":"js]","native":false},{"column":32,"file":"node:internal/modules/cjs/loader","function":"Module.load","line":1266,"method":"load","native":false},{"column":12,"file":"node:internal/modules/cjs/loader","function":"Module._load","line":1091,"method":"_load","native":false},{"column":19,"file":"node:internal/modules/cjs/loader","function":"Module.require","line":1289,"method":"require","native":false},{"column":18,"file":"node:internal/modules/helpers","function":"require","line":182,"method":null,"native":false},{"column":1,"file":"E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\src\\/index.js","function":null,"line":13,"method":null,"native":false},{"column":14,"file":"node:internal/modules/cjs/loader","function":"Module._compile","line":1521,"method":"_compile","native":false},{"column":24,"file":"E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\node_modules\\pirates\\lib\\index.js","function":"Module._compile","line":129,"method":"_compile","native":false},{"column":10,"file":"node:internal/modules/cjs/loader","function":"Module._extensions..js","line":1623,"method":".js","native":false},{"column":7,"file":"E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\node_modules\\pirates\\lib\\index.js","function":"Object.newLoader [as .js]","line":134,"method":"js]","native":false},{"column":32,"file":"node:internal/modules/cjs/loader","function":"Module.load","line":1266,"method":"load","native":false},{"column":12,"file":"node:internal/modules/cjs/loader","function":"Module._load","line":1091,"method":"_load","native":false},{"column":12,"file":"node:internal/modules/run_main","function":"Function.runMain","line":164,"method":"runMain","native":false},{"column":12,"file":"E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\node_modules\\@babel\\node\\src\\_babel-node.ts","function":null,"line":159,"method":null,"native":false},{"column":14,"file":"node:internal/modules/cjs/loader","function":"Module._compile","line":1521,"method":"_compile","native":false},{"column":10,"file":"node:internal/modules/cjs/loader","function":"Module._extensions..js","line":1623,"method":".js","native":false},{"column":32,"file":"node:internal/modules/cjs/loader","function":"Module.load","line":1266,"method":"load","native":false},{"column":12,"file":"node:internal/modules/cjs/loader","function":"Module._load","line":1091,"method":"_load","native":false},{"column":12,"file":"node:internal/modules/run_main","function":"Function.executeUserEntryPoint [as runMain]","line":164,"method":"executeUserEntryPoint [as runMain]","native":false},{"column":49,"file":"node:internal/main/run_main_module","function":null,"line":28,"method":null,"native":false}]}
+error: uncaughtException: MainboardDataModel is not defined
+ReferenceError: MainboardDataModel is not defined
+    at Object.<anonymous> (E:\Desktop_copy\Projects\vap\vap-be\backend\src\models\/index.js:176:20)
+    at Module._compile (node:internal/modules/cjs/loader:1521:14)
+    at Module._compile (E:\Desktop_copy\Projects\vap\vap-be\backend\node_modules\pirates\lib\index.js:129:24)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1623:10)
+    at Object.newLoader [as .js] (E:\Desktop_copy\Projects\vap\vap-be\backend\node_modules\pirates\lib\index.js:134:7)
+    at Module.load (node:internal/modules/cjs/loader:1266:32)
+    at Function.Module._load (node:internal/modules/cjs/loader:1091:12)
+    at Module.require (node:internal/modules/cjs/loader:1289:19)
+    at require (node:internal/modules/helpers:182:18)
+    at Object.<anonymous> (E:\Desktop_copy\Projects\vap\vap-be\backend\src\controllers\/stockdatacontroller.js:2:1)
+    at Module._compile (node:internal/modules/cjs/loader:1521:14)
+    at Module._compile (E:\Desktop_copy\Projects\vap\vap-be\backend\node_modules\pirates\lib\index.js:129:24)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1623:10)
+    at Object.newLoader [as .js] (E:\Desktop_copy\Projects\vap\vap-be\backend\node_modules\pirates\lib\index.js:134:7)
+    at Module.load (node:internal/modules/cjs/loader:1266:32)
+    at Function.Module._load (node:internal/modules/cjs/loader:1091:12)
+    at Module.require (node:internal/modules/cjs/loader:1289:19)
+    at require (node:internal/modules/helpers:182:18)
+    at Object.<anonymous> (E:\Desktop_copy\Projects\vap\vap-be\backend\src\routes\/stockData.routes.js:2:1)
+    at Module._compile (node:internal/modules/cjs/loader:1521:14)
+    at Module._compile (E:\Desktop_copy\Projects\vap\vap-be\backend\node_modules\pirates\lib\index.js:129:24)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1623:10)
+    at Object.newLoader [as .js] (E:\Desktop_copy\Projects\vap\vap-be\backend\node_modules\pirates\lib\index.js:134:7)
+    at Module.load (node:internal/modules/cjs/loader:1266:32)
+    at Function.Module._load (node:internal/modules/cjs/loader:1091:12)
+    at Module.require (node:internal/modules/cjs/loader:1289:19)
+    at require (node:internal/modules/helpers:182:18)
+    at Object.<anonymous> (E:\Desktop_copy\Projects\vap\vap-be\backend\src\/index.js:13:1)
+    at Module._compile (node:internal/modules/cjs/loader:1521:14)
+    at Module._compile (E:\Desktop_copy\Projects\vap\vap-be\backend\node_modules\pirates\lib\index.js:129:24)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1623:10)
+    at Object.newLoader [as .js] (E:\Desktop_copy\Projects\vap\vap-be\backend\node_modules\pirates\lib\index.js:134:7)
+    at Module.load (node:internal/modules/cjs/loader:1266:32)
+    at Function.Module._load (node:internal/modules/cjs/loader:1091:12)
+    at Function.runMain (node:internal/modules/run_main:164:12)
+    at Object.<anonymous> (E:\Desktop_copy\Projects\vap\vap-be\backend\node_modules\@babel\node\src\_babel-node.ts:159:12)
+    at Module._compile (node:internal/modules/cjs/loader:1521:14)
+    at Object.Module._extensions..js (node:internal/modules/cjs/loader:1623:10)
+    at Module.load (node:internal/modules/cjs/loader:1266:32)
+    at Function.Module._load (node:internal/modules/cjs/loader:1091:12)
+    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:164:12)
+    at node:internal/main/run_main_module:28:49 {"date":"Tue Dec 16 2025 23:25:32 GMT+0530 (India Standard Time)","error":{},"exception":true,"os":{"loadavg":[0,0,0],"uptime":276256.828},"process":{"argv":["node","E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\src\\index.js"],"cwd":"E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend","execPath":"C:\\Program Files\\nodejs\\node.exe","gid":null,"memoryUsage":{"arrayBuffers":17297,"external":3053218,"heapTotal":87666688,"heapUsed":68996560,"rss":131289088},"pid":7304,"uid":null,"version":"v20.19.5"},"stack":"ReferenceError: MainboardDataModel is not defined\n    at Object.<anonymous> (E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\src\\models\\/index.js:176:20)\n    at Module._compile (node:internal/modules/cjs/loader:1521:14)\n    at Module._compile (E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\node_modules\\pirates\\lib\\index.js:129:24)\n    at Module._extensions..js (node:internal/modules/cjs/loader:1623:10)\n    at Object.newLoader [as .js] (E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\node_modules\\pirates\\lib\\index.js:134:7)\n    at Module.load (node:internal/modules/cjs/loader:1266:32)\n    at Function.Module._load (node:internal/modules/cjs/loader:1091:12)\n    at Module.require (node:internal/modules/cjs/loader:1289:19)\n    at require (node:internal/modules/helpers:182:18)\n    at Object.<anonymous> (E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\src\\controllers\\/stockdatacontroller.js:2:1)\n    at Module._compile (node:internal/modules/cjs/loader:1521:14)\n    at Module._compile (E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\node_modules\\pirates\\lib\\index.js:129:24)\n    at Module._extensions..js (node:internal/modules/cjs/loader:1623:10)\n    at Object.newLoader [as .js] (E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\node_modules\\pirates\\lib\\index.js:134:7)\n    at Module.load (node:internal/modules/cjs/loader:1266:32)\n    at Function.Module._load (node:internal/modules/cjs/loader:1091:12)\n    at Module.require (node:internal/modules/cjs/loader:1289:19)\n    at require (node:internal/modules/helpers:182:18)\n    at Object.<anonymous> (E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\src\\routes\\/stockData.routes.js:2:1)\n    at Module._compile (node:internal/modules/cjs/loader:1521:14)\n    at Module._compile (E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\node_modules\\pirates\\lib\\index.js:129:24)\n    at Module._extensions..js (node:internal/modules/cjs/loader:1623:10)\n    at Object.newLoader [as .js] (E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\node_modules\\pirates\\lib\\index.js:134:7)\n    at Module.load (node:internal/modules/cjs/loader:1266:32)\n    at Function.Module._load (node:internal/modules/cjs/loader:1091:12)\n    at Module.require (node:internal/modules/cjs/loader:1289:19)\n    at require (node:internal/modules/helpers:182:18)\n    at Object.<anonymous> (E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\src\\/index.js:13:1)\n    at Module._compile (node:internal/modules/cjs/loader:1521:14)\n    at Module._compile (E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\node_modules\\pirates\\lib\\index.js:129:24)\n    at Module._extensions..js (node:internal/modules/cjs/loader:1623:10)\n    at Object.newLoader [as .js] (E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\node_modules\\pirates\\lib\\index.js:134:7)\n    at Module.load (node:internal/modules/cjs/loader:1266:32)\n    at Function.Module._load (node:internal/modules/cjs/loader:1091:12)\n    at Function.runMain (node:internal/modules/run_main:164:12)\n    at Object.<anonymous> (E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\node_modules\\@babel\\node\\src\\_babel-node.ts:159:12)\n    at Module._compile (node:internal/modules/cjs/loader:1521:14)\n    at Object.Module._extensions..js (node:internal/modules/cjs/loader:1623:10)\n    at Module.load (node:internal/modules/cjs/loader:1266:32)\n    at Function.Module._load (node:internal/modules/cjs/loader:1091:12)\n    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:164:12)\n    at node:internal/main/run_main_module:28:49","timestamp":"2025-12-16T17:55:32.214Z","trace":[{"column":20,"file":"E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\src\\models\\/index.js","function":null,"line":176,"method":null,"native":false},{"column":14,"file":"node:internal/modules/cjs/loader","function":"Module._compile","line":1521,"method":"_compile","native":false},{"column":24,"file":"E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\node_modules\\pirates\\lib\\index.js","function":"Module._compile","line":129,"method":"_compile","native":false},{"column":10,"file":"node:internal/modules/cjs/loader","function":"Module._extensions..js","line":1623,"method":".js","native":false},{"column":7,"file":"E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\node_modules\\pirates\\lib\\index.js","function":"Object.newLoader [as .js]","line":134,"method":"js]","native":false},{"column":32,"file":"node:internal/modules/cjs/loader","function":"Module.load","line":1266,"method":"load","native":false},{"column":12,"file":"node:internal/modules/cjs/loader","function":"Module._load","line":1091,"method":"_load","native":false},{"column":19,"file":"node:internal/modules/cjs/loader","function":"Module.require","line":1289,"method":"require","native":false},{"column":18,"file":"node:internal/modules/helpers","function":"require","line":182,"method":null,"native":false},{"column":1,"file":"E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\src\\controllers\\/stockdatacontroller.js","function":null,"line":2,"method":null,"native":false},{"column":14,"file":"node:internal/modules/cjs/loader","function":"Module._compile","line":1521,"method":"_compile","native":false},{"column":24,"file":"E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\node_modules\\pirates\\lib\\index.js","function":"Module._compile","line":129,"method":"_compile","native":false},{"column":10,"file":"node:internal/modules/cjs/loader","function":"Module._extensions..js","line":1623,"method":".js","native":false},{"column":7,"file":"E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\node_modules\\pirates\\lib\\index.js","function":"Object.newLoader [as .js]","line":134,"method":"js]","native":false},{"column":32,"file":"node:internal/modules/cjs/loader","function":"Module.load","line":1266,"method":"load","native":false},{"column":12,"file":"node:internal/modules/cjs/loader","function":"Module._load","line":1091,"method":"_load","native":false},{"column":19,"file":"node:internal/modules/cjs/loader","function":"Module.require","line":1289,"method":"require","native":false},{"column":18,"file":"node:internal/modules/helpers","function":"require","line":182,"method":null,"native":false},{"column":1,"file":"E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\src\\routes\\/stockData.routes.js","function":null,"line":2,"method":null,"native":false},{"column":14,"file":"node:internal/modules/cjs/loader","function":"Module._compile","line":1521,"method":"_compile","native":false},{"column":24,"file":"E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\node_modules\\pirates\\lib\\index.js","function":"Module._compile","line":129,"method":"_compile","native":false},{"column":10,"file":"node:internal/modules/cjs/loader","function":"Module._extensions..js","line":1623,"method":".js","native":false},{"column":7,"file":"E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\node_modules\\pirates\\lib\\index.js","function":"Object.newLoader [as .js]","line":134,"method":"js]","native":false},{"column":32,"file":"node:internal/modules/cjs/loader","function":"Module.load","line":1266,"method":"load","native":false},{"column":12,"file":"node:internal/modules/cjs/loader","function":"Module._load","line":1091,"method":"_load","native":false},{"column":19,"file":"node:internal/modules/cjs/loader","function":"Module.require","line":1289,"method":"require","native":false},{"column":18,"file":"node:internal/modules/helpers","function":"require","line":182,"method":null,"native":false},{"column":1,"file":"E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\src\\/index.js","function":null,"line":13,"method":null,"native":false},{"column":14,"file":"node:internal/modules/cjs/loader","function":"Module._compile","line":1521,"method":"_compile","native":false},{"column":24,"file":"E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\node_modules\\pirates\\lib\\index.js","function":"Module._compile","line":129,"method":"_compile","native":false},{"column":10,"file":"node:internal/modules/cjs/loader","function":"Module._extensions..js","line":1623,"method":".js","native":false},{"column":7,"file":"E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\node_modules\\pirates\\lib\\index.js","function":"Object.newLoader [as .js]","line":134,"method":"js]","native":false},{"column":32,"file":"node:internal/modules/cjs/loader","function":"Module.load","line":1266,"method":"load","native":false},{"column":12,"file":"node:internal/modules/cjs/loader","function":"Module._load","line":1091,"method":"_load","native":false},{"column":12,"file":"node:internal/modules/run_main","function":"Function.runMain","line":164,"method":"runMain","native":false},{"column":12,"file":"E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\node_modules\\@babel\\node\\src\\_babel-node.ts","function":null,"line":159,"method":null,"native":false},{"column":14,"file":"node:internal/modules/cjs/loader","function":"Module._compile","line":1521,"method":"_compile","native":false},{"column":10,"file":"node:internal/modules/cjs/loader","function":"Module._extensions..js","line":1623,"method":".js","native":false},{"column":32,"file":"node:internal/modules/cjs/loader","function":"Module.load","line":1266,"method":"load","native":false},{"column":12,"file":"node:internal/modules/cjs/loader","function":"Module._load","line":1091,"method":"_load","native":false},{"column":12,"file":"node:internal/modules/run_main","function":"Function.executeUserEntryPoint [as runMain]","line":164,"method":"executeUserEntryPoint [as runMain]","native":false},{"column":49,"file":"node:internal/main/run_main_module","function":null,"line":28,"method":null,"native":false}]}
+error: uncaughtException: MainboardDataModel is not defined
+ReferenceError: MainboardDataModel is not defined
+    at Object.<anonymous> (E:\Desktop_copy\Projects\vap\vap-be\backend\src\models\/index.js:176:20)
+    at Module._compile (node:internal/modules/cjs/loader:1521:14)
+    at Module._compile (E:\Desktop_copy\Projects\vap\vap-be\backend\node_modules\pirates\lib\index.js:129:24)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1623:10)
+    at Object.newLoader [as .js] (E:\Desktop_copy\Projects\vap\vap-be\backend\node_modules\pirates\lib\index.js:134:7)
+    at Module.load (node:internal/modules/cjs/loader:1266:32)
+    at Function.Module._load (node:internal/modules/cjs/loader:1091:12)
+    at Module.require (node:internal/modules/cjs/loader:1289:19)
+    at require (node:internal/modules/helpers:182:18)
+    at Object.<anonymous> (E:\Desktop_copy\Projects\vap\vap-be\backend\src\controllers\/stockdatacontroller.js:2:1)
+    at Module._compile (node:internal/modules/cjs/loader:1521:14)
+    at Module._compile (E:\Desktop_copy\Projects\vap\vap-be\backend\node_modules\pirates\lib\index.js:129:24)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1623:10)
+    at Object.newLoader [as .js] (E:\Desktop_copy\Projects\vap\vap-be\backend\node_modules\pirates\lib\index.js:134:7)
+    at Module.load (node:internal/modules/cjs/loader:1266:32)
+    at Function.Module._load (node:internal/modules/cjs/loader:1091:12)
+    at Module.require (node:internal/modules/cjs/loader:1289:19)
+    at require (node:internal/modules/helpers:182:18)
+    at Object.<anonymous> (E:\Desktop_copy\Projects\vap\vap-be\backend\src\routes\/stockData.routes.js:2:1)
+    at Module._compile (node:internal/modules/cjs/loader:1521:14)
+    at Module._compile (E:\Desktop_copy\Projects\vap\vap-be\backend\node_modules\pirates\lib\index.js:129:24)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1623:10)
+    at Object.newLoader [as .js] (E:\Desktop_copy\Projects\vap\vap-be\backend\node_modules\pirates\lib\index.js:134:7)
+    at Module.load (node:internal/modules/cjs/loader:1266:32)
+    at Function.Module._load (node:internal/modules/cjs/loader:1091:12)
+    at Module.require (node:internal/modules/cjs/loader:1289:19)
+    at require (node:internal/modules/helpers:182:18)
+    at Object.<anonymous> (E:\Desktop_copy\Projects\vap\vap-be\backend\src\/index.js:13:1)
+    at Module._compile (node:internal/modules/cjs/loader:1521:14)
+    at Module._compile (E:\Desktop_copy\Projects\vap\vap-be\backend\node_modules\pirates\lib\index.js:129:24)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1623:10)
+    at Object.newLoader [as .js] (E:\Desktop_copy\Projects\vap\vap-be\backend\node_modules\pirates\lib\index.js:134:7)
+    at Module.load (node:internal/modules/cjs/loader:1266:32)
+    at Function.Module._load (node:internal/modules/cjs/loader:1091:12)
+    at Function.runMain (node:internal/modules/run_main:164:12)
+    at Object.<anonymous> (E:\Desktop_copy\Projects\vap\vap-be\backend\node_modules\@babel\node\src\_babel-node.ts:159:12)
+    at Module._compile (node:internal/modules/cjs/loader:1521:14)
+    at Object.Module._extensions..js (node:internal/modules/cjs/loader:1623:10)
+    at Module.load (node:internal/modules/cjs/loader:1266:32)
+    at Function.Module._load (node:internal/modules/cjs/loader:1091:12)
+    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:164:12)
+    at node:internal/main/run_main_module:28:49 {"date":"Tue Dec 16 2025 23:25:39 GMT+0530 (India Standard Time)","error":{},"exception":true,"os":{"loadavg":[0,0,0],"uptime":276264.343},"process":{"argv":["node","E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\src\\index.js"],"cwd":"E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend","execPath":"C:\\Program Files\\nodejs\\node.exe","gid":null,"memoryUsage":{"arrayBuffers":17297,"external":3053218,"heapTotal":87666688,"heapUsed":68679552,"rss":130973696},"pid":9240,"uid":null,"version":"v20.19.5"},"stack":"ReferenceError: MainboardDataModel is not defined\n    at Object.<anonymous> (E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\src\\models\\/index.js:176:20)\n    at Module._compile (node:internal/modules/cjs/loader:1521:14)\n    at Module._compile (E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\node_modules\\pirates\\lib\\index.js:129:24)\n    at Module._extensions..js (node:internal/modules/cjs/loader:1623:10)\n    at Object.newLoader [as .js] (E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\node_modules\\pirates\\lib\\index.js:134:7)\n    at Module.load (node:internal/modules/cjs/loader:1266:32)\n    at Function.Module._load (node:internal/modules/cjs/loader:1091:12)\n    at Module.require (node:internal/modules/cjs/loader:1289:19)\n    at require (node:internal/modules/helpers:182:18)\n    at Object.<anonymous> (E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\src\\controllers\\/stockdatacontroller.js:2:1)\n    at Module._compile (node:internal/modules/cjs/loader:1521:14)\n    at Module._compile (E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\node_modules\\pirates\\lib\\index.js:129:24)\n    at Module._extensions..js (node:internal/modules/cjs/loader:1623:10)\n    at Object.newLoader [as .js] (E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\node_modules\\pirates\\lib\\index.js:134:7)\n    at Module.load (node:internal/modules/cjs/loader:1266:32)\n    at Function.Module._load (node:internal/modules/cjs/loader:1091:12)\n    at Module.require (node:internal/modules/cjs/loader:1289:19)\n    at require (node:internal/modules/helpers:182:18)\n    at Object.<anonymous> (E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\src\\routes\\/stockData.routes.js:2:1)\n    at Module._compile (node:internal/modules/cjs/loader:1521:14)\n    at Module._compile (E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\node_modules\\pirates\\lib\\index.js:129:24)\n    at Module._extensions..js (node:internal/modules/cjs/loader:1623:10)\n    at Object.newLoader [as .js] (E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\node_modules\\pirates\\lib\\index.js:134:7)\n    at Module.load (node:internal/modules/cjs/loader:1266:32)\n    at Function.Module._load (node:internal/modules/cjs/loader:1091:12)\n    at Module.require (node:internal/modules/cjs/loader:1289:19)\n    at require (node:internal/modules/helpers:182:18)\n    at Object.<anonymous> (E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\src\\/index.js:13:1)\n    at Module._compile (node:internal/modules/cjs/loader:1521:14)\n    at Module._compile (E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\node_modules\\pirates\\lib\\index.js:129:24)\n    at Module._extensions..js (node:internal/modules/cjs/loader:1623:10)\n    at Object.newLoader [as .js] (E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\node_modules\\pirates\\lib\\index.js:134:7)\n    at Module.load (node:internal/modules/cjs/loader:1266:32)\n    at Function.Module._load (node:internal/modules/cjs/loader:1091:12)\n    at Function.runMain (node:internal/modules/run_main:164:12)\n    at Object.<anonymous> (E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\node_modules\\@babel\\node\\src\\_babel-node.ts:159:12)\n    at Module._compile (node:internal/modules/cjs/loader:1521:14)\n    at Object.Module._extensions..js (node:internal/modules/cjs/loader:1623:10)\n    at Module.load (node:internal/modules/cjs/loader:1266:32)\n    at Function.Module._load (node:internal/modules/cjs/loader:1091:12)\n    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:164:12)\n    at node:internal/main/run_main_module:28:49","timestamp":"2025-12-16T17:55:39.731Z","trace":[{"column":20,"file":"E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\src\\models\\/index.js","function":null,"line":176,"method":null,"native":false},{"column":14,"file":"node:internal/modules/cjs/loader","function":"Module._compile","line":1521,"method":"_compile","native":false},{"column":24,"file":"E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\node_modules\\pirates\\lib\\index.js","function":"Module._compile","line":129,"method":"_compile","native":false},{"column":10,"file":"node:internal/modules/cjs/loader","function":"Module._extensions..js","line":1623,"method":".js","native":false},{"column":7,"file":"E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\node_modules\\pirates\\lib\\index.js","function":"Object.newLoader [as .js]","line":134,"method":"js]","native":false},{"column":32,"file":"node:internal/modules/cjs/loader","function":"Module.load","line":1266,"method":"load","native":false},{"column":12,"file":"node:internal/modules/cjs/loader","function":"Module._load","line":1091,"method":"_load","native":false},{"column":19,"file":"node:internal/modules/cjs/loader","function":"Module.require","line":1289,"method":"require","native":false},{"column":18,"file":"node:internal/modules/helpers","function":"require","line":182,"method":null,"native":false},{"column":1,"file":"E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\src\\controllers\\/stockdatacontroller.js","function":null,"line":2,"method":null,"native":false},{"column":14,"file":"node:internal/modules/cjs/loader","function":"Module._compile","line":1521,"method":"_compile","native":false},{"column":24,"file":"E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\node_modules\\pirates\\lib\\index.js","function":"Module._compile","line":129,"method":"_compile","native":false},{"column":10,"file":"node:internal/modules/cjs/loader","function":"Module._extensions..js","line":1623,"method":".js","native":false},{"column":7,"file":"E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\node_modules\\pirates\\lib\\index.js","function":"Object.newLoader [as .js]","line":134,"method":"js]","native":false},{"column":32,"file":"node:internal/modules/cjs/loader","function":"Module.load","line":1266,"method":"load","native":false},{"column":12,"file":"node:internal/modules/cjs/loader","function":"Module._load","line":1091,"method":"_load","native":false},{"column":19,"file":"node:internal/modules/cjs/loader","function":"Module.require","line":1289,"method":"require","native":false},{"column":18,"file":"node:internal/modules/helpers","function":"require","line":182,"method":null,"native":false},{"column":1,"file":"E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\src\\routes\\/stockData.routes.js","function":null,"line":2,"method":null,"native":false},{"column":14,"file":"node:internal/modules/cjs/loader","function":"Module._compile","line":1521,"method":"_compile","native":false},{"column":24,"file":"E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\node_modules\\pirates\\lib\\index.js","function":"Module._compile","line":129,"method":"_compile","native":false},{"column":10,"file":"node:internal/modules/cjs/loader","function":"Module._extensions..js","line":1623,"method":".js","native":false},{"column":7,"file":"E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\node_modules\\pirates\\lib\\index.js","function":"Object.newLoader [as .js]","line":134,"method":"js]","native":false},{"column":32,"file":"node:internal/modules/cjs/loader","function":"Module.load","line":1266,"method":"load","native":false},{"column":12,"file":"node:internal/modules/cjs/loader","function":"Module._load","line":1091,"method":"_load","native":false},{"column":19,"file":"node:internal/modules/cjs/loader","function":"Module.require","line":1289,"method":"require","native":false},{"column":18,"file":"node:internal/modules/helpers","function":"require","line":182,"method":null,"native":false},{"column":1,"file":"E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\src\\/index.js","function":null,"line":13,"method":null,"native":false},{"column":14,"file":"node:internal/modules/cjs/loader","function":"Module._compile","line":1521,"method":"_compile","native":false},{"column":24,"file":"E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\node_modules\\pirates\\lib\\index.js","function":"Module._compile","line":129,"method":"_compile","native":false},{"column":10,"file":"node:internal/modules/cjs/loader","function":"Module._extensions..js","line":1623,"method":".js","native":false},{"column":7,"file":"E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\node_modules\\pirates\\lib\\index.js","function":"Object.newLoader [as .js]","line":134,"method":"js]","native":false},{"column":32,"file":"node:internal/modules/cjs/loader","function":"Module.load","line":1266,"method":"load","native":false},{"column":12,"file":"node:internal/modules/cjs/loader","function":"Module._load","line":1091,"method":"_load","native":false},{"column":12,"file":"node:internal/modules/run_main","function":"Function.runMain","line":164,"method":"runMain","native":false},{"column":12,"file":"E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\node_modules\\@babel\\node\\src\\_babel-node.ts","function":null,"line":159,"method":null,"native":false},{"column":14,"file":"node:internal/modules/cjs/loader","function":"Module._compile","line":1521,"method":"_compile","native":false},{"column":10,"file":"node:internal/modules/cjs/loader","function":"Module._extensions..js","line":1623,"method":".js","native":false},{"column":32,"file":"node:internal/modules/cjs/loader","function":"Module.load","line":1266,"method":"load","native":false},{"column":12,"file":"node:internal/modules/cjs/loader","function":"Module._load","line":1091,"method":"_load","native":false},{"column":12,"file":"node:internal/modules/run_main","function":"Function.executeUserEntryPoint [as runMain]","line":164,"method":"executeUserEntryPoint [as runMain]","native":false},{"column":49,"file":"node:internal/main/run_main_module","function":null,"line":28,"method":null,"native":false}]}
+error: uncaughtException: MainboardDataModel is not defined
+ReferenceError: MainboardDataModel is not defined
+    at Object.<anonymous> (E:\Desktop_copy\Projects\vap\vap-be\backend\src\models\/index.js:176:20)
+    at Module._compile (node:internal/modules/cjs/loader:1521:14)
+    at Module._compile (E:\Desktop_copy\Projects\vap\vap-be\backend\node_modules\pirates\lib\index.js:129:24)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1623:10)
+    at Object.newLoader [as .js] (E:\Desktop_copy\Projects\vap\vap-be\backend\node_modules\pirates\lib\index.js:134:7)
+    at Module.load (node:internal/modules/cjs/loader:1266:32)
+    at Function.Module._load (node:internal/modules/cjs/loader:1091:12)
+    at Module.require (node:internal/modules/cjs/loader:1289:19)
+    at require (node:internal/modules/helpers:182:18)
+    at Object.<anonymous> (E:\Desktop_copy\Projects\vap\vap-be\backend\src\controllers\/stockdatacontroller.js:2:1)
+    at Module._compile (node:internal/modules/cjs/loader:1521:14)
+    at Module._compile (E:\Desktop_copy\Projects\vap\vap-be\backend\node_modules\pirates\lib\index.js:129:24)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1623:10)
+    at Object.newLoader [as .js] (E:\Desktop_copy\Projects\vap\vap-be\backend\node_modules\pirates\lib\index.js:134:7)
+    at Module.load (node:internal/modules/cjs/loader:1266:32)
+    at Function.Module._load (node:internal/modules/cjs/loader:1091:12)
+    at Module.require (node:internal/modules/cjs/loader:1289:19)
+    at require (node:internal/modules/helpers:182:18)
+    at Object.<anonymous> (E:\Desktop_copy\Projects\vap\vap-be\backend\src\routes\/stockData.routes.js:2:1)
+    at Module._compile (node:internal/modules/cjs/loader:1521:14)
+    at Module._compile (E:\Desktop_copy\Projects\vap\vap-be\backend\node_modules\pirates\lib\index.js:129:24)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1623:10)
+    at Object.newLoader [as .js] (E:\Desktop_copy\Projects\vap\vap-be\backend\node_modules\pirates\lib\index.js:134:7)
+    at Module.load (node:internal/modules/cjs/loader:1266:32)
+    at Function.Module._load (node:internal/modules/cjs/loader:1091:12)
+    at Module.require (node:internal/modules/cjs/loader:1289:19)
+    at require (node:internal/modules/helpers:182:18)
+    at Object.<anonymous> (E:\Desktop_copy\Projects\vap\vap-be\backend\src\/index.js:13:1)
+    at Module._compile (node:internal/modules/cjs/loader:1521:14)
+    at Module._compile (E:\Desktop_copy\Projects\vap\vap-be\backend\node_modules\pirates\lib\index.js:129:24)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1623:10)
+    at Object.newLoader [as .js] (E:\Desktop_copy\Projects\vap\vap-be\backend\node_modules\pirates\lib\index.js:134:7)
+    at Module.load (node:internal/modules/cjs/loader:1266:32)
+    at Function.Module._load (node:internal/modules/cjs/loader:1091:12)
+    at Function.runMain (node:internal/modules/run_main:164:12)
+    at Object.<anonymous> (E:\Desktop_copy\Projects\vap\vap-be\backend\node_modules\@babel\node\src\_babel-node.ts:159:12)
+    at Module._compile (node:internal/modules/cjs/loader:1521:14)
+    at Object.Module._extensions..js (node:internal/modules/cjs/loader:1623:10)
+    at Module.load (node:internal/modules/cjs/loader:1266:32)
+    at Function.Module._load (node:internal/modules/cjs/loader:1091:12)
+    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:164:12)
+    at node:internal/main/run_main_module:28:49 {"date":"Tue Dec 16 2025 23:26:52 GMT+0530 (India Standard Time)","error":{},"exception":true,"os":{"loadavg":[0,0,0],"uptime":276337.187},"process":{"argv":["node","E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\src\\index.js"],"cwd":"E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend","execPath":"C:\\Program Files\\nodejs\\node.exe","gid":null,"memoryUsage":{"arrayBuffers":17011,"external":3053218,"heapTotal":93958144,"heapUsed":63926096,"rss":136708096},"pid":13764,"uid":null,"version":"v20.19.5"},"stack":"ReferenceError: MainboardDataModel is not defined\n    at Object.<anonymous> (E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\src\\models\\/index.js:176:20)\n    at Module._compile (node:internal/modules/cjs/loader:1521:14)\n    at Module._compile (E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\node_modules\\pirates\\lib\\index.js:129:24)\n    at Module._extensions..js (node:internal/modules/cjs/loader:1623:10)\n    at Object.newLoader [as .js] (E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\node_modules\\pirates\\lib\\index.js:134:7)\n    at Module.load (node:internal/modules/cjs/loader:1266:32)\n    at Function.Module._load (node:internal/modules/cjs/loader:1091:12)\n    at Module.require (node:internal/modules/cjs/loader:1289:19)\n    at require (node:internal/modules/helpers:182:18)\n    at Object.<anonymous> (E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\src\\controllers\\/stockdatacontroller.js:2:1)\n    at Module._compile (node:internal/modules/cjs/loader:1521:14)\n    at Module._compile (E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\node_modules\\pirates\\lib\\index.js:129:24)\n    at Module._extensions..js (node:internal/modules/cjs/loader:1623:10)\n    at Object.newLoader [as .js] (E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\node_modules\\pirates\\lib\\index.js:134:7)\n    at Module.load (node:internal/modules/cjs/loader:1266:32)\n    at Function.Module._load (node:internal/modules/cjs/loader:1091:12)\n    at Module.require (node:internal/modules/cjs/loader:1289:19)\n    at require (node:internal/modules/helpers:182:18)\n    at Object.<anonymous> (E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\src\\routes\\/stockData.routes.js:2:1)\n    at Module._compile (node:internal/modules/cjs/loader:1521:14)\n    at Module._compile (E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\node_modules\\pirates\\lib\\index.js:129:24)\n    at Module._extensions..js (node:internal/modules/cjs/loader:1623:10)\n    at Object.newLoader [as .js] (E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\node_modules\\pirates\\lib\\index.js:134:7)\n    at Module.load (node:internal/modules/cjs/loader:1266:32)\n    at Function.Module._load (node:internal/modules/cjs/loader:1091:12)\n    at Module.require (node:internal/modules/cjs/loader:1289:19)\n    at require (node:internal/modules/helpers:182:18)\n    at Object.<anonymous> (E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\src\\/index.js:13:1)\n    at Module._compile (node:internal/modules/cjs/loader:1521:14)\n    at Module._compile (E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\node_modules\\pirates\\lib\\index.js:129:24)\n    at Module._extensions..js (node:internal/modules/cjs/loader:1623:10)\n    at Object.newLoader [as .js] (E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\node_modules\\pirates\\lib\\index.js:134:7)\n    at Module.load (node:internal/modules/cjs/loader:1266:32)\n    at Function.Module._load (node:internal/modules/cjs/loader:1091:12)\n    at Function.runMain (node:internal/modules/run_main:164:12)\n    at Object.<anonymous> (E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\node_modules\\@babel\\node\\src\\_babel-node.ts:159:12)\n    at Module._compile (node:internal/modules/cjs/loader:1521:14)\n    at Object.Module._extensions..js (node:internal/modules/cjs/loader:1623:10)\n    at Module.load (node:internal/modules/cjs/loader:1266:32)\n    at Function.Module._load (node:internal/modules/cjs/loader:1091:12)\n    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:164:12)\n    at node:internal/main/run_main_module:28:49","timestamp":"2025-12-16T17:56:52.569Z","trace":[{"column":20,"file":"E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\src\\models\\/index.js","function":null,"line":176,"method":null,"native":false},{"column":14,"file":"node:internal/modules/cjs/loader","function":"Module._compile","line":1521,"method":"_compile","native":false},{"column":24,"file":"E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\node_modules\\pirates\\lib\\index.js","function":"Module._compile","line":129,"method":"_compile","native":false},{"column":10,"file":"node:internal/modules/cjs/loader","function":"Module._extensions..js","line":1623,"method":".js","native":false},{"column":7,"file":"E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\node_modules\\pirates\\lib\\index.js","function":"Object.newLoader [as .js]","line":134,"method":"js]","native":false},{"column":32,"file":"node:internal/modules/cjs/loader","function":"Module.load","line":1266,"method":"load","native":false},{"column":12,"file":"node:internal/modules/cjs/loader","function":"Module._load","line":1091,"method":"_load","native":false},{"column":19,"file":"node:internal/modules/cjs/loader","function":"Module.require","line":1289,"method":"require","native":false},{"column":18,"file":"node:internal/modules/helpers","function":"require","line":182,"method":null,"native":false},{"column":1,"file":"E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\src\\controllers\\/stockdatacontroller.js","function":null,"line":2,"method":null,"native":false},{"column":14,"file":"node:internal/modules/cjs/loader","function":"Module._compile","line":1521,"method":"_compile","native":false},{"column":24,"file":"E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\node_modules\\pirates\\lib\\index.js","function":"Module._compile","line":129,"method":"_compile","native":false},{"column":10,"file":"node:internal/modules/cjs/loader","function":"Module._extensions..js","line":1623,"method":".js","native":false},{"column":7,"file":"E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\node_modules\\pirates\\lib\\index.js","function":"Object.newLoader [as .js]","line":134,"method":"js]","native":false},{"column":32,"file":"node:internal/modules/cjs/loader","function":"Module.load","line":1266,"method":"load","native":false},{"column":12,"file":"node:internal/modules/cjs/loader","function":"Module._load","line":1091,"method":"_load","native":false},{"column":19,"file":"node:internal/modules/cjs/loader","function":"Module.require","line":1289,"method":"require","native":false},{"column":18,"file":"node:internal/modules/helpers","function":"require","line":182,"method":null,"native":false},{"column":1,"file":"E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\src\\routes\\/stockData.routes.js","function":null,"line":2,"method":null,"native":false},{"column":14,"file":"node:internal/modules/cjs/loader","function":"Module._compile","line":1521,"method":"_compile","native":false},{"column":24,"file":"E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\node_modules\\pirates\\lib\\index.js","function":"Module._compile","line":129,"method":"_compile","native":false},{"column":10,"file":"node:internal/modules/cjs/loader","function":"Module._extensions..js","line":1623,"method":".js","native":false},{"column":7,"file":"E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\node_modules\\pirates\\lib\\index.js","function":"Object.newLoader [as .js]","line":134,"method":"js]","native":false},{"column":32,"file":"node:internal/modules/cjs/loader","function":"Module.load","line":1266,"method":"load","native":false},{"column":12,"file":"node:internal/modules/cjs/loader","function":"Module._load","line":1091,"method":"_load","native":false},{"column":19,"file":"node:internal/modules/cjs/loader","function":"Module.require","line":1289,"method":"require","native":false},{"column":18,"file":"node:internal/modules/helpers","function":"require","line":182,"method":null,"native":false},{"column":1,"file":"E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\src\\/index.js","function":null,"line":13,"method":null,"native":false},{"column":14,"file":"node:internal/modules/cjs/loader","function":"Module._compile","line":1521,"method":"_compile","native":false},{"column":24,"file":"E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\node_modules\\pirates\\lib\\index.js","function":"Module._compile","line":129,"method":"_compile","native":false},{"column":10,"file":"node:internal/modules/cjs/loader","function":"Module._extensions..js","line":1623,"method":".js","native":false},{"column":7,"file":"E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\node_modules\\pirates\\lib\\index.js","function":"Object.newLoader [as .js]","line":134,"method":"js]","native":false},{"column":32,"file":"node:internal/modules/cjs/loader","function":"Module.load","line":1266,"method":"load","native":false},{"column":12,"file":"node:internal/modules/cjs/loader","function":"Module._load","line":1091,"method":"_load","native":false},{"column":12,"file":"node:internal/modules/run_main","function":"Function.runMain","line":164,"method":"runMain","native":false},{"column":12,"file":"E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\node_modules\\@babel\\node\\src\\_babel-node.ts","function":null,"line":159,"method":null,"native":false},{"column":14,"file":"node:internal/modules/cjs/loader","function":"Module._compile","line":1521,"method":"_compile","native":false},{"column":10,"file":"node:internal/modules/cjs/loader","function":"Module._extensions..js","line":1623,"method":".js","native":false},{"column":32,"file":"node:internal/modules/cjs/loader","function":"Module.load","line":1266,"method":"load","native":false},{"column":12,"file":"node:internal/modules/cjs/loader","function":"Module._load","line":1091,"method":"_load","native":false},{"column":12,"file":"node:internal/modules/run_main","function":"Function.executeUserEntryPoint [as runMain]","line":164,"method":"executeUserEntryPoint [as runMain]","native":false},{"column":49,"file":"node:internal/main/run_main_module","function":null,"line":28,"method":null,"native":false}]}
+error: uncaughtException: MainboardDataModel is not defined
+ReferenceError: MainboardDataModel is not defined
+    at Object.<anonymous> (E:\Desktop_copy\Projects\vap\vap-be\backend\src\models\/index.js:176:20)
+    at Module._compile (node:internal/modules/cjs/loader:1521:14)
+    at Module._compile (E:\Desktop_copy\Projects\vap\vap-be\backend\node_modules\pirates\lib\index.js:129:24)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1623:10)
+    at Object.newLoader [as .js] (E:\Desktop_copy\Projects\vap\vap-be\backend\node_modules\pirates\lib\index.js:134:7)
+    at Module.load (node:internal/modules/cjs/loader:1266:32)
+    at Function.Module._load (node:internal/modules/cjs/loader:1091:12)
+    at Module.require (node:internal/modules/cjs/loader:1289:19)
+    at require (node:internal/modules/helpers:182:18)
+    at Object.<anonymous> (E:\Desktop_copy\Projects\vap\vap-be\backend\src\controllers\/stockdatacontroller.js:2:1)
+    at Module._compile (node:internal/modules/cjs/loader:1521:14)
+    at Module._compile (E:\Desktop_copy\Projects\vap\vap-be\backend\node_modules\pirates\lib\index.js:129:24)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1623:10)
+    at Object.newLoader [as .js] (E:\Desktop_copy\Projects\vap\vap-be\backend\node_modules\pirates\lib\index.js:134:7)
+    at Module.load (node:internal/modules/cjs/loader:1266:32)
+    at Function.Module._load (node:internal/modules/cjs/loader:1091:12)
+    at Module.require (node:internal/modules/cjs/loader:1289:19)
+    at require (node:internal/modules/helpers:182:18)
+    at Object.<anonymous> (E:\Desktop_copy\Projects\vap\vap-be\backend\src\routes\/stockData.routes.js:2:1)
+    at Module._compile (node:internal/modules/cjs/loader:1521:14)
+    at Module._compile (E:\Desktop_copy\Projects\vap\vap-be\backend\node_modules\pirates\lib\index.js:129:24)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1623:10)
+    at Object.newLoader [as .js] (E:\Desktop_copy\Projects\vap\vap-be\backend\node_modules\pirates\lib\index.js:134:7)
+    at Module.load (node:internal/modules/cjs/loader:1266:32)
+    at Function.Module._load (node:internal/modules/cjs/loader:1091:12)
+    at Module.require (node:internal/modules/cjs/loader:1289:19)
+    at require (node:internal/modules/helpers:182:18)
+    at Object.<anonymous> (E:\Desktop_copy\Projects\vap\vap-be\backend\src\/index.js:13:1)
+    at Module._compile (node:internal/modules/cjs/loader:1521:14)
+    at Module._compile (E:\Desktop_copy\Projects\vap\vap-be\backend\node_modules\pirates\lib\index.js:129:24)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1623:10)
+    at Object.newLoader [as .js] (E:\Desktop_copy\Projects\vap\vap-be\backend\node_modules\pirates\lib\index.js:134:7)
+    at Module.load (node:internal/modules/cjs/loader:1266:32)
+    at Function.Module._load (node:internal/modules/cjs/loader:1091:12)
+    at Function.runMain (node:internal/modules/run_main:164:12)
+    at Object.<anonymous> (E:\Desktop_copy\Projects\vap\vap-be\backend\node_modules\@babel\node\src\_babel-node.ts:159:12)
+    at Module._compile (node:internal/modules/cjs/loader:1521:14)
+    at Object.Module._extensions..js (node:internal/modules/cjs/loader:1623:10)
+    at Module.load (node:internal/modules/cjs/loader:1266:32)
+    at Function.Module._load (node:internal/modules/cjs/loader:1091:12)
+    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:164:12)
+    at node:internal/main/run_main_module:28:49 {"date":"Tue Dec 16 2025 23:27:18 GMT+0530 (India Standard Time)","error":{},"exception":true,"os":{"loadavg":[0,0,0],"uptime":276362.781},"process":{"argv":["node","E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\src\\index.js"],"cwd":"E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend","execPath":"C:\\Program Files\\nodejs\\node.exe","gid":null,"memoryUsage":{"arrayBuffers":17297,"external":3053218,"heapTotal":87666688,"heapUsed":69030824,"rss":132141056},"pid":9144,"uid":null,"version":"v20.19.5"},"stack":"ReferenceError: MainboardDataModel is not defined\n    at Object.<anonymous> (E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\src\\models\\/index.js:176:20)\n    at Module._compile (node:internal/modules/cjs/loader:1521:14)\n    at Module._compile (E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\node_modules\\pirates\\lib\\index.js:129:24)\n    at Module._extensions..js (node:internal/modules/cjs/loader:1623:10)\n    at Object.newLoader [as .js] (E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\node_modules\\pirates\\lib\\index.js:134:7)\n    at Module.load (node:internal/modules/cjs/loader:1266:32)\n    at Function.Module._load (node:internal/modules/cjs/loader:1091:12)\n    at Module.require (node:internal/modules/cjs/loader:1289:19)\n    at require (node:internal/modules/helpers:182:18)\n    at Object.<anonymous> (E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\src\\controllers\\/stockdatacontroller.js:2:1)\n    at Module._compile (node:internal/modules/cjs/loader:1521:14)\n    at Module._compile (E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\node_modules\\pirates\\lib\\index.js:129:24)\n    at Module._extensions..js (node:internal/modules/cjs/loader:1623:10)\n    at Object.newLoader [as .js] (E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\node_modules\\pirates\\lib\\index.js:134:7)\n    at Module.load (node:internal/modules/cjs/loader:1266:32)\n    at Function.Module._load (node:internal/modules/cjs/loader:1091:12)\n    at Module.require (node:internal/modules/cjs/loader:1289:19)\n    at require (node:internal/modules/helpers:182:18)\n    at Object.<anonymous> (E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\src\\routes\\/stockData.routes.js:2:1)\n    at Module._compile (node:internal/modules/cjs/loader:1521:14)\n    at Module._compile (E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\node_modules\\pirates\\lib\\index.js:129:24)\n    at Module._extensions..js (node:internal/modules/cjs/loader:1623:10)\n    at Object.newLoader [as .js] (E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\node_modules\\pirates\\lib\\index.js:134:7)\n    at Module.load (node:internal/modules/cjs/loader:1266:32)\n    at Function.Module._load (node:internal/modules/cjs/loader:1091:12)\n    at Module.require (node:internal/modules/cjs/loader:1289:19)\n    at require (node:internal/modules/helpers:182:18)\n    at Object.<anonymous> (E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\src\\/index.js:13:1)\n    at Module._compile (node:internal/modules/cjs/loader:1521:14)\n    at Module._compile (E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\node_modules\\pirates\\lib\\index.js:129:24)\n    at Module._extensions..js (node:internal/modules/cjs/loader:1623:10)\n    at Object.newLoader [as .js] (E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\node_modules\\pirates\\lib\\index.js:134:7)\n    at Module.load (node:internal/modules/cjs/loader:1266:32)\n    at Function.Module._load (node:internal/modules/cjs/loader:1091:12)\n    at Function.runMain (node:internal/modules/run_main:164:12)\n    at Object.<anonymous> (E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\node_modules\\@babel\\node\\src\\_babel-node.ts:159:12)\n    at Module._compile (node:internal/modules/cjs/loader:1521:14)\n    at Object.Module._extensions..js (node:internal/modules/cjs/loader:1623:10)\n    at Module.load (node:internal/modules/cjs/loader:1266:32)\n    at Function.Module._load (node:internal/modules/cjs/loader:1091:12)\n    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:164:12)\n    at node:internal/main/run_main_module:28:49","timestamp":"2025-12-16T17:57:18.170Z","trace":[{"column":20,"file":"E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\src\\models\\/index.js","function":null,"line":176,"method":null,"native":false},{"column":14,"file":"node:internal/modules/cjs/loader","function":"Module._compile","line":1521,"method":"_compile","native":false},{"column":24,"file":"E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\node_modules\\pirates\\lib\\index.js","function":"Module._compile","line":129,"method":"_compile","native":false},{"column":10,"file":"node:internal/modules/cjs/loader","function":"Module._extensions..js","line":1623,"method":".js","native":false},{"column":7,"file":"E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\node_modules\\pirates\\lib\\index.js","function":"Object.newLoader [as .js]","line":134,"method":"js]","native":false},{"column":32,"file":"node:internal/modules/cjs/loader","function":"Module.load","line":1266,"method":"load","native":false},{"column":12,"file":"node:internal/modules/cjs/loader","function":"Module._load","line":1091,"method":"_load","native":false},{"column":19,"file":"node:internal/modules/cjs/loader","function":"Module.require","line":1289,"method":"require","native":false},{"column":18,"file":"node:internal/modules/helpers","function":"require","line":182,"method":null,"native":false},{"column":1,"file":"E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\src\\controllers\\/stockdatacontroller.js","function":null,"line":2,"method":null,"native":false},{"column":14,"file":"node:internal/modules/cjs/loader","function":"Module._compile","line":1521,"method":"_compile","native":false},{"column":24,"file":"E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\node_modules\\pirates\\lib\\index.js","function":"Module._compile","line":129,"method":"_compile","native":false},{"column":10,"file":"node:internal/modules/cjs/loader","function":"Module._extensions..js","line":1623,"method":".js","native":false},{"column":7,"file":"E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\node_modules\\pirates\\lib\\index.js","function":"Object.newLoader [as .js]","line":134,"method":"js]","native":false},{"column":32,"file":"node:internal/modules/cjs/loader","function":"Module.load","line":1266,"method":"load","native":false},{"column":12,"file":"node:internal/modules/cjs/loader","function":"Module._load","line":1091,"method":"_load","native":false},{"column":19,"file":"node:internal/modules/cjs/loader","function":"Module.require","line":1289,"method":"require","native":false},{"column":18,"file":"node:internal/modules/helpers","function":"require","line":182,"method":null,"native":false},{"column":1,"file":"E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\src\\routes\\/stockData.routes.js","function":null,"line":2,"method":null,"native":false},{"column":14,"file":"node:internal/modules/cjs/loader","function":"Module._compile","line":1521,"method":"_compile","native":false},{"column":24,"file":"E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\node_modules\\pirates\\lib\\index.js","function":"Module._compile","line":129,"method":"_compile","native":false},{"column":10,"file":"node:internal/modules/cjs/loader","function":"Module._extensions..js","line":1623,"method":".js","native":false},{"column":7,"file":"E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\node_modules\\pirates\\lib\\index.js","function":"Object.newLoader [as .js]","line":134,"method":"js]","native":false},{"column":32,"file":"node:internal/modules/cjs/loader","function":"Module.load","line":1266,"method":"load","native":false},{"column":12,"file":"node:internal/modules/cjs/loader","function":"Module._load","line":1091,"method":"_load","native":false},{"column":19,"file":"node:internal/modules/cjs/loader","function":"Module.require","line":1289,"method":"require","native":false},{"column":18,"file":"node:internal/modules/helpers","function":"require","line":182,"method":null,"native":false},{"column":1,"file":"E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\src\\/index.js","function":null,"line":13,"method":null,"native":false},{"column":14,"file":"node:internal/modules/cjs/loader","function":"Module._compile","line":1521,"method":"_compile","native":false},{"column":24,"file":"E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\node_modules\\pirates\\lib\\index.js","function":"Module._compile","line":129,"method":"_compile","native":false},{"column":10,"file":"node:internal/modules/cjs/loader","function":"Module._extensions..js","line":1623,"method":".js","native":false},{"column":7,"file":"E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\node_modules\\pirates\\lib\\index.js","function":"Object.newLoader [as .js]","line":134,"method":"js]","native":false},{"column":32,"file":"node:internal/modules/cjs/loader","function":"Module.load","line":1266,"method":"load","native":false},{"column":12,"file":"node:internal/modules/cjs/loader","function":"Module._load","line":1091,"method":"_load","native":false},{"column":12,"file":"node:internal/modules/run_main","function":"Function.runMain","line":164,"method":"runMain","native":false},{"column":12,"file":"E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\node_modules\\@babel\\node\\src\\_babel-node.ts","function":null,"line":159,"method":null,"native":false},{"column":14,"file":"node:internal/modules/cjs/loader","function":"Module._compile","line":1521,"method":"_compile","native":false},{"column":10,"file":"node:internal/modules/cjs/loader","function":"Module._extensions..js","line":1623,"method":".js","native":false},{"column":32,"file":"node:internal/modules/cjs/loader","function":"Module.load","line":1266,"method":"load","native":false},{"column":12,"file":"node:internal/modules/cjs/loader","function":"Module._load","line":1091,"method":"_load","native":false},{"column":12,"file":"node:internal/modules/run_main","function":"Function.executeUserEntryPoint [as runMain]","line":164,"method":"executeUserEntryPoint [as runMain]","native":false},{"column":49,"file":"node:internal/main/run_main_module","function":null,"line":28,"method":null,"native":false}]}
+error: uncaughtException: MainboardDataModel is not defined
+ReferenceError: MainboardDataModel is not defined
+    at Object.<anonymous> (E:\Desktop_copy\Projects\vap\vap-be\backend\src\models\/index.js:176:20)
+    at Module._compile (node:internal/modules/cjs/loader:1521:14)
+    at Module._compile (E:\Desktop_copy\Projects\vap\vap-be\backend\node_modules\pirates\lib\index.js:129:24)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1623:10)
+    at Object.newLoader [as .js] (E:\Desktop_copy\Projects\vap\vap-be\backend\node_modules\pirates\lib\index.js:134:7)
+    at Module.load (node:internal/modules/cjs/loader:1266:32)
+    at Function.Module._load (node:internal/modules/cjs/loader:1091:12)
+    at Module.require (node:internal/modules/cjs/loader:1289:19)
+    at require (node:internal/modules/helpers:182:18)
+    at Object.<anonymous> (E:\Desktop_copy\Projects\vap\vap-be\backend\src\controllers\/stockdatacontroller.js:2:1)
+    at Module._compile (node:internal/modules/cjs/loader:1521:14)
+    at Module._compile (E:\Desktop_copy\Projects\vap\vap-be\backend\node_modules\pirates\lib\index.js:129:24)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1623:10)
+    at Object.newLoader [as .js] (E:\Desktop_copy\Projects\vap\vap-be\backend\node_modules\pirates\lib\index.js:134:7)
+    at Module.load (node:internal/modules/cjs/loader:1266:32)
+    at Function.Module._load (node:internal/modules/cjs/loader:1091:12)
+    at Module.require (node:internal/modules/cjs/loader:1289:19)
+    at require (node:internal/modules/helpers:182:18)
+    at Object.<anonymous> (E:\Desktop_copy\Projects\vap\vap-be\backend\src\routes\/stockData.routes.js:2:1)
+    at Module._compile (node:internal/modules/cjs/loader:1521:14)
+    at Module._compile (E:\Desktop_copy\Projects\vap\vap-be\backend\node_modules\pirates\lib\index.js:129:24)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1623:10)
+    at Object.newLoader [as .js] (E:\Desktop_copy\Projects\vap\vap-be\backend\node_modules\pirates\lib\index.js:134:7)
+    at Module.load (node:internal/modules/cjs/loader:1266:32)
+    at Function.Module._load (node:internal/modules/cjs/loader:1091:12)
+    at Module.require (node:internal/modules/cjs/loader:1289:19)
+    at require (node:internal/modules/helpers:182:18)
+    at Object.<anonymous> (E:\Desktop_copy\Projects\vap\vap-be\backend\src\/index.js:13:1)
+    at Module._compile (node:internal/modules/cjs/loader:1521:14)
+    at Module._compile (E:\Desktop_copy\Projects\vap\vap-be\backend\node_modules\pirates\lib\index.js:129:24)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1623:10)
+    at Object.newLoader [as .js] (E:\Desktop_copy\Projects\vap\vap-be\backend\node_modules\pirates\lib\index.js:134:7)
+    at Module.load (node:internal/modules/cjs/loader:1266:32)
+    at Function.Module._load (node:internal/modules/cjs/loader:1091:12)
+    at Function.runMain (node:internal/modules/run_main:164:12)
+    at Object.<anonymous> (E:\Desktop_copy\Projects\vap\vap-be\backend\node_modules\@babel\node\src\_babel-node.ts:159:12)
+    at Module._compile (node:internal/modules/cjs/loader:1521:14)
+    at Object.Module._extensions..js (node:internal/modules/cjs/loader:1623:10)
+    at Module.load (node:internal/modules/cjs/loader:1266:32)
+    at Function.Module._load (node:internal/modules/cjs/loader:1091:12)
+    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:164:12)
+    at node:internal/main/run_main_module:28:49 {"date":"Tue Dec 16 2025 23:28:22 GMT+0530 (India Standard Time)","error":{},"exception":true,"os":{"loadavg":[0,0,0],"uptime":276426.671},"process":{"argv":["node","E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\src\\index.js"],"cwd":"E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend","execPath":"C:\\Program Files\\nodejs\\node.exe","gid":null,"memoryUsage":{"arrayBuffers":17297,"external":3053218,"heapTotal":87928832,"heapUsed":68789320,"rss":131620864},"pid":8244,"uid":null,"version":"v20.19.5"},"stack":"ReferenceError: MainboardDataModel is not defined\n    at Object.<anonymous> (E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\src\\models\\/index.js:176:20)\n    at Module._compile (node:internal/modules/cjs/loader:1521:14)\n    at Module._compile (E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\node_modules\\pirates\\lib\\index.js:129:24)\n    at Module._extensions..js (node:internal/modules/cjs/loader:1623:10)\n    at Object.newLoader [as .js] (E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\node_modules\\pirates\\lib\\index.js:134:7)\n    at Module.load (node:internal/modules/cjs/loader:1266:32)\n    at Function.Module._load (node:internal/modules/cjs/loader:1091:12)\n    at Module.require (node:internal/modules/cjs/loader:1289:19)\n    at require (node:internal/modules/helpers:182:18)\n    at Object.<anonymous> (E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\src\\controllers\\/stockdatacontroller.js:2:1)\n    at Module._compile (node:internal/modules/cjs/loader:1521:14)\n    at Module._compile (E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\node_modules\\pirates\\lib\\index.js:129:24)\n    at Module._extensions..js (node:internal/modules/cjs/loader:1623:10)\n    at Object.newLoader [as .js] (E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\node_modules\\pirates\\lib\\index.js:134:7)\n    at Module.load (node:internal/modules/cjs/loader:1266:32)\n    at Function.Module._load (node:internal/modules/cjs/loader:1091:12)\n    at Module.require (node:internal/modules/cjs/loader:1289:19)\n    at require (node:internal/modules/helpers:182:18)\n    at Object.<anonymous> (E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\src\\routes\\/stockData.routes.js:2:1)\n    at Module._compile (node:internal/modules/cjs/loader:1521:14)\n    at Module._compile (E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\node_modules\\pirates\\lib\\index.js:129:24)\n    at Module._extensions..js (node:internal/modules/cjs/loader:1623:10)\n    at Object.newLoader [as .js] (E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\node_modules\\pirates\\lib\\index.js:134:7)\n    at Module.load (node:internal/modules/cjs/loader:1266:32)\n    at Function.Module._load (node:internal/modules/cjs/loader:1091:12)\n    at Module.require (node:internal/modules/cjs/loader:1289:19)\n    at require (node:internal/modules/helpers:182:18)\n    at Object.<anonymous> (E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\src\\/index.js:13:1)\n    at Module._compile (node:internal/modules/cjs/loader:1521:14)\n    at Module._compile (E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\node_modules\\pirates\\lib\\index.js:129:24)\n    at Module._extensions..js (node:internal/modules/cjs/loader:1623:10)\n    at Object.newLoader [as .js] (E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\node_modules\\pirates\\lib\\index.js:134:7)\n    at Module.load (node:internal/modules/cjs/loader:1266:32)\n    at Function.Module._load (node:internal/modules/cjs/loader:1091:12)\n    at Function.runMain (node:internal/modules/run_main:164:12)\n    at Object.<anonymous> (E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\node_modules\\@babel\\node\\src\\_babel-node.ts:159:12)\n    at Module._compile (node:internal/modules/cjs/loader:1521:14)\n    at Object.Module._extensions..js (node:internal/modules/cjs/loader:1623:10)\n    at Module.load (node:internal/modules/cjs/loader:1266:32)\n    at Function.Module._load (node:internal/modules/cjs/loader:1091:12)\n    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:164:12)\n    at node:internal/main/run_main_module:28:49","timestamp":"2025-12-16T17:58:22.053Z","trace":[{"column":20,"file":"E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\src\\models\\/index.js","function":null,"line":176,"method":null,"native":false},{"column":14,"file":"node:internal/modules/cjs/loader","function":"Module._compile","line":1521,"method":"_compile","native":false},{"column":24,"file":"E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\node_modules\\pirates\\lib\\index.js","function":"Module._compile","line":129,"method":"_compile","native":false},{"column":10,"file":"node:internal/modules/cjs/loader","function":"Module._extensions..js","line":1623,"method":".js","native":false},{"column":7,"file":"E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\node_modules\\pirates\\lib\\index.js","function":"Object.newLoader [as .js]","line":134,"method":"js]","native":false},{"column":32,"file":"node:internal/modules/cjs/loader","function":"Module.load","line":1266,"method":"load","native":false},{"column":12,"file":"node:internal/modules/cjs/loader","function":"Module._load","line":1091,"method":"_load","native":false},{"column":19,"file":"node:internal/modules/cjs/loader","function":"Module.require","line":1289,"method":"require","native":false},{"column":18,"file":"node:internal/modules/helpers","function":"require","line":182,"method":null,"native":false},{"column":1,"file":"E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\src\\controllers\\/stockdatacontroller.js","function":null,"line":2,"method":null,"native":false},{"column":14,"file":"node:internal/modules/cjs/loader","function":"Module._compile","line":1521,"method":"_compile","native":false},{"column":24,"file":"E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\node_modules\\pirates\\lib\\index.js","function":"Module._compile","line":129,"method":"_compile","native":false},{"column":10,"file":"node:internal/modules/cjs/loader","function":"Module._extensions..js","line":1623,"method":".js","native":false},{"column":7,"file":"E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\node_modules\\pirates\\lib\\index.js","function":"Object.newLoader [as .js]","line":134,"method":"js]","native":false},{"column":32,"file":"node:internal/modules/cjs/loader","function":"Module.load","line":1266,"method":"load","native":false},{"column":12,"file":"node:internal/modules/cjs/loader","function":"Module._load","line":1091,"method":"_load","native":false},{"column":19,"file":"node:internal/modules/cjs/loader","function":"Module.require","line":1289,"method":"require","native":false},{"column":18,"file":"node:internal/modules/helpers","function":"require","line":182,"method":null,"native":false},{"column":1,"file":"E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\src\\routes\\/stockData.routes.js","function":null,"line":2,"method":null,"native":false},{"column":14,"file":"node:internal/modules/cjs/loader","function":"Module._compile","line":1521,"method":"_compile","native":false},{"column":24,"file":"E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\node_modules\\pirates\\lib\\index.js","function":"Module._compile","line":129,"method":"_compile","native":false},{"column":10,"file":"node:internal/modules/cjs/loader","function":"Module._extensions..js","line":1623,"method":".js","native":false},{"column":7,"file":"E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\node_modules\\pirates\\lib\\index.js","function":"Object.newLoader [as .js]","line":134,"method":"js]","native":false},{"column":32,"file":"node:internal/modules/cjs/loader","function":"Module.load","line":1266,"method":"load","native":false},{"column":12,"file":"node:internal/modules/cjs/loader","function":"Module._load","line":1091,"method":"_load","native":false},{"column":19,"file":"node:internal/modules/cjs/loader","function":"Module.require","line":1289,"method":"require","native":false},{"column":18,"file":"node:internal/modules/helpers","function":"require","line":182,"method":null,"native":false},{"column":1,"file":"E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\src\\/index.js","function":null,"line":13,"method":null,"native":false},{"column":14,"file":"node:internal/modules/cjs/loader","function":"Module._compile","line":1521,"method":"_compile","native":false},{"column":24,"file":"E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\node_modules\\pirates\\lib\\index.js","function":"Module._compile","line":129,"method":"_compile","native":false},{"column":10,"file":"node:internal/modules/cjs/loader","function":"Module._extensions..js","line":1623,"method":".js","native":false},{"column":7,"file":"E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\node_modules\\pirates\\lib\\index.js","function":"Object.newLoader [as .js]","line":134,"method":"js]","native":false},{"column":32,"file":"node:internal/modules/cjs/loader","function":"Module.load","line":1266,"method":"load","native":false},{"column":12,"file":"node:internal/modules/cjs/loader","function":"Module._load","line":1091,"method":"_load","native":false},{"column":12,"file":"node:internal/modules/run_main","function":"Function.runMain","line":164,"method":"runMain","native":false},{"column":12,"file":"E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\node_modules\\@babel\\node\\src\\_babel-node.ts","function":null,"line":159,"method":null,"native":false},{"column":14,"file":"node:internal/modules/cjs/loader","function":"Module._compile","line":1521,"method":"_compile","native":false},{"column":10,"file":"node:internal/modules/cjs/loader","function":"Module._extensions..js","line":1623,"method":".js","native":false},{"column":32,"file":"node:internal/modules/cjs/loader","function":"Module.load","line":1266,"method":"load","native":false},{"column":12,"file":"node:internal/modules/cjs/loader","function":"Module._load","line":1091,"method":"_load","native":false},{"column":12,"file":"node:internal/modules/run_main","function":"Function.executeUserEntryPoint [as runMain]","line":164,"method":"executeUserEntryPoint [as runMain]","native":false},{"column":49,"file":"node:internal/main/run_main_module","function":null,"line":28,"method":null,"native":false}]}
+error: uncaughtException: MainboardDataModel is not defined
+ReferenceError: MainboardDataModel is not defined
+    at Object.<anonymous> (E:\Desktop_copy\Projects\vap\vap-be\backend\src\models\/index.js:176:20)
+    at Module._compile (node:internal/modules/cjs/loader:1521:14)
+    at Module._compile (E:\Desktop_copy\Projects\vap\vap-be\backend\node_modules\pirates\lib\index.js:129:24)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1623:10)
+    at Object.newLoader [as .js] (E:\Desktop_copy\Projects\vap\vap-be\backend\node_modules\pirates\lib\index.js:134:7)
+    at Module.load (node:internal/modules/cjs/loader:1266:32)
+    at Function.Module._load (node:internal/modules/cjs/loader:1091:12)
+    at Module.require (node:internal/modules/cjs/loader:1289:19)
+    at require (node:internal/modules/helpers:182:18)
+    at Object.<anonymous> (E:\Desktop_copy\Projects\vap\vap-be\backend\src\controllers\/stockdatacontroller.js:2:1)
+    at Module._compile (node:internal/modules/cjs/loader:1521:14)
+    at Module._compile (E:\Desktop_copy\Projects\vap\vap-be\backend\node_modules\pirates\lib\index.js:129:24)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1623:10)
+    at Object.newLoader [as .js] (E:\Desktop_copy\Projects\vap\vap-be\backend\node_modules\pirates\lib\index.js:134:7)
+    at Module.load (node:internal/modules/cjs/loader:1266:32)
+    at Function.Module._load (node:internal/modules/cjs/loader:1091:12)
+    at Module.require (node:internal/modules/cjs/loader:1289:19)
+    at require (node:internal/modules/helpers:182:18)
+    at Object.<anonymous> (E:\Desktop_copy\Projects\vap\vap-be\backend\src\routes\/stockData.routes.js:2:1)
+    at Module._compile (node:internal/modules/cjs/loader:1521:14)
+    at Module._compile (E:\Desktop_copy\Projects\vap\vap-be\backend\node_modules\pirates\lib\index.js:129:24)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1623:10)
+    at Object.newLoader [as .js] (E:\Desktop_copy\Projects\vap\vap-be\backend\node_modules\pirates\lib\index.js:134:7)
+    at Module.load (node:internal/modules/cjs/loader:1266:32)
+    at Function.Module._load (node:internal/modules/cjs/loader:1091:12)
+    at Module.require (node:internal/modules/cjs/loader:1289:19)
+    at require (node:internal/modules/helpers:182:18)
+    at Object.<anonymous> (E:\Desktop_copy\Projects\vap\vap-be\backend\src\/index.js:13:1)
+    at Module._compile (node:internal/modules/cjs/loader:1521:14)
+    at Module._compile (E:\Desktop_copy\Projects\vap\vap-be\backend\node_modules\pirates\lib\index.js:129:24)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1623:10)
+    at Object.newLoader [as .js] (E:\Desktop_copy\Projects\vap\vap-be\backend\node_modules\pirates\lib\index.js:134:7)
+    at Module.load (node:internal/modules/cjs/loader:1266:32)
+    at Function.Module._load (node:internal/modules/cjs/loader:1091:12)
+    at Function.runMain (node:internal/modules/run_main:164:12)
+    at Object.<anonymous> (E:\Desktop_copy\Projects\vap\vap-be\backend\node_modules\@babel\node\src\_babel-node.ts:159:12)
+    at Module._compile (node:internal/modules/cjs/loader:1521:14)
+    at Object.Module._extensions..js (node:internal/modules/cjs/loader:1623:10)
+    at Module.load (node:internal/modules/cjs/loader:1266:32)
+    at Function.Module._load (node:internal/modules/cjs/loader:1091:12)
+    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:164:12)
+    at node:internal/main/run_main_module:28:49 {"date":"Tue Dec 16 2025 23:28:33 GMT+0530 (India Standard Time)","error":{},"exception":true,"os":{"loadavg":[0,0,0],"uptime":276437.75},"process":{"argv":["node","E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\src\\index.js"],"cwd":"E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend","execPath":"C:\\Program Files\\nodejs\\node.exe","gid":null,"memoryUsage":{"arrayBuffers":17297,"external":3053218,"heapTotal":87928832,"heapUsed":69155192,"rss":132579328},"pid":8652,"uid":null,"version":"v20.19.5"},"stack":"ReferenceError: MainboardDataModel is not defined\n    at Object.<anonymous> (E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\src\\models\\/index.js:176:20)\n    at Module._compile (node:internal/modules/cjs/loader:1521:14)\n    at Module._compile (E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\node_modules\\pirates\\lib\\index.js:129:24)\n    at Module._extensions..js (node:internal/modules/cjs/loader:1623:10)\n    at Object.newLoader [as .js] (E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\node_modules\\pirates\\lib\\index.js:134:7)\n    at Module.load (node:internal/modules/cjs/loader:1266:32)\n    at Function.Module._load (node:internal/modules/cjs/loader:1091:12)\n    at Module.require (node:internal/modules/cjs/loader:1289:19)\n    at require (node:internal/modules/helpers:182:18)\n    at Object.<anonymous> (E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\src\\controllers\\/stockdatacontroller.js:2:1)\n    at Module._compile (node:internal/modules/cjs/loader:1521:14)\n    at Module._compile (E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\node_modules\\pirates\\lib\\index.js:129:24)\n    at Module._extensions..js (node:internal/modules/cjs/loader:1623:10)\n    at Object.newLoader [as .js] (E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\node_modules\\pirates\\lib\\index.js:134:7)\n    at Module.load (node:internal/modules/cjs/loader:1266:32)\n    at Function.Module._load (node:internal/modules/cjs/loader:1091:12)\n    at Module.require (node:internal/modules/cjs/loader:1289:19)\n    at require (node:internal/modules/helpers:182:18)\n    at Object.<anonymous> (E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\src\\routes\\/stockData.routes.js:2:1)\n    at Module._compile (node:internal/modules/cjs/loader:1521:14)\n    at Module._compile (E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\node_modules\\pirates\\lib\\index.js:129:24)\n    at Module._extensions..js (node:internal/modules/cjs/loader:1623:10)\n    at Object.newLoader [as .js] (E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\node_modules\\pirates\\lib\\index.js:134:7)\n    at Module.load (node:internal/modules/cjs/loader:1266:32)\n    at Function.Module._load (node:internal/modules/cjs/loader:1091:12)\n    at Module.require (node:internal/modules/cjs/loader:1289:19)\n    at require (node:internal/modules/helpers:182:18)\n    at Object.<anonymous> (E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\src\\/index.js:13:1)\n    at Module._compile (node:internal/modules/cjs/loader:1521:14)\n    at Module._compile (E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\node_modules\\pirates\\lib\\index.js:129:24)\n    at Module._extensions..js (node:internal/modules/cjs/loader:1623:10)\n    at Object.newLoader [as .js] (E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\node_modules\\pirates\\lib\\index.js:134:7)\n    at Module.load (node:internal/modules/cjs/loader:1266:32)\n    at Function.Module._load (node:internal/modules/cjs/loader:1091:12)\n    at Function.runMain (node:internal/modules/run_main:164:12)\n    at Object.<anonymous> (E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\node_modules\\@babel\\node\\src\\_babel-node.ts:159:12)\n    at Module._compile (node:internal/modules/cjs/loader:1521:14)\n    at Object.Module._extensions..js (node:internal/modules/cjs/loader:1623:10)\n    at Module.load (node:internal/modules/cjs/loader:1266:32)\n    at Function.Module._load (node:internal/modules/cjs/loader:1091:12)\n    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:164:12)\n    at node:internal/main/run_main_module:28:49","timestamp":"2025-12-16T17:58:33.136Z","trace":[{"column":20,"file":"E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\src\\models\\/index.js","function":null,"line":176,"method":null,"native":false},{"column":14,"file":"node:internal/modules/cjs/loader","function":"Module._compile","line":1521,"method":"_compile","native":false},{"column":24,"file":"E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\node_modules\\pirates\\lib\\index.js","function":"Module._compile","line":129,"method":"_compile","native":false},{"column":10,"file":"node:internal/modules/cjs/loader","function":"Module._extensions..js","line":1623,"method":".js","native":false},{"column":7,"file":"E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\node_modules\\pirates\\lib\\index.js","function":"Object.newLoader [as .js]","line":134,"method":"js]","native":false},{"column":32,"file":"node:internal/modules/cjs/loader","function":"Module.load","line":1266,"method":"load","native":false},{"column":12,"file":"node:internal/modules/cjs/loader","function":"Module._load","line":1091,"method":"_load","native":false},{"column":19,"file":"node:internal/modules/cjs/loader","function":"Module.require","line":1289,"method":"require","native":false},{"column":18,"file":"node:internal/modules/helpers","function":"require","line":182,"method":null,"native":false},{"column":1,"file":"E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\src\\controllers\\/stockdatacontroller.js","function":null,"line":2,"method":null,"native":false},{"column":14,"file":"node:internal/modules/cjs/loader","function":"Module._compile","line":1521,"method":"_compile","native":false},{"column":24,"file":"E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\node_modules\\pirates\\lib\\index.js","function":"Module._compile","line":129,"method":"_compile","native":false},{"column":10,"file":"node:internal/modules/cjs/loader","function":"Module._extensions..js","line":1623,"method":".js","native":false},{"column":7,"file":"E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\node_modules\\pirates\\lib\\index.js","function":"Object.newLoader [as .js]","line":134,"method":"js]","native":false},{"column":32,"file":"node:internal/modules/cjs/loader","function":"Module.load","line":1266,"method":"load","native":false},{"column":12,"file":"node:internal/modules/cjs/loader","function":"Module._load","line":1091,"method":"_load","native":false},{"column":19,"file":"node:internal/modules/cjs/loader","function":"Module.require","line":1289,"method":"require","native":false},{"column":18,"file":"node:internal/modules/helpers","function":"require","line":182,"method":null,"native":false},{"column":1,"file":"E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\src\\routes\\/stockData.routes.js","function":null,"line":2,"method":null,"native":false},{"column":14,"file":"node:internal/modules/cjs/loader","function":"Module._compile","line":1521,"method":"_compile","native":false},{"column":24,"file":"E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\node_modules\\pirates\\lib\\index.js","function":"Module._compile","line":129,"method":"_compile","native":false},{"column":10,"file":"node:internal/modules/cjs/loader","function":"Module._extensions..js","line":1623,"method":".js","native":false},{"column":7,"file":"E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\node_modules\\pirates\\lib\\index.js","function":"Object.newLoader [as .js]","line":134,"method":"js]","native":false},{"column":32,"file":"node:internal/modules/cjs/loader","function":"Module.load","line":1266,"method":"load","native":false},{"column":12,"file":"node:internal/modules/cjs/loader","function":"Module._load","line":1091,"method":"_load","native":false},{"column":19,"file":"node:internal/modules/cjs/loader","function":"Module.require","line":1289,"method":"require","native":false},{"column":18,"file":"node:internal/modules/helpers","function":"require","line":182,"method":null,"native":false},{"column":1,"file":"E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\src\\/index.js","function":null,"line":13,"method":null,"native":false},{"column":14,"file":"node:internal/modules/cjs/loader","function":"Module._compile","line":1521,"method":"_compile","native":false},{"column":24,"file":"E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\node_modules\\pirates\\lib\\index.js","function":"Module._compile","line":129,"method":"_compile","native":false},{"column":10,"file":"node:internal/modules/cjs/loader","function":"Module._extensions..js","line":1623,"method":".js","native":false},{"column":7,"file":"E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\node_modules\\pirates\\lib\\index.js","function":"Object.newLoader [as .js]","line":134,"method":"js]","native":false},{"column":32,"file":"node:internal/modules/cjs/loader","function":"Module.load","line":1266,"method":"load","native":false},{"column":12,"file":"node:internal/modules/cjs/loader","function":"Module._load","line":1091,"method":"_load","native":false},{"column":12,"file":"node:internal/modules/run_main","function":"Function.runMain","line":164,"method":"runMain","native":false},{"column":12,"file":"E:\\Desktop_copy\\Projects\\vap\\vap-be\\backend\\node_modules\\@babel\\node\\src\\_babel-node.ts","function":null,"line":159,"method":null,"native":false},{"column":14,"file":"node:internal/modules/cjs/loader","function":"Module._compile","line":1521,"method":"_compile","native":false},{"column":10,"file":"node:internal/modules/cjs/loader","function":"Module._extensions..js","line":1623,"method":".js","native":false},{"column":32,"file":"node:internal/modules/cjs/loader","function":"Module.load","line":1266,"method":"load","native":false},{"column":12,"file":"node:internal/modules/cjs/loader","function":"Module._load","line":1091,"method":"_load","native":false},{"column":12,"file":"node:internal/modules/run_main","function":"Function.executeUserEntryPoint [as runMain]","line":164,"method":"executeUserEntryPoint [as runMain]","native":false},{"column":49,"file":"node:internal/main/run_main_module","function":null,"line":28,"method":null,"native":false}]}
+info: ✅ Connected to stock_market database. {"timestamp":"2025-12-16T17:59:37.683Z"}
+info: ✅ stock_market database synced. {"timestamp":"2025-12-16T17:59:37.750Z"}
+info: ✅ Connected to bhavcopy database. {"timestamp":"2025-12-16T17:59:37.792Z"}
+info: ✅ bhavcopy database synced. {"timestamp":"2025-12-16T17:59:37.925Z"}
+info: ✅ Connected to screener_data database. {"timestamp":"2025-12-16T17:59:37.960Z"}
+info: ✅ screener_data database synced. {"timestamp":"2025-12-16T17:59:38.084Z"}
+info: ✅ Connected to third_db database. {"timestamp":"2025-12-16T17:59:38.125Z"}
+info: ✅ third_db database synced. {"timestamp":"2025-12-16T17:59:38.155Z"}
+info: ✅ Connected to ipo_data_fastapi database. {"timestamp":"2025-12-16T17:59:38.185Z"}
+info: ✅ ipo_data_fastapi database synced. {"timestamp":"2025-12-16T17:59:38.221Z"}
+info: ✅ Connected to bse_data database. {"timestamp":"2025-12-16T17:59:38.257Z"}
+info: ✅ bse_data database synced. {"timestamp":"2025-12-16T17:59:38.302Z"}
+info: 🚀 Server running on http://localhost:8000/vap/ {"timestamp":"2025-12-16T17:59:38.340Z"}
+info: ✅ Connected to stock_market database. {"timestamp":"2025-12-16T17:59:53.917Z"}
+info: ✅ stock_market database synced. {"timestamp":"2025-12-16T17:59:53.968Z"}
+info: ✅ Connected to bhavcopy database. {"timestamp":"2025-12-16T17:59:53.984Z"}
+info: ✅ bhavcopy database synced. {"timestamp":"2025-12-16T17:59:54.055Z"}
+info: ✅ Connected to screener_data database. {"timestamp":"2025-12-16T17:59:54.067Z"}
+info: ✅ screener_data database synced. {"timestamp":"2025-12-16T17:59:54.128Z"}
+info: ✅ Connected to third_db database. {"timestamp":"2025-12-16T17:59:54.172Z"}
+info: ✅ third_db database synced. {"timestamp":"2025-12-16T17:59:54.208Z"}
+info: ✅ Connected to ipo_data_fastapi database. {"timestamp":"2025-12-16T17:59:54.240Z"}
+info: ✅ ipo_data_fastapi database synced. {"timestamp":"2025-12-16T17:59:54.261Z"}
+info: ✅ Connected to bse_data database. {"timestamp":"2025-12-16T17:59:54.310Z"}
+info: ✅ bse_data database synced. {"timestamp":"2025-12-16T17:59:54.349Z"}
+info: 🚀 Server running on http://localhost:8000/vap/ {"timestamp":"2025-12-16T17:59:54.381Z"}
+info: ✅ Connected to stock_market database. {"timestamp":"2025-12-16T18:01:48.701Z"}
+info: ✅ stock_market database synced. {"timestamp":"2025-12-16T18:01:48.741Z"}
+info: ✅ Connected to bhavcopy database. {"timestamp":"2025-12-16T18:01:48.754Z"}
+info: ✅ bhavcopy database synced. {"timestamp":"2025-12-16T18:01:48.815Z"}
+info: ✅ Connected to screener_data database. {"timestamp":"2025-12-16T18:01:48.826Z"}
+info: ✅ screener_data database synced. {"timestamp":"2025-12-16T18:01:48.878Z"}
+info: ✅ Connected to third_db database. {"timestamp":"2025-12-16T18:01:48.891Z"}
+info: ✅ third_db database synced. {"timestamp":"2025-12-16T18:01:48.898Z"}
+info: ✅ Connected to ipo_data_fastapi database. {"timestamp":"2025-12-16T18:01:48.912Z"}
+info: ✅ ipo_data_fastapi database synced. {"timestamp":"2025-12-16T18:01:48.926Z"}
+info: ✅ Connected to bse_data database. {"timestamp":"2025-12-16T18:01:48.936Z"}
+info: ✅ bse_data database synced. {"timestamp":"2025-12-16T18:01:48.944Z"}
+info: 🚀 Server running on http://localhost:8000/vap/ {"timestamp":"2025-12-16T18:01:48.950Z"}
+info: ✅ Connected to stock_market database. {"timestamp":"2025-12-16T18:10:29.104Z"}
+info: ✅ stock_market database synced. {"timestamp":"2025-12-16T18:10:29.162Z"}
+info: ✅ Connected to bhavcopy database. {"timestamp":"2025-12-16T18:10:29.225Z"}
+info: ✅ bhavcopy database synced. {"timestamp":"2025-12-16T18:10:29.323Z"}
+info: ✅ Connected to screener_data database. {"timestamp":"2025-12-16T18:10:29.346Z"}
+info: ✅ screener_data database synced. {"timestamp":"2025-12-16T18:10:29.410Z"}
+info: ✅ Connected to third_db database. {"timestamp":"2025-12-16T18:10:29.419Z"}
+info: ✅ third_db database synced. {"timestamp":"2025-12-16T18:10:29.430Z"}
+info: ✅ Connected to ipo_data_fastapi database. {"timestamp":"2025-12-16T18:10:29.443Z"}
+info: ✅ ipo_data_fastapi database synced. {"timestamp":"2025-12-16T18:10:29.468Z"}
+info: ✅ Connected to bse_data database. {"timestamp":"2025-12-16T18:10:29.482Z"}
+info: ✅ bse_data database synced. {"timestamp":"2025-12-16T18:10:29.506Z"}
+info: 🚀 Server running on http://localhost:8000/vap/ {"timestamp":"2025-12-16T18:10:29.515Z"}
+info: ✅ Connected to stock_market database. {"timestamp":"2025-12-16T18:35:26.589Z"}
+info: ✅ stock_market database synced. {"timestamp":"2025-12-16T18:35:26.702Z"}
+info: ✅ Connected to bhavcopy database. {"timestamp":"2025-12-16T18:35:26.718Z"}
+info: ✅ bhavcopy database synced. {"timestamp":"2025-12-16T18:35:26.793Z"}
+info: ✅ Connected to screener_data database. {"timestamp":"2025-12-16T18:35:26.808Z"}
+info: ✅ screener_data database synced. {"timestamp":"2025-12-16T18:35:26.870Z"}
+info: ✅ Connected to third_db database. {"timestamp":"2025-12-16T18:35:26.884Z"}
+info: ✅ third_db database synced. {"timestamp":"2025-12-16T18:35:26.906Z"}
+info: ✅ Connected to ipo_data_fastapi database. {"timestamp":"2025-12-16T18:35:26.922Z"}
+info: ✅ ipo_data_fastapi database synced. {"timestamp":"2025-12-16T18:35:26.949Z"}
+info: ✅ Connected to bse_data database. {"timestamp":"2025-12-16T18:35:26.963Z"}
+info: ✅ bse_data database synced. {"timestamp":"2025-12-16T18:35:26.981Z"}
+info: 🚀 Server running on http://localhost:8000/vap/ {"timestamp":"2025-12-16T18:35:26.991Z"}

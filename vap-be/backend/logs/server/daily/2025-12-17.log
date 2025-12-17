@@ -1,0 +1,13 @@
+info: ✅ Connected to stock_market database. {"timestamp":"2025-12-16T18:35:26.589Z"}
+info: ✅ stock_market database synced. {"timestamp":"2025-12-16T18:35:26.702Z"}
+info: ✅ Connected to bhavcopy database. {"timestamp":"2025-12-16T18:35:26.718Z"}
+info: ✅ bhavcopy database synced. {"timestamp":"2025-12-16T18:35:26.793Z"}
+info: ✅ Connected to screener_data database. {"timestamp":"2025-12-16T18:35:26.808Z"}
+info: ✅ screener_data database synced. {"timestamp":"2025-12-16T18:35:26.870Z"}
+info: ✅ Connected to third_db database. {"timestamp":"2025-12-16T18:35:26.884Z"}
+info: ✅ third_db database synced. {"timestamp":"2025-12-16T18:35:26.906Z"}
+info: ✅ Connected to ipo_data_fastapi database. {"timestamp":"2025-12-16T18:35:26.922Z"}
+info: ✅ ipo_data_fastapi database synced. {"timestamp":"2025-12-16T18:35:26.949Z"}
+info: ✅ Connected to bse_data database. {"timestamp":"2025-12-16T18:35:26.963Z"}
+info: ✅ bse_data database synced. {"timestamp":"2025-12-16T18:35:26.981Z"}
+info: 🚀 Server running on http://localhost:8000/vap/ {"timestamp":"2025-12-16T18:35:26.991Z"}

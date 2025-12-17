@@ -3,11 +3,30 @@ import { debounce } from "@/hooks/common";
 import { getBseAnnouncements, getGovNews } from "@/utils";
 import React, { useState, useEffect, useCallback, useRef, use } from "react";
 
+export interface BseNewsItem {
+  SCRIP_CD: string;
+  SLONGNAME: string;
+  HEADLINE: string;
+  NEWSSUB: string;
+  CRITICALNEWS: "0" | "1";
+  DissemDT: string;
+  NSURL: string;
+  ATTACHMENTNAME?: string;
+}
+
+export interface BseNewsResponse {
+  success: boolean;
+  data: BseNewsItem[];
+  page: number;
+  pages: number;
+  total: number;
+}
+
 const NewsComponent = () => {
-  const [newsData, setNewsData] = useState<any[]>([]);
+  const [newsData, setNewsData] = useState<BseNewsItem[]>([]);
   const [govNewsData, setGovNewsData] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<string | null>(null);
 
   const [searchTerm, setSearchTerm] = useState("");
   const [page, setPage] = useState(1);
@@ -58,12 +77,11 @@ const NewsComponent = () => {
     } finally {
       setLoading(false);
     }
-  }, [searchTerm, page]);
+  }, [searchTerm, page, loading]);
 
   useEffect(() => {
     fetchNewsData();
   }, [fetchNewsData]);
-
 
   // ------------------------------
   // Infinite Scroll Observer

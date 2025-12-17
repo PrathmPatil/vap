@@ -1,0 +1,216 @@
+error: 
+    status - 500 
+    message - Error: 
+    at Query.run (E:\Desktop_copy\Projects\vap\vap-be\backend\node_modules\sequelize\src\dialects\mysql\query.js:46:25)
+    at E:\Desktop_copy\Projects\vap\vap-be\backend\node_modules\sequelize\src\sequelize.js:650:28
+    at processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at MySQLQueryInterface.select (E:\Desktop_copy\Projects\vap\vap-be\backend\node_modules\sequelize\src\dialects\abstract\query-interface.js:1001:12)
+    at Function.findAll (E:\Desktop_copy\Projects\vap\vap-be\backend\node_modules\sequelize\src\model.js:1824:21)
+    at async Promise.all (index 1)
+    at Function.findAndCountAll (E:\Desktop_copy\Projects\vap\vap-be\backend\node_modules\sequelize\src\model.js:2183:27) 
+    url - /vap/company-data/failed-symbols 
+    method - GET 
+    IP - ::1
+   {"timestamp":"2025-12-16T17:38:23.395Z"}
+error: 
+    status - 500 
+    message - Error: 
+    at Query.run (E:\Desktop_copy\Projects\vap\vap-be\backend\node_modules\sequelize\src\dialects\mysql\query.js:46:25)
+    at E:\Desktop_copy\Projects\vap\vap-be\backend\node_modules\sequelize\src\sequelize.js:650:28
+    at processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at MySQLQueryInterface.select (E:\Desktop_copy\Projects\vap\vap-be\backend\node_modules\sequelize\src\dialects\abstract\query-interface.js:1001:12)
+    at Function.findAll (E:\Desktop_copy\Projects\vap\vap-be\backend\node_modules\sequelize\src\model.js:1824:21)
+    at async Promise.all (index 1)
+    at Function.findAndCountAll (E:\Desktop_copy\Projects\vap\vap-be\backend\node_modules\sequelize\src\model.js:2183:27) 
+    url - /vap/company-data/failed-symbols 
+    method - GET 
+    IP - ::1
+   {"timestamp":"2025-12-16T17:39:13.441Z"}
+error: 
+    status - 500 
+    message - Error: 
+    at Query.run (E:\Desktop_copy\Projects\vap\vap-be\backend\node_modules\sequelize\src\dialects\mysql\query.js:46:25)
+    at E:\Desktop_copy\Projects\vap\vap-be\backend\node_modules\sequelize\src\sequelize.js:650:28
+    at processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at MySQLQueryInterface.select (E:\Desktop_copy\Projects\vap\vap-be\backend\node_modules\sequelize\src\dialects\abstract\query-interface.js:1001:12)
+    at Function.findAll (E:\Desktop_copy\Projects\vap\vap-be\backend\node_modules\sequelize\src\model.js:1824:21)
+    at async Promise.all (index 1)
+    at Function.findAndCountAll (E:\Desktop_copy\Projects\vap\vap-be\backend\node_modules\sequelize\src\model.js:2183:27) 
+    url - /vap/company-data/failed-symbols 
+    method - GET 
+    IP - ::1
+   {"timestamp":"2025-12-16T17:39:13.824Z"}
+error: 
+    status - 500 
+    message - Error: 
+    at Query.run (E:\Desktop_copy\Projects\vap\vap-be\backend\node_modules\sequelize\src\dialects\mysql\query.js:46:25)
+    at E:\Desktop_copy\Projects\vap\vap-be\backend\node_modules\sequelize\src\sequelize.js:650:28
+    at processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at MySQLQueryInterface.select (E:\Desktop_copy\Projects\vap\vap-be\backend\node_modules\sequelize\src\dialects\abstract\query-interface.js:1001:12)
+    at Function.findAll (E:\Desktop_copy\Projects\vap\vap-be\backend\node_modules\sequelize\src\model.js:1824:21)
+    at async Promise.all (index 1)
+    at Function.findAndCountAll (E:\Desktop_copy\Projects\vap\vap-be\backend\node_modules\sequelize\src\model.js:2183:27) 
+    url - /vap/company-data/failed-symbols 
+    method - GET 
+    IP - ::1
+   {"timestamp":"2025-12-16T17:43:12.151Z"}
+error: 
+    status - 500 
+    message - Error: 
+    at Query.run (E:\Desktop_copy\Projects\vap\vap-be\backend\node_modules\sequelize\src\dialects\mysql\query.js:46:25)
+    at E:\Desktop_copy\Projects\vap\vap-be\backend\node_modules\sequelize\src\sequelize.js:650:28
+    at processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at MySQLQueryInterface.select (E:\Desktop_copy\Projects\vap\vap-be\backend\node_modules\sequelize\src\dialects\abstract\query-interface.js:1001:12)
+    at Function.findAll (E:\Desktop_copy\Projects\vap\vap-be\backend\node_modules\sequelize\src\model.js:1824:21)
+    at async Promise.all (index 1)
+    at Function.findAndCountAll (E:\Desktop_copy\Projects\vap\vap-be\backend\node_modules\sequelize\src\model.js:2183:27) 
+    url - /vap/company-data/failed-symbols 
+    method - GET 
+    IP - ::1
+   {"timestamp":"2025-12-16T17:43:12.348Z"}
+error: 
+    status - 500 
+    message - Error: 
+    at Query.run (E:\Desktop_copy\Projects\vap\vap-be\backend\node_modules\sequelize\src\dialects\mysql\query.js:46:25)
+    at E:\Desktop_copy\Projects\vap\vap-be\backend\node_modules\sequelize\src\sequelize.js:650:28
+    at processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at MySQLQueryInterface.select (E:\Desktop_copy\Projects\vap\vap-be\backend\node_modules\sequelize\src\dialects\abstract\query-interface.js:1001:12)
+    at Function.findAll (E:\Desktop_copy\Projects\vap\vap-be\backend\node_modules\sequelize\src\model.js:1824:21)
+    at async Promise.all (index 1)
+    at Function.findAndCountAll (E:\Desktop_copy\Projects\vap\vap-be\backend\node_modules\sequelize\src\model.js:2183:27) 
+    url - /vap/company-data/failed-symbols 
+    method - GET 
+    IP - ::1
+   {"timestamp":"2025-12-16T17:43:26.991Z"}
+error: 
+    status - 500 
+    message - Error: 
+    at Query.run (E:\Desktop_copy\Projects\vap\vap-be\backend\node_modules\sequelize\src\dialects\mysql\query.js:46:25)
+    at E:\Desktop_copy\Projects\vap\vap-be\backend\node_modules\sequelize\src\sequelize.js:650:28
+    at processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at MySQLQueryInterface.select (E:\Desktop_copy\Projects\vap\vap-be\backend\node_modules\sequelize\src\dialects\abstract\query-interface.js:1001:12)
+    at Function.findAll (E:\Desktop_copy\Projects\vap\vap-be\backend\node_modules\sequelize\src\model.js:1824:21)
+    at async Promise.all (index 1)
+    at Function.findAndCountAll (E:\Desktop_copy\Projects\vap\vap-be\backend\node_modules\sequelize\src\model.js:2183:27) 
+    url - /vap/company-data/failed-symbols 
+    method - GET 
+    IP - ::1
+   {"timestamp":"2025-12-16T17:46:30.570Z"}
+error: 
+    status - 500 
+    message - Error: 
+    at Query.run (E:\Desktop_copy\Projects\vap\vap-be\backend\node_modules\sequelize\src\dialects\mysql\query.js:46:25)
+    at E:\Desktop_copy\Projects\vap\vap-be\backend\node_modules\sequelize\src\sequelize.js:650:28
+    at processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at MySQLQueryInterface.select (E:\Desktop_copy\Projects\vap\vap-be\backend\node_modules\sequelize\src\dialects\abstract\query-interface.js:1001:12)
+    at Function.findAll (E:\Desktop_copy\Projects\vap\vap-be\backend\node_modules\sequelize\src\model.js:1824:21)
+    at async Promise.all (index 1)
+    at Function.findAndCountAll (E:\Desktop_copy\Projects\vap\vap-be\backend\node_modules\sequelize\src\model.js:2183:27) 
+    url - /vap/company-data/failed-symbols 
+    method - GET 
+    IP - ::1
+   {"timestamp":"2025-12-16T17:46:30.903Z"}
+info: ✅ Connected to stock_market database. {"timestamp":"2025-12-16T17:51:46.099Z"}
+info: ✅ stock_market database synced. {"timestamp":"2025-12-16T17:51:46.190Z"}
+info: ✅ Connected to bhavcopy database. {"timestamp":"2025-12-16T17:51:46.201Z"}
+info: ✅ bhavcopy database synced. {"timestamp":"2025-12-16T17:51:46.275Z"}
+info: ✅ Connected to screener_data database. {"timestamp":"2025-12-16T17:51:46.287Z"}
+info: ✅ screener_data database synced. {"timestamp":"2025-12-16T17:51:46.370Z"}
+info: ✅ Connected to third_db database. {"timestamp":"2025-12-16T17:51:46.380Z"}
+info: ✅ third_db database synced. {"timestamp":"2025-12-16T17:51:46.401Z"}
+info: ✅ Connected to ipo_data_fastapi database. {"timestamp":"2025-12-16T17:51:46.415Z"}
+info: ✅ ipo_data_fastapi database synced. {"timestamp":"2025-12-16T17:51:46.437Z"}
+info: ✅ Connected to bse_data database. {"timestamp":"2025-12-16T17:51:46.451Z"}
+info: ✅ bse_data database synced. {"timestamp":"2025-12-16T17:51:46.476Z"}
+info: 🚀 Server running on http://localhost:8000/vap/ {"timestamp":"2025-12-16T17:51:46.484Z"}
+info: ✅ Connected to stock_market database. {"timestamp":"2025-12-16T17:54:03.818Z"}
+info: ✅ stock_market database synced. {"timestamp":"2025-12-16T17:54:03.872Z"}
+info: ✅ Connected to bhavcopy database. {"timestamp":"2025-12-16T17:54:03.889Z"}
+info: ✅ bhavcopy database synced. {"timestamp":"2025-12-16T17:54:03.974Z"}
+info: ✅ Connected to screener_data database. {"timestamp":"2025-12-16T17:54:03.987Z"}
+info: ✅ screener_data database synced. {"timestamp":"2025-12-16T17:54:04.064Z"}
+info: ✅ Connected to third_db database. {"timestamp":"2025-12-16T17:54:04.082Z"}
+info: ✅ third_db database synced. {"timestamp":"2025-12-16T17:54:04.096Z"}
+info: ✅ Connected to ipo_data_fastapi database. {"timestamp":"2025-12-16T17:54:04.133Z"}
+info: ✅ ipo_data_fastapi database synced. {"timestamp":"2025-12-16T17:54:04.173Z"}
+info: ✅ Connected to bse_data database. {"timestamp":"2025-12-16T17:54:04.195Z"}
+info: ✅ bse_data database synced. {"timestamp":"2025-12-16T17:54:04.215Z"}
+info: 🚀 Server running on http://localhost:8000/vap/ {"timestamp":"2025-12-16T17:54:04.228Z"}
+info: ✅ Connected to stock_market database. {"timestamp":"2025-12-16T17:54:14.259Z"}
+info: ✅ stock_market database synced. {"timestamp":"2025-12-16T17:54:14.308Z"}
+info: ✅ Connected to bhavcopy database. {"timestamp":"2025-12-16T17:54:14.326Z"}
+info: ✅ bhavcopy database synced. {"timestamp":"2025-12-16T17:54:14.411Z"}
+info: ✅ Connected to screener_data database. {"timestamp":"2025-12-16T17:54:14.425Z"}
+info: ✅ screener_data database synced. {"timestamp":"2025-12-16T17:54:14.494Z"}
+info: ✅ Connected to third_db database. {"timestamp":"2025-12-16T17:54:14.506Z"}
+info: ✅ third_db database synced. {"timestamp":"2025-12-16T17:54:14.517Z"}
+info: ✅ Connected to ipo_data_fastapi database. {"timestamp":"2025-12-16T17:54:14.539Z"}
+info: ✅ ipo_data_fastapi database synced. {"timestamp":"2025-12-16T17:54:14.555Z"}
+info: ✅ Connected to bse_data database. {"timestamp":"2025-12-16T17:54:14.569Z"}
+info: ✅ bse_data database synced. {"timestamp":"2025-12-16T17:54:14.578Z"}
+info: 🚀 Server running on http://localhost:8000/vap/ {"timestamp":"2025-12-16T17:54:14.586Z"}
+info: ✅ Connected to stock_market database. {"timestamp":"2025-12-16T17:54:25.675Z"}
+info: ✅ stock_market database synced. {"timestamp":"2025-12-16T17:54:25.718Z"}
+info: ✅ Connected to bhavcopy database. {"timestamp":"2025-12-16T17:54:25.731Z"}
+info: ✅ bhavcopy database synced. {"timestamp":"2025-12-16T17:54:25.818Z"}
+info: ✅ Connected to screener_data database. {"timestamp":"2025-12-16T17:54:25.836Z"}
+info: ✅ screener_data database synced. {"timestamp":"2025-12-16T17:54:25.910Z"}
+info: ✅ Connected to third_db database. {"timestamp":"2025-12-16T17:54:25.924Z"}
+info: ✅ third_db database synced. {"timestamp":"2025-12-16T17:54:25.931Z"}
+info: ✅ Connected to ipo_data_fastapi database. {"timestamp":"2025-12-16T17:54:25.959Z"}
+info: ✅ ipo_data_fastapi database synced. {"timestamp":"2025-12-16T17:54:25.978Z"}
+info: ✅ Connected to bse_data database. {"timestamp":"2025-12-16T17:54:25.993Z"}
+info: ✅ bse_data database synced. {"timestamp":"2025-12-16T17:54:26.004Z"}
+info: 🚀 Server running on http://localhost:8000/vap/ {"timestamp":"2025-12-16T17:54:26.011Z"}
+info: ✅ Connected to stock_market database. {"timestamp":"2025-12-16T17:59:37.683Z"}
+info: ✅ stock_market database synced. {"timestamp":"2025-12-16T17:59:37.750Z"}
+info: ✅ Connected to bhavcopy database. {"timestamp":"2025-12-16T17:59:37.792Z"}
+info: ✅ bhavcopy database synced. {"timestamp":"2025-12-16T17:59:37.925Z"}
+info: ✅ Connected to screener_data database. {"timestamp":"2025-12-16T17:59:37.960Z"}
+info: ✅ screener_data database synced. {"timestamp":"2025-12-16T17:59:38.084Z"}
+info: ✅ Connected to third_db database. {"timestamp":"2025-12-16T17:59:38.125Z"}
+info: ✅ third_db database synced. {"timestamp":"2025-12-16T17:59:38.155Z"}
+info: ✅ Connected to ipo_data_fastapi database. {"timestamp":"2025-12-16T17:59:38.185Z"}
+info: ✅ ipo_data_fastapi database synced. {"timestamp":"2025-12-16T17:59:38.221Z"}
+info: ✅ Connected to bse_data database. {"timestamp":"2025-12-16T17:59:38.257Z"}
+info: ✅ bse_data database synced. {"timestamp":"2025-12-16T17:59:38.302Z"}
+info: 🚀 Server running on http://localhost:8000/vap/ {"timestamp":"2025-12-16T17:59:38.340Z"}
+info: ✅ Connected to stock_market database. {"timestamp":"2025-12-16T17:59:53.917Z"}
+info: ✅ stock_market database synced. {"timestamp":"2025-12-16T17:59:53.968Z"}
+info: ✅ Connected to bhavcopy database. {"timestamp":"2025-12-16T17:59:53.984Z"}
+info: ✅ bhavcopy database synced. {"timestamp":"2025-12-16T17:59:54.055Z"}
+info: ✅ Connected to screener_data database. {"timestamp":"2025-12-16T17:59:54.067Z"}
+info: ✅ screener_data database synced. {"timestamp":"2025-12-16T17:59:54.128Z"}
+info: ✅ Connected to third_db database. {"timestamp":"2025-12-16T17:59:54.172Z"}
+info: ✅ third_db database synced. {"timestamp":"2025-12-16T17:59:54.208Z"}
+info: ✅ Connected to ipo_data_fastapi database. {"timestamp":"2025-12-16T17:59:54.240Z"}
+info: ✅ ipo_data_fastapi database synced. {"timestamp":"2025-12-16T17:59:54.261Z"}
+info: ✅ Connected to bse_data database. {"timestamp":"2025-12-16T17:59:54.310Z"}
+info: ✅ bse_data database synced. {"timestamp":"2025-12-16T17:59:54.349Z"}
+info: 🚀 Server running on http://localhost:8000/vap/ {"timestamp":"2025-12-16T17:59:54.381Z"}
+info: ✅ Connected to stock_market database. {"timestamp":"2025-12-16T18:01:48.701Z"}
+info: ✅ stock_market database synced. {"timestamp":"2025-12-16T18:01:48.741Z"}
+info: ✅ Connected to bhavcopy database. {"timestamp":"2025-12-16T18:01:48.754Z"}
+info: ✅ bhavcopy database synced. {"timestamp":"2025-12-16T18:01:48.815Z"}
+info: ✅ Connected to screener_data database. {"timestamp":"2025-12-16T18:01:48.826Z"}
+info: ✅ screener_data database synced. {"timestamp":"2025-12-16T18:01:48.878Z"}
+info: ✅ Connected to third_db database. {"timestamp":"2025-12-16T18:01:48.891Z"}
+info: ✅ third_db database synced. {"timestamp":"2025-12-16T18:01:48.898Z"}
+info: ✅ Connected to ipo_data_fastapi database. {"timestamp":"2025-12-16T18:01:48.912Z"}
+info: ✅ ipo_data_fastapi database synced. {"timestamp":"2025-12-16T18:01:48.926Z"}
+info: ✅ Connected to bse_data database. {"timestamp":"2025-12-16T18:01:48.936Z"}
+info: ✅ bse_data database synced. {"timestamp":"2025-12-16T18:01:48.944Z"}
+info: 🚀 Server running on http://localhost:8000/vap/ {"timestamp":"2025-12-16T18:01:48.950Z"}
+info: ✅ Connected to stock_market database. {"timestamp":"2025-12-16T18:10:29.104Z"}
+info: ✅ stock_market database synced. {"timestamp":"2025-12-16T18:10:29.162Z"}
+info: ✅ Connected to bhavcopy database. {"timestamp":"2025-12-16T18:10:29.225Z"}
+info: ✅ bhavcopy database synced. {"timestamp":"2025-12-16T18:10:29.323Z"}
+info: ✅ Connected to screener_data database. {"timestamp":"2025-12-16T18:10:29.346Z"}
+info: ✅ screener_data database synced. {"timestamp":"2025-12-16T18:10:29.410Z"}
+info: ✅ Connected to third_db database. {"timestamp":"2025-12-16T18:10:29.419Z"}
+info: ✅ third_db database synced. {"timestamp":"2025-12-16T18:10:29.430Z"}
+info: ✅ Connected to ipo_data_fastapi database. {"timestamp":"2025-12-16T18:10:29.443Z"}
+info: ✅ ipo_data_fastapi database synced. {"timestamp":"2025-12-16T18:10:29.468Z"}
+info: ✅ Connected to bse_data database. {"timestamp":"2025-12-16T18:10:29.482Z"}
+info: ✅ bse_data database synced. {"timestamp":"2025-12-16T18:10:29.506Z"}
+info: 🚀 Server running on http://localhost:8000/vap/ {"timestamp":"2025-12-16T18:10:29.515Z"}

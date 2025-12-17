@@ -4,9 +4,9 @@ import { useState, useEffect, useMemo, useCallback } from "react";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
+  CardDescription,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -29,7 +29,6 @@ import {
   ChevronLeft,
   ChevronRight,
   ArrowUpDown,
-  Star,
   Download,
   RefreshCw,
 } from "lucide-react";
@@ -42,115 +41,105 @@ import { getTableConfig } from "@/lib/tableConfig";
 import { renderTable } from "@/components/RenderTable";
 import DynamicSelect from "@/components/ui/dynamic-select";
 
-// Preset screening strategies
-const presetScreens = [
-  {
-    name: "Large Cap Growth",
-    description: "Large cap stocks with strong growth",
-    filters: {
-      marketCapMin: 50000,
-      roeMin: 15,
-      salesGrowthMin: 10,
-      profitGrowthMin: 10,
-      onlyProfitable: true,
-    },
-  },
-  {
-    name: "Value Stocks",
-    description: "Undervalued stocks with low P/E",
-    filters: { peMax: 15, pbMax: 2, dividendYieldMin: 2, currentRatioMin: 1.5 },
-  },
-  {
-    name: "Dividend Aristocrats",
-    description: "High dividend yielding stocks",
-    filters: {
-      dividendYieldMin: 3,
-      onlyDividendPaying: true,
-      roeMin: 12,
-      debtToEquityMax: 1,
-    },
-  },
-  {
-    name: "Small Cap Gems",
-    description: "Small cap stocks with potential",
-    filters: {
-      marketCapMax: 5000,
-      roeMin: 20,
-      debtMax: 30,
-      salesGrowthMin: 15,
-    },
-  },
-  {
-    name: "Quality Stocks",
-    description: "High quality fundamentally strong stocks",
-    filters: {
-      roeMin: 18,
-      debtMax: 25,
-      peMax: 25,
-      onlyProfitable: true,
-      currentRatioMin: 1.2,
-    },
-  },
-  {
-    name: "High Growth",
-    description: "Companies with exceptional growth",
-    filters: {
-      salesGrowthMin: 20,
-      profitGrowthMin: 25,
-      roeMin: 20,
-      onlyPositiveGrowth: true,
-    },
-  },
-  {
-    name: "Low Debt",
-    description: "Companies with minimal debt",
-    filters: {
-      debtToEquityMax: 0.5,
-      interestCoverageMin: 10,
-      currentRatioMin: 2,
-    },
-  },
-  {
-    name: "Profitable & Efficient",
-    description: "Profitable companies with good margins",
-    filters: {
-      operatingMarginMin: 15,
-      netMarginMin: 10,
-      roeMin: 15,
-      onlyProfitable: true,
-    },
-  },
-];
+// Define proper response type for paginated API
+interface PaginatedYFinanceResponse {
+  success: boolean;
+  data: StockData[];
+  pages?: number;
+  page?: number;
+  message?: string;
+  total?: number;
+  totalPages?: number;
+}
+
+// Complete filter criteria with all required properties
+interface CompleteFilterCriteria {
+  marketCapMin: number;
+  marketCapMax: number;
+  priceMin: number;
+  priceMax: number;
+  volumeMin: number;
+  dividendYieldMin: number;
+  dividendYieldMax: number;
+  forwardPEMin: number;
+  forwardPEMax: number;
+  trailingPEMin: number;
+  trailingPEMax: number;
+  betaMin: number;
+  betaMax: number;
+  sector: string;
+  onlyDividendPaying: boolean;
+  onlyPositiveChange: boolean;
+}
+
+// Complete default filters with all properties
+const completeDefaultFilters: CompleteFilterCriteria = {
+  marketCapMin: 0,
+  marketCapMax: 1000000000000,
+  priceMin: 0,
+  priceMax: 10000,
+  volumeMin: 0,
+  dividendYieldMin: 0,
+  dividendYieldMax: 100,
+  forwardPEMin: 0,
+  forwardPEMax: 100,
+  trailingPEMin: 0,
+  trailingPEMax: 100,
+  betaMin: 0,
+  betaMax: 5,
+  sector: "all",
+  onlyDividendPaying: false,
+  onlyPositiveChange: false,
+};
 
 export default function ScreenerPage() {
   const [stocks, setStocks] = useState<StockData[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
-  const [filters, setFilters] = useState<FilterCriteria>(defaultFilters);
+  const [filters, setFilters] = useState<CompleteFilterCriteria>(completeDefaultFilters);
   const [sortBy, setSortBy] = useState<keyof StockData>("marketCap");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(25);
   const [showFilters, setShowFilters] = useState(true);
-  const [activePreset, setActivePreset] = useState<string | null>(null);
   const [totalPages, setTotalPages] = useState(1);
   const [uniqueSectors, setUniqueSectors] = useState<string[]>([]);
 
-  // Fetch stocks
   const fetchStocks = useCallback(async () => {
     setLoading(true);
     try {
+      // Convert sortOrder to uppercase for API call
+      const apiSortOrder = sortOrder.toUpperCase() as "ASC" | "DESC";
+      
       const response = await getAllYFinanceData(
         "",
         currentPage,
         itemsPerPage,
         sortBy,
-        sortOrder
+        apiSortOrder
       );
-      if (response && response.success) {
-        setStocks(response.data || []);
-        setTotalPages(response.pages || 1);
-        setCurrentPage(response.page || 1);
+
+      // Cast response to our paginated type
+      const paginatedResponse = response as PaginatedYFinanceResponse;
+      const { success, data, pages, page, message, totalPages: resTotalPages } = paginatedResponse;
+      
+      if (success) {
+        setStocks(data || []);
+        
+        // Check multiple possible pagination properties
+        if (pages !== undefined) {
+          setTotalPages(pages);
+        } else if (resTotalPages !== undefined) {
+          setTotalPages(resTotalPages);
+        } else {
+          setTotalPages(1);
+        }
+        
+        if (page !== undefined) {
+          setCurrentPage(page);
+        }
+      } else {
+        console.error("Failed to fetch stocks:", message);
       }
     } catch (error) {
       console.error("Failed to fetch stock data:", error);
@@ -160,82 +149,116 @@ export default function ScreenerPage() {
   }, [currentPage, itemsPerPage, sortBy, sortOrder]);
 
   useEffect(() => {
-    const fetchUniqueSectors = async () => {
+    const fetchSectors = async () => {
       try {
         const response = await getUniqueSectors();
-        if (response && response.success) {
-          setUniqueSectors(response.sectors.data || []);
-        }
+        if (response.success) setUniqueSectors(response.data || []);
       } catch (error) {
         console.error("Failed to fetch sectors:", error);
       }
     };
-
-    fetchUniqueSectors();
+    fetchSectors();
     fetchStocks();
   }, [fetchStocks]);
 
-  // Apply search + filters
   const filteredStocks = useMemo(() => {
     return stocks.filter((stock) => {
       if (
         searchTerm &&
         !stock.name.toLowerCase().includes(searchTerm.toLowerCase()) &&
         !stock.symbol.toLowerCase().includes(searchTerm.toLowerCase())
-      ) {
+      )
         return false;
+      
+      // Add null/undefined checks for all numeric fields
+      if (stock.marketCap !== null && stock.marketCap !== undefined) {
+        if (
+          stock.marketCap < filters.marketCapMin ||
+          stock.marketCap > filters.marketCapMax
+        )
+          return false;
       }
-      if (
-        stock.marketCap < filters.marketCapMin ||
-        stock.marketCap > filters.marketCapMax
-      )
-        return false;
-      if (
-        stock.currentPrice < filters.priceMin ||
-        stock.currentPrice > filters.priceMax
-      )
-        return false;
-      if (stock.volume < filters.volumeMin) return false;
-      if (
-        stock.dividendYield < filters.dividendYieldMin ||
-        stock.dividendYield > filters.dividendYieldMax
-      )
-        return false;
-      if (
-        stock.forwardPE < filters.forwardPEMin ||
-        stock.forwardPE > filters.forwardPEMax
-      )
-        return false;
-      if (
-        stock.trailingPE < filters.trailingPEMin ||
-        stock.trailingPE > filters.trailingPEMax
-      )
-        return false;
-      if (stock.beta < filters.betaMin || stock.beta > filters.betaMax)
-        return false;
+      
+      if (stock.currentPrice !== null && stock.currentPrice !== undefined) {
+        if (
+          stock.currentPrice < filters.priceMin ||
+          stock.currentPrice > filters.priceMax
+        )
+          return false;
+      }
+      
+      if (stock.volume !== null && stock.volume !== undefined) {
+        if (stock.volume < filters.volumeMin) return false;
+      }
+      
+      if (stock.dividendYield !== null && stock.dividendYield !== undefined) {
+        if (
+          stock.dividendYield < filters.dividendYieldMin ||
+          stock.dividendYield > filters.dividendYieldMax
+        )
+          return false;
+      }
+      
+      if (stock.forwardPE !== null && stock.forwardPE !== undefined) {
+        if (
+          stock.forwardPE < filters.forwardPEMin ||
+          stock.forwardPE > filters.forwardPEMax
+        )
+          return false;
+      }
+      
+      if (stock.trailingPE !== null && stock.trailingPE !== undefined) {
+        if (
+          stock.trailingPE < filters.trailingPEMin ||
+          stock.trailingPE > filters.trailingPEMax
+        )
+          return false;
+      }
+      
+      if (stock.beta !== null && stock.beta !== undefined) {
+        if (stock.beta < filters.betaMin || stock.beta > filters.betaMax)
+          return false;
+      }
+      
       if (filters.sector !== "all" && stock.sector !== filters.sector)
         return false;
-      if (filters.onlyDividendPaying && stock.dividendYield <= 0) return false;
-      if (filters.onlyPositiveChange && stock.changePercent <= 0) return false;
-
+      
+      if (
+        filters.onlyDividendPaying && 
+        (stock.dividendYield === null || stock.dividendYield === undefined || stock.dividendYield <= 0)
+      ) return false;
+      
+      if (
+        filters.onlyPositiveChange && 
+        (stock.changePercent === null || stock.changePercent === undefined || stock.changePercent <= 0)
+      ) return false;
+      
       return true;
     });
   }, [stocks, searchTerm, filters]);
 
-  // Sorting
   const sortedStocks = useMemo(() => {
     return [...filteredStocks].sort((a, b) => {
       const aValue = a[sortBy];
       const bValue = b[sortBy];
-
+      
+      // Handle null/undefined values in sort
+      if (aValue === null || aValue === undefined) return sortOrder === "asc" ? -1 : 1;
+      if (bValue === null || bValue === undefined) return sortOrder === "asc" ? 1 : -1;
+      
       if (typeof aValue === "string" && typeof bValue === "string") {
         return sortOrder === "asc"
           ? aValue.localeCompare(bValue)
           : bValue.localeCompare(aValue);
       }
-      const numA = Number(aValue) || 0;
-      const numB = Number(bValue) || 0;
-      return sortOrder === "asc" ? numA - numB : numB - numA;
+      
+      // Convert to numbers for numeric comparison
+      const numA = Number(aValue);
+      const numB = Number(bValue);
+      
+      return sortOrder === "asc"
+        ? numA - numB
+        : numB - numA;
     });
   }, [filteredStocks, sortBy, sortOrder]);
 
@@ -248,29 +271,10 @@ export default function ScreenerPage() {
     }
   };
 
-  const applyPreset = (preset: (typeof presetScreens)[0]) => {
-    setFilters({ ...defaultFilters, ...preset.filters });
-    setActivePreset(preset.name);
-    setCurrentPage(1);
-  };
-
   const resetFilters = () => {
-    setFilters(defaultFilters);
-    setActivePreset(null);
+    setFilters(completeDefaultFilters);
     setCurrentPage(1);
     setSearchTerm("");
-  };
-
-  const formatCurrency = (value?: number) => {
-    if (value == null || isNaN(value)) return "-";
-    if (value >= 10000) return `₹${(value / 1000).toFixed(0)}K Cr`;
-    return `₹${value.toFixed(0)} Cr`;
-  };
-
-  const formatNumber = (value?: number) => {
-    if (value == null || isNaN(value)) return "-";
-    if (value >= 1000) return `${(value / 1000).toFixed(1)}K`;
-    return value.toFixed(1);
   };
 
   const SortableHeader = ({
@@ -293,12 +297,17 @@ export default function ScreenerPage() {
 
   const exportToExcel = () => {
     const headers = getTableConfig()
-      .map((col) => col.label)
+      .map((col: any) => col.label)
       .join(",");
     const csv = sortedStocks
-      .map((stock) => Object.values(stock).join(","))
+      .map((stock) => {
+        // Handle null values in export
+        return Object.values(stock).map(value => 
+          value === null || value === undefined ? '' : String(value)
+        ).join(",");
+      })
       .join("\n");
-    const blob = new Blob([headers, csv], { type: "text/csv" });
+    const blob = new Blob([headers + "\n" + csv], { type: "text/csv" });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
@@ -346,7 +355,7 @@ export default function ScreenerPage() {
               <TrendingUp className="h-8 w-8 text-purple-600" />
               <div>
                 <div className="text-2xl font-bold">
-                  {sortedStocks.filter((s) => s.changePercent > 0).length}
+                  {sortedStocks.filter((s) => (s.changePercent ?? 0) > 0).length}
                 </div>
                 <div className="text-sm text-slate-500">Gainers</div>
               </div>
@@ -357,42 +366,13 @@ export default function ScreenerPage() {
               <TrendingDown className="h-8 w-8 text-red-600" />
               <div>
                 <div className="text-2xl font-bold">
-                  {sortedStocks.filter((s) => s.changePercent < 0).length}
+                  {sortedStocks.filter((s) => (s.changePercent ?? 0) < 0).length}
                 </div>
                 <div className="text-sm text-slate-500">Losers</div>
               </div>
             </CardContent>
           </Card>
         </div>
-
-        {/* Preset Screens */}
-        {/* <Card className="mb-8">
-          <CardHeader>
-            <CardTitle className="flex items-center space-x-2">
-              <Star className="h-5 w-5 text-yellow-600" />
-              <span>Preset Screens</span>
-            </CardTitle>
-            <CardDescription>
-              Quick access to popular screening strategies
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="flex flex-wrap gap-2">
-            {presetScreens.map((preset) => (
-              <Button
-                key={preset.name}
-                variant={activePreset === preset.name ? "default" : "outline"}
-                size="sm"
-                onClick={() => applyPreset(preset)}
-              >
-                {preset.name}
-              </Button>
-            ))}
-            <Button variant="ghost" size="sm" onClick={resetFilters}>
-              <RefreshCw className="mr-2 h-4 w-4" />
-              Clear All
-            </Button>
-          </CardContent>
-        </Card> */}
 
         {/* Main Content */}
         <div className="grid grid-cols-1 xl:grid-cols-5 gap-6">
@@ -527,16 +507,17 @@ export default function ScreenerPage() {
                     {totalPages > 1 && (
                       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mt-6">
                         <div className="text-sm text-slate-600">
-                          Showing {currentPage}
-                          of {totalPages} results
+                          Page {currentPage} of {totalPages}
                         </div>
                         <div className="flex items-center space-x-2">
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() =>
-                              setCurrentPage(Math.max(1, currentPage - 1))
-                            }
+                            onClick={() => {
+                              const newPage = Math.max(1, currentPage - 1);
+                              setCurrentPage(newPage);
+                              fetchStocks();
+                            }}
                             disabled={currentPage === 1}
                           >
                             <ChevronLeft className="h-4 w-4 mr-1" />
@@ -582,11 +563,11 @@ export default function ScreenerPage() {
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() =>
-                              setCurrentPage(
-                                Math.min(totalPages, currentPage + 1)
-                              )
-                            }
+                            onClick={() => {
+                              const newPage = Math.min(totalPages, currentPage + 1);
+                              setCurrentPage(newPage);
+                              fetchStocks();
+                            }}
                             disabled={currentPage === totalPages}
                           >
                             Next

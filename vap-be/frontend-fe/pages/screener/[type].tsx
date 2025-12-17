@@ -4,6 +4,7 @@ import CompanyDashboard from "@/components/screener/CompanyDashboard";
 import CompanySearch from "@/components/screener/CompanySearch";
 import NewsPage from "@/components/screener/NewsPage";
 import WatchlistPage from "@/components/screener/WatchlistPage";
+import { getYFinanceStocksByType } from "@/utils";
 import { useSearchParams } from "next/navigation";
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
@@ -50,9 +51,6 @@ export default function Index() {
   // const [currentPage, setCurrentPage] = useState(1);
   // const [pageSize, setPageSize] = useState(10);
 
-  const handleCompanySelect = (company) => {
-    setSelectedCompany(company);
-  };
 
   const onBack = () => {
     setSelectedCompany(null);
@@ -64,11 +62,9 @@ export default function Index() {
       async function fetchyStocks() {
         setLoading(true);
         try {
-          const response = await fetch(
-            `http://localhost:8000/vap/company/yfinance/${typeStr}.NS`
-          );
-          if (response.ok) {
-            const data = await response.json();
+          const response = await getYFinanceStocksByType(typeStr);
+          if (response) {
+            const data = await response;
             console.log(data);
             // setStocks(data.data || []);
             // setTotalPages(data.pages || 1);

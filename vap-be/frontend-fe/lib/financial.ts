@@ -6,10 +6,10 @@ export interface FinancialMetric {
 
 export interface Company {
   symbol: string;
-//   name: string;
-//   sector: string;
-//   marketCap?: number;
-//   currentPrice?: number;
+  name?: string;
+  sector?: string;
+  marketCap?: number;
+  currentPrice?: number;
 }
 
 export interface QuarterlyResult {
