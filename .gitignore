@@ -1,0 +1,65 @@
+# ========================
+# Global
+# ========================
+node_modules/
+.env
+.env.*
+*.log
+logs/
+tmp/
+temp/
+
+# ========================
+# Frontend
+# ========================
+frontend/node_modules/
+frontend/.next/
+frontend/dist/
+frontend/build/
+frontend/.env
+frontend/.env.*
+
+# ========================
+# Backend
+# ========================
+backend/node_modules/
+backend/dist/
+backend/logs/
+backend/.env
+backend/.env.*
+
+# ========================
+# Python
+# ========================
+python/venv/
+python/.venv/
+python/__pycache__/
+python/*.pyc
+python/.env
+python/.env.*
+
+# ========================
+# Docker
+# ========================
+docker-data/
+.docker/
+
+# ========================
+# OS / Editors
+# ========================
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# ========================
+# Database backups (IMPORTANT)
+# ========================
+*.sql
+*.sqlite
+*.db
+
+# ========================
+# Git (never commit)
+# ========================
+.git/

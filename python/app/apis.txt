@@ -1,0 +1,24 @@
+POST http://0.0.0.0:8000/nse/update-listed-companies
+{
+    "status": "success",
+    "inserted": 2187,
+    "skipped": 0
+}
+
+POST http://0.0.0.0:8000/nse/fetch-historical-data
+{
+    "status": "success",
+    "message": "Data fetch completed. Success: 2185, Failed: 0"
+}
+
+GET http://0.0.0.0:8000/nse/get-historical-data/TCS
+
+GET /nse/historical-data?symbol=TCS&start_date=2024-01-01&end_date=2024-06-30
+
+
+
+Bhavcopy 
+GET http://127.0.0.1:8000/bhavcopy/fetch-range?start_date=2025-10-01&end_date=2025-10-14
+GET http://127.0.0.1:8000/bhavcopy/fetch-today
+
+
