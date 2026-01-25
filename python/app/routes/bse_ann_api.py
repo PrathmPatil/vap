@@ -27,6 +27,16 @@ HEADERS = {
     "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36"
 }
 
+# REMOVE OR COMMENT OUT THIS WARMUP FUNCTION IF IT EXISTS
+# def warmup_session():
+#     """Warm up session to avoid first request timeout"""
+#     session = requests.Session()
+#     session.headers.update(HEADERS)
+#     # This is causing timeout - remove or add try-except
+#     session.get("https://www.bseindia.com", timeout=(15, 30))
+
+# REMOVE THIS CALL - it's running at import time and causing timeout
+# warmup_session()
 
 @router.get("/ann-subcategory")
 def fetch_and_save_bse_announcements(

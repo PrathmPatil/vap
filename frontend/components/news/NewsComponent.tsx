@@ -31,6 +31,7 @@ const NewsComponent = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [totalRecords, setTotalRecords] = useState({ news_on_air: 0, pib_news: 0, pib_ministry: 0, dd_news: 0 });
 
   const observerRef = useRef<HTMLDivElement | null>(null);
 
@@ -63,6 +64,7 @@ const NewsComponent = () => {
       if (response.success) {
         if (page === 1) {
           setNewsData(response.data);
+          // setTotalRecords(response.total_records);
         } else {
           setNewsData((prev) => [...prev, ...response.data]);
         }
@@ -77,11 +79,47 @@ const NewsComponent = () => {
     } finally {
       setLoading(false);
     }
-  }, [searchTerm, page, loading]);
+  }, [searchTerm, page]);
+
+  // getGovNews 
+  //   search = '',
+  // page = 1,
+  // limit = 20,
+  // sortField = 'DT_TM',
+  // sortOrder: string = 'DESC'
+  const fetchGovNewsData = useCallback(async () => {
+    try {
+      const response = await getGovNews(
+        searchTerm,
+        page,
+        20,
+        "DT_TM",
+        "DESC"
+      );
+
+      if (response.status === "success") {
+        if (page === 1) {
+          setGovNewsData(response.data);
+          setTotalRecords(response.total_records);
+        } else {
+          setGovNewsData((prev) => [...prev, ...response.data]);
+          setTotalRecords(response.total_records);
+        }
+
+        setTotalPages(response.pages);
+        setError(null); 
+      } else {
+        setError("Failed to fetch government news data");
+      }
+    } catch (err: any) {
+      setError("Error fetching government news data: " + err.message);
+    }
+  }, [searchTerm, page]);
 
   useEffect(() => {
     fetchNewsData();
-  }, [fetchNewsData]);
+    fetchGovNewsData();
+  }, [fetchNewsData, fetchGovNewsData]);
 
   // ------------------------------
   // Infinite Scroll Observer
@@ -139,7 +177,7 @@ const NewsComponent = () => {
           {error}
         </div>
       )}
-
+      {console.log(newsData, loading)}
       {!loading && newsData.length === 0 && (
         <div className="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded">
           No news found

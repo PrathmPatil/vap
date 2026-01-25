@@ -184,7 +184,7 @@ export function CompaniesTable() {
                               {company.symbol}
                             </Link>
                           </TableCell>
-                          <TableCell className="max-w-xs truncate">{company.company_name}</TableCell>
+                          <TableCell className="max-w-xs truncate">{company.name}</TableCell>
                           <TableCell><Badge variant="secondary">{company.series}</Badge></TableCell>
                           <TableCell className="flex items-center space-x-1">
                             <Calendar className="h-3 w-3 text-slate-400" />

@@ -351,7 +351,7 @@ class NSEService:
             CREATE TABLE IF NOT EXISTS listed_companies (
                 id INT AUTO_INCREMENT PRIMARY KEY,
                 symbol VARCHAR(50) UNIQUE,
-                company_name VARCHAR(255),
+                name VARCHAR(255),
                 series VARCHAR(20),
                 date_of_listing DATE,
                 paid_up_value INT,

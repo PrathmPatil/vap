@@ -25,7 +25,7 @@ export default function MCAPModel(sequelize, DataTypes) {
       type: DataTypes.TEXT,
       allowNull: true,
     },
-    Face_ValueRs: {
+    Face_Value_Rs: {
       type: DataTypes.DOUBLE,
       allowNull: true,
     },
@@ -33,11 +33,11 @@ export default function MCAPModel(sequelize, DataTypes) {
       type: DataTypes.BIGINT,
       allowNull: true,
     },
-    Close_Price_Paid_up_valueRs: {
+    Close_Price_Paid_up_value_Rs: {
       type: DataTypes.DOUBLE,
       allowNull: true,
     },
-    Market_CapRs: {
+    Market_Cap_Rs: {
       type: DataTypes.DOUBLE,
       allowNull: true,
     },

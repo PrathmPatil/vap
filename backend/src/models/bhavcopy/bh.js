@@ -16,13 +16,13 @@ export default function BHModel(sequelize, DataTypes) {
     high_low: {
       type: DataTypes.TEXT,
       allowNull: true,
-      field: 'HIGH/LOW',  // map to DB column with slash
+      field: 'HIGH_LOW',  // map to DB column with slash
     },
-    index_flag: {
-      type: DataTypes.DOUBLE,
-      allowNull: true,
-      field: 'INDEX FLAG', // map to DB column with space
-    },
+    // index_flag: {
+    //   type: DataTypes.DOUBLE,
+    //   allowNull: true,
+    //   field: 'INDEX FLAG', // map to DB column with space
+    // },
     source_date: {
       type: DataTypes.DATE,
       allowNull: true,

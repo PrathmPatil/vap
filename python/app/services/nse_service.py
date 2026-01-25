@@ -1,262 +1,257 @@
-import os
-import pandas as pd
-import yfinance as yf
+import time
+import random
+import logging
 from datetime import datetime
+from typing import Dict, Any, List, Tuple
+from fastapi import APIRouter, Query, HTTPException
+import pandas as pd
+import pymysql
+import yfinance as yf
+import requests
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
+
 from app.config import config
 from app.database.connection import db_manager
+
+logger = logging.getLogger(__name__)
+logging.basicConfig(level=logging.INFO)
 
 
 class NSEService:
     def __init__(self):
         db_manager.ensure_database(config.DB_STOCK_MARKET)
-        self.create_tables()
+        self._setup_session()
+        self._create_tables()
 
-    # ======================================================
-    # 🔹 TABLE CREATION
-    # ======================================================
-    def create_tables(self):
-        """Create necessary tables if they don't exist."""
+    # -------------------- HTTP SESSION --------------------
+    def _setup_session(self):
+        self.session = requests.Session()
+        retry = Retry(
+            total=3,
+            backoff_factor=1.2,
+            status_forcelist=[429, 500, 502, 503, 504],
+            allowed_methods=["GET"]
+        )
+        adapter = HTTPAdapter(max_retries=retry)
+        self.session.mount("https://", adapter)
+        self.session.headers.update({
+            "User-Agent": "Mozilla/5.0",
+            "Accept-Language": "en-US,en;q=0.9"
+        })
+
+    # -------------------- TABLES --------------------
+    def _create_tables(self):
         conn = db_manager.get_connection(config.DB_STOCK_MARKET)
-        cursor = conn.cursor()
+        cur = conn.cursor()
 
-        # Listed companies table
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS listed_companies (
-                id INT AUTO_INCREMENT PRIMARY KEY,
-                symbol VARCHAR(50) UNIQUE,
-                company_name VARCHAR(255),
-                series VARCHAR(20),
-                date_of_listing DATE,
-                paid_up_value INT,
-                market_lot INT,
-                isin VARCHAR(50),
-                face_value INT,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
+        cur.execute("""
+        CREATE TABLE IF NOT EXISTS all_companies_data (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            symbol VARCHAR(20),
+            date DATE,
+            open FLOAT,
+            high FLOAT,
+            low FLOAT,
+            close FLOAT,
+            adj_close FLOAT,
+            volume BIGINT,
+            dividends FLOAT,
+            stock_splits FLOAT,
+            UNIQUE KEY uq_symbol_date (symbol, date)
+        )
         """)
 
-        # Historical data table
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS all_companies_data (
-                id INT AUTO_INCREMENT PRIMARY KEY,
-                symbol VARCHAR(20),
-                date DATE,
-                open FLOAT,
-                high FLOAT,
-                low FLOAT,
-                close FLOAT,
-                volume BIGINT,
-                dividends FLOAT,
-                stock_splits FLOAT,
-                UNIQUE KEY unique_record (symbol, date)
-            )
+        cur.execute("""
+        CREATE TABLE IF NOT EXISTS failed_symbols (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            symbol VARCHAR(20),
+            error_message TEXT,
+            retry_count INT DEFAULT 0,
+            last_retry TIMESTAMP NULL,
+            failed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
         """)
 
-        # Failed symbols table
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS failed_symbols (
-                id INT AUTO_INCREMENT PRIMARY KEY,
-                symbol VARCHAR(20),
-                error_message TEXT,
-                failed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
+        cur.execute("""
+        CREATE TABLE IF NOT EXISTS symbol_metadata (
+            symbol VARCHAR(20) PRIMARY KEY,
+            last_fetched DATE,
+            data_points INT DEFAULT 0,
+            status ENUM('active','failed','pending') DEFAULT 'pending'
+        )
         """)
 
         conn.commit()
-        cursor.close()
+        cur.close()
         conn.close()
 
-    # ======================================================
-    # 🔹 UPDATE LISTED COMPANIES
-    # ======================================================
-    def update_listed_companies(self):
-        """Sync NSE listed companies data from official CSV."""
-        try:
-            df = pd.read_csv(config.NSE_LISTED_COMPANIES_URL)
-            df.columns = [c.strip().lower().replace(" ", "_") for c in df.columns]
-            df = df.applymap(lambda x: x.strip() if isinstance(x, str) else x)
+    # -------------------- UTILS --------------------
+    def _safe_float(self, v): 
+        return float(v) if pd.notna(v) else 0.0
 
-            # Convert date format
-            if "date_of_listing" in df.columns:
-                df["date_of_listing"] = df["date_of_listing"].apply(
-                    lambda x: datetime.strptime(x, "%d-%b-%Y").strftime("%Y-%m-%d")
-                    if isinstance(x, str) and "-" in x else None
+    def _safe_int(self, v): 
+        return int(v) if pd.notna(v) else 0
+
+    def _resolve_formats(self, symbol: str) -> List[str]:
+        base = symbol.upper().replace(".NS", "").replace(".BO", "")
+        return [f"{base}.NS", f"{base}.BO", base]
+
+    # -------------------- FETCH YAHOO --------------------
+    def fetch_symbol_data(self, symbol: str, period: str) -> Tuple[bool, pd.DataFrame, str]:
+        for fmt in self._resolve_formats(symbol):
+            try:
+                time.sleep(random.uniform(0.5, 1.2))
+                df = yf.Ticker(fmt, session=self.session).history(
+                    period=period, interval="1d", auto_adjust=False
                 )
+                if not df.empty:
+                    return True, df, fmt
+            except Exception as e:
+                logger.warning(f"{fmt} failed: {e}")
+        return False, pd.DataFrame(), "Yahoo empty"
 
-            conn = db_manager.get_connection(config.DB_STOCK_MARKET)
-            cursor = conn.cursor()
+    # -------------------- SAVE --------------------
+    def save_symbol_data(self, symbol: str, df: pd.DataFrame, used: str) -> Dict[str, Any]:
+        df = df.copy()
 
-            inserted, skipped = 0, 0
-            for _, row in df.iterrows():
-                cursor.execute("SELECT COUNT(*) AS c FROM listed_companies WHERE symbol=%s", (row["symbol"],))
-                if cursor.fetchone()["c"] == 0:
-                    cursor.execute("""
-                        INSERT INTO listed_companies
-                        (symbol, company_name, series, date_of_listing, paid_up_value, market_lot, isin, face_value)
-                        VALUES (%s,%s,%s,%s,%s,%s,%s,%s)
-                    """, (
-                        row.get("symbol", ""),
-                        row.get("name_of_company", ""),
-                        row.get("series", ""),
-                        row.get("date_of_listing", None),
-                        int(row.get("paid_up_value") or 0),
-                        int(row.get("market_lot") or 0),
-                        row.get("isin_number", ""),
-                        int(row.get("face_value") or 0)
-                    ))
-                    inserted += 1
-                else:
-                    skipped += 1
+        if isinstance(df.index, pd.DatetimeIndex):
+            df.reset_index(inplace=True)
 
-            conn.commit()
-            cursor.close()
-            conn.close()
-            return {"status": "success", "inserted": inserted, "skipped": skipped}
+        df.rename(columns={df.columns[0]: "Date"}, inplace=True)
+        df["Date"] = pd.to_datetime(df["Date"], errors="coerce")
+        df.dropna(subset=["Date"], inplace=True)
 
-        except Exception as e:
-            return {"status": "error", "message": str(e)}
+        exchange = used.split(".")[-1].lower() if "." in used else "global"
+        table = "all_companies_data" if exchange == "ns" else f"company_price_{exchange}"
+        clean = symbol.upper().replace(".NS", "").replace(".BO", "")
 
-    # ======================================================
-    # 🔹 FETCH HISTORICAL STOCK DATA
-    # ======================================================
-    def fetch_historical_data(self, period="1mo"):
-        """Fetch historical stock data for all listed companies."""
-        try:
-            # Get all listed symbols
-            conn = db_manager.get_connection(config.DB_STOCK_MARKET)
-            cursor = conn.cursor()
-            cursor.execute("SELECT symbol FROM listed_companies")
-            symbols = [row["symbol"].upper() + ".NS" for row in cursor.fetchall()]
-            cursor.close()
-            conn.close()
-
-            os.makedirs("temp_excel", exist_ok=True)
-            success_count, fail_count = 0, 0
-
-            for symbol in symbols:
-                clean_symbol = symbol.replace(".NS", "")
-                print(f"📈 Fetching {symbol} ...")
-
-                try:
-                    df = yf.download(symbol, period=period, interval="1d", auto_adjust=False, actions=True)
-
-                    if df.empty:
-                        print(f"⚠️ No data for {symbol}, skipping...")
-                        continue
-
-                    # Reset and flatten DataFrame
-                    df.reset_index(inplace=True)
-                    if isinstance(df.columns, pd.MultiIndex):
-                        df.columns = ['_'.join([str(c).strip() for c in tup if c]) for tup in df.columns.values]
-
-                    # Rename columns
-                    rename_map = {
-                        "Date": "date", "Open": "open", "High": "high", "Low": "low",
-                        "Close": "close", "Volume": "volume", "Dividends": "dividends",
-                        "Stock Splits": "stock_splits"
-                    }
-                    df.rename(columns={c: rename_map.get(c.split("_")[0], c) for c in df.columns}, inplace=True)
-                    df["symbol"] = clean_symbol
-
-                    # Build insert records
-                    records = []
-                    for _, r in df.iterrows():
-                        try:
-                            record_date = (
-                                r["date"].date() if hasattr(r["date"], "date")
-                                else pd.to_datetime(r["date"]).date()
-                            )
-                            records.append((
-                                r["symbol"],
-                                record_date,
-                                float(r.get("open", 0) or 0),
-                                float(r.get("high", 0) or 0),
-                                float(r.get("low", 0) or 0),
-                                float(r.get("close", 0) or 0),
-                                int(r.get("volume", 0) or 0),
-                                float(r.get("dividends", 0) or 0),
-                                float(r.get("stock_splits", 0) or 0)
-                            ))
-                        except Exception as row_err:
-                            print(f"   ⚠️ Bad row for {symbol}: {row_err}")
-
-                    # Insert batch into DB
-                    if records:
-                        conn = db_manager.get_connection(config.DB_STOCK_MARKET)
-                        cursor = conn.cursor()
-                        cursor.executemany("""
-                            INSERT IGNORE INTO all_companies_data
-                            (symbol, date, open, high, low, close, volume, dividends, stock_splits)
-                            VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s)
-                        """, records)
-                        conn.commit()
-                        cursor.close()
-                        conn.close()
-
-                    print(f"✅ Inserted {len(records)} rows for {symbol}")
-                    success_count += 1
-
-                except Exception as e:
-                    fail_count += 1
-                    print(f"❌ Error fetching {symbol}: {e}")
-                    self.log_failed_symbol(clean_symbol, str(e))
-                    continue
-
-            return {
-                "status": "success",
-                "message": f"Data fetch completed. Success: {success_count}, Failed: {fail_count}"
-            }
-
-        except Exception as e:
-            return {"status": "error", "message": str(e)}
-
-    # ======================================================
-    # 🔹 LOG FAILED SYMBOL
-    # ======================================================
-    def get_failed_symbols(self):
-        """Fetch all failed symbols from DB."""
-        try:
-            conn = db_manager.get_connection(config.DB_STOCK_MARKET)
-            cursor = conn.cursor()
-            cursor.execute("SELECT * FROM failed_symbols ORDER BY failed_at DESC")
-            data = cursor.fetchall()
-            cursor.close()
-            conn.close()
-            return data
-        except Exception as e:
-            print(f"❌ Failed to fetch failed symbols: {e}")
-            return []
-
-
-    # ======================================================
-    # 🔹 GET HISTORICAL DATA
-    # ======================================================
-    def get_historical_data(self, symbol: str, start_date: str = None, end_date: str = None):
-        """Get historical data for a specific symbol."""
         conn = db_manager.get_connection(config.DB_STOCK_MARKET)
-        cursor = conn.cursor()
+        cur = conn.cursor()
 
-        query = "SELECT * FROM all_companies_data WHERE symbol = %s"
-        params = [symbol]
+        if table != "all_companies_data":
+            cur.execute(f"""
+            CREATE TABLE IF NOT EXISTS `{table}` LIKE all_companies_data
+            """)
 
-        if start_date and end_date:
-            query += " AND date BETWEEN %s AND %s"
-            params.extend([start_date, end_date])
-        elif start_date:
-            query += " AND date >= %s"
-            params.append(start_date)
-        elif end_date:
-            query += " AND date <= %s"
-            params.append(end_date)
+        records = []
+        for _, r in df.iterrows():
+            records.append((
+                clean,
+                r["Date"].date(),
+                self._safe_float(r.get("Open")),
+                self._safe_float(r.get("High")),
+                self._safe_float(r.get("Low")),
+                self._safe_float(r.get("Close")),
+                self._safe_float(r.get("Adj Close", r.get("Close"))),
+                self._safe_int(r.get("Volume")),
+                self._safe_float(r.get("Dividends")),
+                self._safe_float(r.get("Stock Splits"))
+            ))
 
-        query += " ORDER BY date DESC"
-        cursor.execute(query, params)
-        data = cursor.fetchall()
-        cursor.close()
+        cur.executemany(f"""
+        INSERT INTO `{table}`
+        (symbol,date,open,high,low,close,adj_close,volume,dividends,stock_splits)
+        VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+        ON DUPLICATE KEY UPDATE
+            open=VALUES(open), high=VALUES(high), low=VALUES(low),
+            close=VALUES(close), adj_close=VALUES(adj_close),
+            volume=VALUES(volume), dividends=VALUES(dividends),
+            stock_splits=VALUES(stock_splits)
+        """, records)
+
+        cur.execute("""
+        INSERT INTO symbol_metadata (symbol,last_fetched,data_points,status)
+        VALUES (%s,%s,%s,'active')
+        ON DUPLICATE KEY UPDATE
+            last_fetched=VALUES(last_fetched),
+            data_points=data_points+VALUES(data_points),
+            status='active'
+        """, (clean, datetime.now().date(), len(records)))
+
+        conn.commit()
+        cur.close()
         conn.close()
 
-        return {"status": "success", "count": len(data), "data": data}
+        return {"status": "success", "symbol": clean, "rows": len(records), "table": table}
+
+    # -------------------- SINGLE --------------------
+    def fetch_single_symbol(
+        symbol: str,
+        period: str = Query("1mo", description="Data period"),
+        save_to_db: bool = Query(False, description="Save to database")
+    ):
+        """Fetch data for single symbol with retry logic"""
+        try:
+            from app.services.nse_service import nse_service
+            
+            # Clean symbol
+            clean_symbol = symbol.upper().replace(".NS", "")
+            
+            # Try different formats
+            formats_to_try = [
+                clean_symbol,
+                f"{clean_symbol}.NS",
+                f"{clean_symbol}.BO",
+                f"{clean_symbol}.NSE"
+            ]
+            
+            for sym_format in formats_to_try:
+                try:
+                    logger.info(f"Trying: {sym_format}")
+                    ticker = yf.Ticker(sym_format)
+                    df = ticker.history(period=period)
+                    
+                    if not df.empty:
+                        if save_to_db:
+                            # Call your service method to save
+                            pass
+                        
+                        return {
+                            "status": "success",
+                            "symbol": sym_format,
+                            "rows": len(df),
+                            "data": df.reset_index().to_dict("records"),
+                            "columns": list(df.columns)
+                        }
+                        
+                except Exception as e:
+                    logger.warning(f"Failed with {sym_format}: {e}")
+                    time.sleep(1)  # Delay before next try
+            
+            return {
+                "status": "failed",
+                "message": "Could not fetch data with any symbol format",
+                "tried_formats": formats_to_try
+            }
+            
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=str(e))
+
+    # -------------------- FETCH ALL LISTED --------------------
+    def fetch_all_listed(self, period="1mo", limit=None):
+        conn = db_manager.get_connection(config.DB_STOCK_MARKET)
+        cur = conn.cursor(pymysql.cursors.DictCursor)
+
+        q = "SELECT symbol FROM listed_companies"
+        if limit:
+            q += f" LIMIT {limit}"
+
+        cur.execute(q)
+        symbols = [r["symbol"] for r in cur.fetchall()]
+        cur.close()
+        conn.close()
+
+        results = {"success": 0, "failed": 0}
+
+        for sym in symbols:
+            res = self.fetch_single_symbol(sym, period, True)
+            if res["status"] == "success":
+                results["success"] += 1
+            else:
+                results["failed"] += 1
+
+        return {"status": "completed", **results}
 
 
-# ✅ Singleton instance for FastAPI routes
 nse_service = NSEService()

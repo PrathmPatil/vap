@@ -72,6 +72,7 @@ interface Tab {
 }
 
 const NewsTableView: React.FC<NewsTableViewProps> = ({ data }) => {
+  console.log(data);
   const [activeTab, setActiveTab] = useState<TabKey>('news_on_air');
   const [expandedRows, setExpandedRows] = useState<ExpandedRows>({});
 

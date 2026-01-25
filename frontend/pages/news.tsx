@@ -4,7 +4,7 @@ import { useEffect, useState, useRef, useMemo } from "react";
 import Navigation from "@/components/Navigation";
 import NewsTableView from "@/components/news/NewsTableView";
 import NewsComponent from "@/components/news/NewsComponent";
-import { getBseAnnouncements } from "@/utils";
+import { getBseAnnouncements, getGovNews } from "@/utils";
 
 /* -------------------- TYPES -------------------- */
 
@@ -65,46 +65,49 @@ export default function News() {
   /* -------------------- FETCH DATA -------------------- */
 
   useEffect(() => {
-    if (hasFetched.current) return;
-    hasFetched.current = true;
+    // if (hasFetched.current) return;
+    // hasFetched.current = true;
 
     const fetchNewsData = async () => {
       try {
         setLoading(true);
         setError(null);
 
-        const response: any = await getBseAnnouncements(
+        const response: any = await getGovNews(
           "",
           1,
           50,
           "DT_TM",
           "DESC"
         );
-
-        if (response?.success && Array.isArray(response.data)) {
+        console.log("Gov News Response:", response);
+        if (response.status === "success") {
           const transformed: NewsTableViewData = {
             total_records: {
-              news_on_air: 0,
-              pib_news: 0,
-              pib_ministry: 0,
-              dd_news: response.data.length
+              news_on_air: response.total_records.news_on_air,
+              pib_news: response.total_records.pib_news,
+              pib_ministry: response.total_records.pib_ministry,
+              dd_news: response.total_records.dd_news
             },
             data: {
-              news_on_air: [],
-              pib_news: [],
-              pib_ministry: [],
-              dd_news: response.data.map((item: BseNewsItem, index: number) => ({
-                id: item.id || index + 1,
-                title: item.HEADLINE || item.NEWSSUB || "No title",
-                body: item.MORE || item.HEADLINE || "",
-                image: "",
-                news_category:
-                  item.CATEGORYNAME || item.SUBCATNAME || "Announcement",
-                source: item.SLONGNAME || "BSE",
-                createdAt: item.DT_TM,
-                url: item.NSURL || "#"
-              }))
-            }
+              news_on_air: response.data.news_on_air || [],
+              pib_news: response.data.pib_news || [],
+              pib_ministry: response.data.pib_ministry || [],
+              dd_news: response.data.dd_news || []
+
+            //   .map((item: BseNewsItem, index: number) => ({
+            //     id: item.id || index + 1,
+            //     title: item.HEADLINE || item.NEWSSUB || "No title",
+            //     body: item.MORE || item.HEADLINE || "",
+            //     image: "",
+            //     news_category:
+            //       item.CATEGORYNAME || item.SUBCATNAME || "Announcement",
+            //     source: item.SLONGNAME || "BSE",
+            //     createdAt: item.DT_TM,
+            //     url: item.NSURL || "#"
+            //   }))
+            // }
+          }
           };
 
           setNewsTableViewData(transformed);
@@ -120,11 +123,14 @@ export default function News() {
 
     fetchNewsData();
   }, []);
+  console.log(newsTableViewData);
 
   /* -------------------- FILTER DATA -------------------- */
 
   const filteredNewsData = useMemo(() => {
     if (!newsTableViewData) return null;
+
+    console.log("Filtering news data for source:", newsSource, newsTableViewData);
 
     if (newsSource === "BSE") {
       return {

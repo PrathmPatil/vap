@@ -174,7 +174,7 @@ class GovNewsCombinedService:
 
         try:
             conn = db_manager.get_connection(db_name)
-            with conn.cursor() as cursor:
+            with conn.cursor(pymysql.cursors.DictCursor) as cursor:
                 self.create_and_insert_table(table_name, news_list, cursor)
                 conn.commit()
             conn.close()

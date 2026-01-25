@@ -65,3 +65,5 @@ async def fetch_only(symbol: str, statement_type: str = Query("consolidated", de
         return {"status": "success", "symbol": symbol, "data": data}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+

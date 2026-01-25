@@ -4,14 +4,14 @@ export default (sequelize, DataTypes) => {
     {
       id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
       symbol: { type: DataTypes.STRING(50), unique: true },
-      company_name: DataTypes.STRING(255),
+      name: DataTypes.STRING(255),
       series: DataTypes.STRING(20),
       date_of_listing: DataTypes.DATEONLY,
       paid_up_value: DataTypes.INTEGER,
       market_lot: DataTypes.INTEGER,
       isin: DataTypes.STRING(50),
       face_value: DataTypes.INTEGER,
-      created_at: { type: DataTypes.DATE, defaultValue: sequelize.literal("CURRENT_TIMESTAMP") }
+      createdAt: { type: DataTypes.DATE, defaultValue: sequelize.literal("CURRENT_TIMESTAMP") }
     },
     {
       tableName: "listed_companies",

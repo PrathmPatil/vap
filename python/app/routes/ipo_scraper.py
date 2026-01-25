@@ -4,7 +4,7 @@ from app.services.ipo_scraper_service import ipo_scraper_service
 from app.services.ipo_cron_service import ipo_cron_service
 from app.config import config
 from app.database.connection import db_manager
-
+import pymysql
 router = APIRouter()
 
 
@@ -35,10 +35,28 @@ def home():
 @router.get("/fetch/{report_type}")
 def fetch_ipo_data(report_type: str):
     """
-    Fetch IPO data by type (mainboard or sme)
-    Example: /ipo-scraper/fetch/mainboard
+    Fetch IPO data and return RAW + PROCESSED data
     """
-    return ipo_scraper_service.process_report(report_type)
+    result = ipo_scraper_service.process_report(report_type)
+
+    return {
+        # "status": "success",
+        # "report_type": report_type,
+        # "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        # "raw_fetched_data": result.get("raw_data"),      # 🔥 IMPORTANT
+        # "processed_data": result.get("processed_data"),  # cleaned/mapped
+        # "count": len(
+        #         result["raw_data"].get("reportTableData", [])
+        #         if isinstance(result["raw_data"], dict)
+        #         else []
+        #     )
+        
+        "status": result["status"],
+        "report_type": result["report_type"],
+        "records_inserted": result.get("records_inserted", 0),
+        "raw_records": result.get("raw_records", 0),
+    }
+
 
 
 # ------------------------------------------------------------
@@ -66,7 +84,7 @@ def fetch_today_data():
 # ------------------------------------------------------------
 # ✅ Dynamic Fetch (Custom Date)
 # ------------------------------------------------------------
-@router.get("/fetch/dynamic")
+@router.post("/fetch/dynamic")
 def fetch_dynamic_data(
     report_type: str = Query("mainboard", description="Report type: mainboard or sme"),
     month: int = Query(None, description="Custom month"),
@@ -115,7 +133,7 @@ def db_summary():
     summary = {}
 
     try:
-        with conn.cursor() as cursor:
+        with conn.cursor(pymysql.cursors.DictCursor) as cursor:
             for table in ["mainboard_data", "sme_data"]:
                 cursor.execute(f"SELECT COUNT(*) AS count FROM `{table}`")
                 count = cursor.fetchone()["count"]

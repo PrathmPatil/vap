@@ -1,3 +1,4 @@
+import pymysql
 import requests
 from bs4 import BeautifulSoup
 import re
@@ -71,7 +72,7 @@ class ScreenerService:
     def get_company_info(self, symbol: str):
         try:
             conn = db_manager.get_connection(config.DB_STOCK_MARKET)
-            with conn.cursor() as cursor:
+            with conn.cursor(pymysql.cursors.DictCursor) as cursor:
                 cursor.execute("SHOW COLUMNS FROM listed_companies;")
                 columns = [row['Field'] for row in cursor.fetchall()]
                 name_col = next((c for c in ["company_name", "name_of_company", "name"] if c in columns), None)
@@ -86,24 +87,35 @@ class ScreenerService:
         except Exception as e:
             raise HTTPException(status_code=400, detail=str(e))
 
-    def get_screener_data(symbol, statement_type="consolidated"):
+    def get_screener_data(self, symbol: str, statement_type: str = "consolidated"):
         url = f"https://www.screener.in/company/{symbol}/{statement_type}/"
         headers = {"User-Agent": "Mozilla/5.0"}
+
         time.sleep(1.5)  # avoid getting blocked
         response = requests.get(url, headers=headers)
         response.raise_for_status()
+
         soup = BeautifulSoup(response.content, "html.parser")
 
         all_data = {
-            "company_info": {}, "financial_ratios": {}, "profit_loss": {},
-            "balance_sheet": {}, "cash_flow": {}, "quarterly_results": {},
-            "shareholding_pattern": {}, "other_data": {}
+            "company_info": {},
+            "financial_ratios": {},
+            "profit_loss": {},
+            "balance_sheet": {},
+            "cash_flow": {},
+            "quarterly_results": {},
+            "shareholding_pattern": {},
+            "other_data": {}
         }
 
-        # Company info
+        # ---------- Company Info ----------
         info_section = soup.find("div", class_="company-info")
         if info_section:
-            all_data["company_info"]["name"] = info_section.find("h1").get_text(strip=True) if info_section.find("h1") else symbol
+            h1 = info_section.find("h1")
+            all_data["company_info"]["name"] = (
+                h1.get_text(strip=True) if h1 else symbol
+            )
+
             for item in info_section.find_all("div", class_="company-ratios"):
                 spans = item.find_all("span")
                 if len(spans) >= 2:
@@ -111,43 +123,52 @@ class ScreenerService:
                     value = spans[1].get_text(strip=True)
                     all_data["company_info"][key] = value
 
-        # Financial ratios
+        # ---------- Financial Ratios ----------
         for card in soup.find_all("div", class_="flex-row"):
             title_elem = card.find("span", class_="name")
             value_elem = card.find("span", class_="number")
             if title_elem:
-                all_data["financial_ratios"][title_elem.get_text(strip=True)] = value_elem.get_text(strip=True) if value_elem else ""
+                all_data["financial_ratios"][
+                    title_elem.get_text(strip=True)
+                ] = value_elem.get_text(strip=True) if value_elem else ""
 
-        # Tables
+        # ---------- Tables ----------
         for table in soup.find_all("table"):
             table_name_elem = table.find_previous("h2")
-            table_name = table_name_elem.get_text(strip=True) if table_name_elem else "unknown_table"
-            table_name = re.sub(r'\W+', '_', table_name.lower())
-            table_data = []
+            table_name = (
+                table_name_elem.get_text(strip=True)
+                if table_name_elem else "unknown_table"
+            )
+            table_name = re.sub(r"\W+", "_", table_name.lower())
+
             headers = [th.get_text(strip=True) for th in table.find_all("th")]
-            for row in table.find_all("tr")[1:]:
-                cells = row.find_all("td")
-                row_data = [c.get_text(strip=True) for c in cells]
-                if row_data and headers and len(row_data) == len(headers):
-                    table_data.append(dict(zip(headers, row_data)))
-            if any(t in table_name for t in ["profit", "loss", "income"]):
-                all_data["profit_loss"][table_name] = table_data
-            elif any(t in table_name for t in ["balance", "sheet"]):
-                all_data["balance_sheet"][table_name] = table_data
-            elif any(t in table_name for t in ["cash", "flow"]):
-                all_data["cash_flow"][table_name] = table_data
-            elif any(t in table_name for t in ["quarterly", "results"]):
-                all_data["quarterly_results"][table_name] = table_data
-            elif any(t in table_name for t in ["shareholding", "pattern"]):
-                all_data["shareholding_pattern"][table_name] = table_data
+            rows = []
+
+            for tr in table.find_all("tr")[1:]:
+                tds = tr.find_all("td")
+                values = [td.get_text(strip=True) for td in tds]
+                if headers and len(headers) == len(values):
+                    rows.append(dict(zip(headers, values)))
+
+            if "profit" in table_name or "loss" in table_name:
+                all_data["profit_loss"][table_name] = rows
+            elif "balance" in table_name:
+                all_data["balance_sheet"][table_name] = rows
+            elif "cash" in table_name:
+                all_data["cash_flow"][table_name] = rows
+            elif "quarterly" in table_name:
+                all_data["quarterly_results"][table_name] = rows
+            elif "shareholding" in table_name:
+                all_data["shareholding_pattern"][table_name] = rows
             else:
-                all_data["other_data"][table_name] = table_data
+                all_data["other_data"][table_name] = rows
 
         return all_data
 
+
     def save_to_mysql(self, data: dict, symbol: str):
         conn = db_manager.get_connection(config.DB_SCREENER)
-        with conn.cursor() as cursor:
+        with conn.cursor(pymysql.cursors.DictCursor) as cursor:
             for section, content in data.items():
                 if isinstance(content, dict):
                     for sub_name, sub_content in content.items():

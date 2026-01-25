@@ -20,37 +20,37 @@ export default function ETFModel(sequelize, DataTypes) {
     previous_close_price: {
       type: DataTypes.DOUBLE,
       allowNull: true,
-      field: 'PREVIOUS CLOSE PRICE',
+      field: 'PREVIOUS_CLOSE_PRICE',
     },
     open_price: {
       type: DataTypes.DOUBLE,
       allowNull: true,
-      field: 'OPEN PRICE',
+      field: 'OPEN_PRICE',
     },
     high_price: {
       type: DataTypes.DOUBLE,
       allowNull: true,
-      field: 'HIGH PRICE',
+      field: 'HIGH_PRICE',
     },
     low_price: {
       type: DataTypes.DOUBLE,
       allowNull: true,
-      field: 'LOW PRICE',
+      field: 'LOW_PRICE',
     },
     close_price: {
       type: DataTypes.DOUBLE,
       allowNull: true,
-      field: 'CLOSE PRICE',
+      field: 'CLOSE_PRICE',
     },
     net_traded_value: {
       type: DataTypes.DOUBLE,
       allowNull: true,
-      field: 'NET TRADED VALUE',
+      field: 'NET_TRADED_VALUE',
     },
     net_traded_qty: {
       type: DataTypes.BIGINT,
       allowNull: true,
-      field: 'NET TRADED QTY',
+      field: 'NET_TRADED_QTY',
     },
     trades: {
       type: DataTypes.BIGINT,
@@ -60,12 +60,12 @@ export default function ETFModel(sequelize, DataTypes) {
     week_52_high: {
       type: DataTypes.DOUBLE,
       allowNull: true,
-      field: '52 WEEK HIGH',
+      field: '52_WEEK_HIGH',
     },
     week_52_low: {
       type: DataTypes.DOUBLE,
       allowNull: true,
-      field: '52 WEEK LOW',
+      field: '52_WEEK_LOW',
     },
     UNDERLYING: {
       type: DataTypes.TEXT,

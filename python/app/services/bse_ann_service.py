@@ -3,6 +3,7 @@ from fastapi import HTTPException
 from app.config import config
 from app.database.connection import db_manager
 
+
 def sanitize_column(name: str) -> str:
     return name.replace(" ", "_").replace("-", "_").replace("/", "_")
 
@@ -68,12 +69,12 @@ class BseAnnouncementService:
     def save_announcements(self, announcements: list):
         """Save to correct DB and correct table."""
 
-        db_name = config.ANNOUNCEMENT_DB_NAME    # <-- CORRECT DB: bse_data_fastapi
+        db_name = config.DB_ANNOUNCEMENT_DB_NAME    # <-- CORRECT DB: news_data_fastapi
         self.ensure_database_exists(db_name)
 
         try:
             conn = db_manager.get_connection(db_name)
-            with conn.cursor() as cursor:
+            with conn.cursor(pymysql.cursors.DictCursor) as cursor:
                 self.create_and_insert_table(cursor, announcements)
                 conn.commit()
             conn.close()
