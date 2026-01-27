@@ -13,7 +13,8 @@ from app.routes import (
     gov_news_api,
     nse_master_ingest,
     cron,
-    nse_all_companies
+    nse_all_companies,
+    company_profile
 )
 
 from app.config import config
@@ -22,6 +23,9 @@ from app.services.gov_news_db_service import gov_news_db_service
 from app.cron.listed_companies_cron_service import listed_companies_cron_service
 from app.cron.screener_scheduler import screener_scheduler
 from app.cron.nse_indices_cron import start_nse_indices_scheduler
+from app.cron.yfinance_cron import start_yfinance_cron
+from app.cron.gov_news_cron import start_gov_news_cron
+from app.cron.company_profile_cron import start_company_profile_cron
 
 # ---------------------------------------------------------
 # 🚀 Initialize FastAPI
@@ -48,6 +52,7 @@ app.include_router(gov_news_api.router, prefix="/gov-news", tags=["Government Ne
 app.include_router(nse_master_ingest.router, prefix="/ingest", tags=["NSE Master Ingest"])
 app.include_router(cron.router, prefix="/cron", tags=["Cron Jobs"])
 app.include_router(nse_all_companies.router, prefix="/nse-all-companies", tags=["NSE All Companies"])
+app.include_router(company_profile.router, prefix="/company-profile", tags=["Company Profile"])
 
 # ---------------------------------------------------------
 # 🛠️ Helper Functions
@@ -101,6 +106,27 @@ def initialize_cron_jobs():
         print("✅ NSE indices scheduler started")
     except Exception as e:
         print(f"❌ Failed to start NSE indices scheduler: {e}")
+    
+    # Start YFinance cron
+    try:
+        start_yfinance_cron()
+        print("✅ YFinance cron started")
+    except Exception as e:
+        print(f"❌ Failed to start YFinance cron: {e}")
+        
+    # Start Government News cron
+    try:
+        start_gov_news_cron()
+        print("✅ Government News cron started")
+    except Exception as e:
+        print(f"❌ Failed to start Government News cron: {e}")
+        
+    # Start NSE All Companies cron
+    try:
+        start_company_profile_cron()
+        print("✅ NSE All Companies cron started")
+    except Exception as e:
+        print(f"❌ Failed to start NSE All Companies cron: {e}")
     
     print("✅ All cron jobs initialized")
 
