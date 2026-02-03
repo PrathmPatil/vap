@@ -7,25 +7,25 @@ logger = logging.getLogger(__name__)
 scheduler = BackgroundScheduler(timezone="Asia/Kolkata")
 
 
-def daily_company_profile_job():
-    logger.info("🕒 Daily CRON started: Fetching company profiles")
+def company_profile_job():
+    logger.info("🕒 CRON started: Fetching company profiles")
 
     try:
-        result = company_profile_service.fetch_and_save_all(limit=500)
-        logger.info(f"✅ CRON completed: {result}")
+        saved_count = company_profile_service.fetch_and_save_all()
+        logger.info(f"✅ CRON completed successfully. Saved {saved_count} profiles")
     except Exception as e:
-        logger.error(f"❌ CRON failed: {e}")
+        logger.exception("❌ CRON failed while fetching company profiles")
 
 
 def start_company_profile_cron():
     scheduler.add_job(
-        daily_company_profile_job,
-        trigger="cron",
-        hour=2,       # 2 AM IST
-        minute=30,
-        id="daily_company_profile",
-        replace_existing=True
+        company_profile_job,
+        trigger="interval",
+        hours=1,                 # ✅ runs every hour
+        id="company_profile_cron",
+        replace_existing=True,
+        max_instances=1
     )
 
     scheduler.start()
-    logger.info("🚀 Company profile daily CRON scheduled")
+    logger.info("🚀 Company profile CRON scheduled (every 1 hour)")

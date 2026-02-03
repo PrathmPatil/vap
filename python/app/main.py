@@ -1,7 +1,10 @@
+# main.py
 from fastapi import FastAPI
+from datetime import datetime, timezone, timedelta
+from typing import Dict
 import requests
 import threading
-from typing import Dict
+import logging
 
 from app.routes import (
     bhavcopy,
@@ -28,7 +31,16 @@ from app.cron.gov_news_cron import start_gov_news_cron
 from app.cron.company_profile_cron import start_company_profile_cron
 
 # ---------------------------------------------------------
-# 🚀 Initialize FastAPI
+# Logging Configuration
+# ---------------------------------------------------------
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(name)s - %(message)s"
+)
+logger = logging.getLogger("UnifiedStockAPI")
+
+# ---------------------------------------------------------
+# Initialize FastAPI App
 # ---------------------------------------------------------
 app = FastAPI(
     title="Unified Stock Data API",
@@ -40,7 +52,7 @@ app = FastAPI(
 )
 
 # ---------------------------------------------------------
-# 📌 Include Routers
+# Include Routers
 # ---------------------------------------------------------
 app.include_router(bhavcopy.router, prefix="/bhavcopy", tags=["Bhavcopy"])
 app.include_router(nse.router, prefix="/nse", tags=["NSE Data"])
@@ -55,123 +67,119 @@ app.include_router(nse_all_companies.router, prefix="/nse-all-companies", tags=[
 app.include_router(company_profile.router, prefix="/company-profile", tags=["Company Profile"])
 
 # ---------------------------------------------------------
-# 🛠️ Helper Functions
+# IST timezone
 # ---------------------------------------------------------
-def warmup_sessions():
-    """Warm up API sessions in background"""
-    def warmup_bse():
+IST = timezone(timedelta(hours=5, minutes=30))
+
+# ---------------------------------------------------------
+# Helper Functions
+# ---------------------------------------------------------
+def warmup_bse_session():
+    """Warm up BSE API session in a background thread"""
+    def task():
         try:
             session = requests.Session()
             session.headers.update({
                 "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
             })
-            # Shorter timeout
             session.get("https://www.bseindia.com", timeout=5)
-            print("✅ BSE session warmed up successfully")
+            logger.info("✅ BSE session warmed up successfully")
         except Exception as e:
-            print(f"⚠️ BSE warmup failed (non-critical): {e}")
-    
-    # Run in background thread so it doesn't block startup
-    thread = threading.Thread(target=warmup_bse, daemon=True)
+            logger.warning(f"BSE warmup failed (non-critical): {e}")
+
+    thread = threading.Thread(target=task, daemon=True)
     thread.start()
 
+# ---------------------------------------------------------
+# Cron Job Initialization
+# ---------------------------------------------------------
+CRONS_STARTED = False
+
 def initialize_cron_jobs():
-    """Initialize all cron jobs on startup"""
-    print("🔄 Initializing cron jobs...")
-    
-    # Start IPO cron service
-    try:
-        ipo_cron_service.start()
-        print("✅ IPO cron service started")
-    except Exception as e:
-        print(f"❌ Failed to start IPO cron service: {e}")
-    
-    # Start listed companies cron service
-    try:
-        listed_companies_cron_service.start()
-        print("✅ Listed companies cron service started")
-    except Exception as e:
-        print(f"❌ Failed to start listed companies cron service: {e}")
-    
-    # Start screener scheduler
-    try:
-        screener_scheduler.start()
-        print("✅ Screener scheduler started")
-    except Exception as e:
-        print(f"❌ Failed to start screener scheduler: {e}")
-    
-    # Start NSE indices scheduler
-    try:
-        start_nse_indices_scheduler()
-        print("✅ NSE indices scheduler started")
-    except Exception as e:
-        print(f"❌ Failed to start NSE indices scheduler: {e}")
-    
-    # Start YFinance cron
-    try:
-        start_yfinance_cron()
-        print("✅ YFinance cron started")
-    except Exception as e:
-        print(f"❌ Failed to start YFinance cron: {e}")
-        
-    # Start Government News cron
-    try:
-        start_gov_news_cron()
-        print("✅ Government News cron started")
-    except Exception as e:
-        print(f"❌ Failed to start Government News cron: {e}")
-        
-    # Start NSE All Companies cron
-    try:
-        start_company_profile_cron()
-        print("✅ NSE All Companies cron started")
-    except Exception as e:
-        print(f"❌ Failed to start NSE All Companies cron: {e}")
-    
-    print("✅ All cron jobs initialized")
+    """Start all cron jobs once"""
+    global CRONS_STARTED
+    if CRONS_STARTED:
+        logger.warning("Crons already initialized, skipping")
+        return
+    CRONS_STARTED = True
+
+    cron_services = [
+        ("IPO cron service", ipo_cron_service.start),
+        ("Listed companies cron", listed_companies_cron_service.start),
+        ("Screener scheduler", screener_scheduler.start),
+        ("NSE indices scheduler", start_nse_indices_scheduler),
+        ("YFinance cron", start_yfinance_cron),
+        ("Government News cron", start_gov_news_cron),
+        ("NSE All Companies cron", start_company_profile_cron),
+    ]
+
+    for name, func in cron_services:
+        try:
+            func()
+            logger.info(f"✅ {name} started successfully")
+        except Exception as e:
+            logger.error(f"❌ Failed to start {name}: {e}")
 
 # ---------------------------------------------------------
-# ⏱️ Startup Events → Cron Jobs
+# Startup Event
 # ---------------------------------------------------------
 @app.on_event("startup")
 async def startup_event():
-    """Start all services when FastAPI boots"""
-    print("🚀 Starting Unified Stock Data API...")
-    
-    # Warm up API sessions
-    try:
-        warmup_sessions()
-    except Exception as e:
-        print(f"⚠️ Session warmup failed: {e}")
-    
+    """Startup actions: warmup sessions & initialize crons"""
+    logger.info("🚀 Starting Unified Stock Data API...")
+
+    # Warmup sessions
+    warmup_bse_session()
+
     # Initialize cron jobs
     initialize_cron_jobs()
-    
-    print("✅ Startup completed successfully!")
+
+    logger.info("✅ Startup completed successfully!")
 
 # ---------------------------------------------------------
-# 🩺 Health Check
+# Pydantic Models for Swagger
 # ---------------------------------------------------------
-@app.get("/health")
-async def health_check() -> Dict:
-    """Comprehensive health check endpoint"""
+from pydantic import BaseModel
+
+class HealthResponse(BaseModel):
+    status: str
+    service: str
+    version: str
+    timestamp: str
+    cron_jobs: Dict[str, str]
+
+class InfoResponse(BaseModel):
+    name: str
+    version: str
+    description: str
+    author: str
+    repository: str
+    license: str
+    databases: Dict[str, str]
+
+class StatusResponse(BaseModel):
+    status: str
+    uptime: str
+    timestamp: str
+
+class RootResponse(BaseModel):
+    message: str
+    version: str
+    documentation: str
+    health_check: str
+    features: list
+
+# ---------------------------------------------------------
+# Health & Info Endpoints
+# ---------------------------------------------------------
+@app.get("/health", response_model=HealthResponse, tags=["Health"])
+async def health_check():
+    """Comprehensive health check"""
     return {
         "status": "healthy",
         "service": "Unified Stock Data API",
-        "version": "2.1",
+        "version": app.version,
         "timestamp": datetime.now().isoformat(),
-        "modules": [
-            "bhavcopy",
-            "nse",
-            "screener", 
-            "yfinance",
-            "ipo_scraper",
-            "bse_announcements",
-            "gov_news",
-            "ingest",
-            "cron",
-            "nse_all_companies"
-        ],
         "cron_jobs": {
             "ipo_cron": "running",
             "listed_companies_cron": "running",
@@ -180,29 +188,41 @@ async def health_check() -> Dict:
         }
     }
 
-# ---------------------------------------------------------
-# 🌐 Root Endpoint
-# ---------------------------------------------------------
-@app.get("/")
-async def root() -> Dict:
-    """API root endpoint with documentation"""
+@app.get("/info", response_model=InfoResponse, tags=["Info"])
+async def api_info():
+    """Detailed API information"""
+    return {
+        "name": "Unified Stock Data API",
+        "version": app.version,
+        "description": "Comprehensive stock market data aggregator",
+        "author": "Your Name/Team",
+        "repository": "https://github.com/your-repo",
+        "license": "MIT",
+        "databases": {
+            "stock_market": config.DB_STOCK_MARKET,
+            "bhavcopy": config.DB_BHAVCOPY,
+            "screener": config.DB_SCREENER,
+            "yfinance": config.DB_YFINANCE
+        }
+    }
+
+@app.get("/status", response_model=StatusResponse, tags=["Info"])
+async def api_status():
+    """Quick operational status"""
+    return {
+        "status": "operational",
+        "uptime": "running",
+        "timestamp": datetime.now().isoformat()
+    }
+
+@app.get("/", response_model=RootResponse, tags=["Root"])
+async def root():
+    """Root endpoint with basic info and documentation"""
     return {
         "message": "Unified Stock Data API is running",
-        "version": "2.1",
+        "version": app.version,
         "documentation": "/docs",
         "health_check": "/health",
-        "endpoints": {
-            "bhavcopy": "/bhavcopy",
-            "nse": "/nse",
-            "screener": "/screener",
-            "yfinance": "/yfinance",
-            "ipo_scraper": "/ipo-scraper",
-            "bse_announcements": "/bse",
-            "gov_news": "/gov-news",
-            "ingest": "/ingest",
-            "cron_jobs": "/cron",
-            "nse_all_companies": "/nse-all-companies"
-        },
         "features": [
             "NSE Bhavcopy fetching",
             "Listed companies database",
@@ -215,51 +235,3 @@ async def root() -> Dict:
             "NSE indices data"
         ]
     }
-
-# ---------------------------------------------------------
-# 🛠️ Debug/Info Endpoints
-# ---------------------------------------------------------
-@app.get("/info")
-async def api_info() -> Dict:
-    """Get detailed API information"""
-    return {
-        "name": "Unified Stock Data API",
-        "version": "2.1",
-        "description": "Comprehensive stock market data aggregator",
-        "author": "Your Name/Team",
-        "repository": "https://github.com/your-repo",
-        "license": "MIT",
-        "database": {
-            "name": config.DB_STOCK_MARKET if hasattr(config, 'DB_STOCK_MARKET') else "Not configured",
-            "status": "connected"
-        },
-        "scheduled_tasks": [
-            "Daily IPO data fetch",
-            "Listed companies sync",
-            "Screener data collection",
-            "NSE indices update"
-        ]
-    }
-
-@app.get("/status")
-async def api_status() -> Dict:
-    """Quick status check"""
-    return {
-        "status": "operational",
-        "uptime": "running",
-        "timestamp": datetime.now().isoformat()
-    }
-
-# ---------------------------------------------------------
-# 📰 Government News Function (for reference)
-# ---------------------------------------------------------
-def daily_gov_news_job():
-    """Fetch latest NewsOnAir updates daily & save to DB"""
-    # This function needs to be defined properly or moved to appropriate service
-    # For now, it's kept as a placeholder
-    pass
-
-# ---------------------------------------------------------
-# Import datetime at the top if not already imported
-# ---------------------------------------------------------
-from datetime import datetime

@@ -1,34 +1,70 @@
-import time
-from threading import Thread
-from datetime import datetime
+# app/cron/listed_companies_cron_service.py
+
+import logging
+from apscheduler.schedulers.background import BackgroundScheduler
 from app.services.yfinance_service import yfinance_service
+
+logger = logging.getLogger(__name__)
+
+scheduler = BackgroundScheduler(timezone="Asia/Kolkata")
 
 
 class ListedCompaniesCronService:
+    """
+    Scrapes NSE listed companies:
+    ✅ Runs once on app startup
+    ✅ Runs every 5 hours
+    ✅ Inserts ONLY new companies
+    """
+
     def __init__(self):
-        self.running = False
+        self.job_id = "listed_companies_5h"
 
-    def run_daily_job(self):
-        """
-        Runs once every 24 hours
-        """
-        while self.running:
-            try:
-                print("🕒 [CRON] Checking for new NSE listed companies...")
-                result = yfinance_service.sync_new_listed_companies()
-                print(f"✅ [CRON] {result}")
-            except Exception as e:
-                print(f"❌ [CRON ERROR] {e}")
+    # ---------------------------------------------------------
+    # Core Job
+    # ---------------------------------------------------------
+    def fetch_listed_companies(self):
+        logger.info("🕒 Listed Companies CRON started")
 
-            # Sleep for 24 hours
-            time.sleep(60 * 60 * 24)
+        try:
+            result = yfinance_service.sync_new_listed_companies()
 
+            logger.info(
+                f"✅ Listed Companies Sync Completed | "
+                f"Total Fetched: {result.get('total')} | "
+                f"Inserted: {result.get('inserted')} | "
+                f"Skipped (existing): {result.get('skipped')}"
+            )
+
+        except Exception as e:
+            logger.exception(f"❌ Listed Companies CRON failed: {e}")
+
+    # ---------------------------------------------------------
+    # Scheduler Start
+    # ---------------------------------------------------------
     def start(self):
-        if self.running:
-            return
-        self.running = True
-        Thread(target=self.run_daily_job, daemon=True).start()
-        print("🚀 Listed Companies Cron Started")
+        """
+        1️⃣ Run once immediately (on project start)
+        2️⃣ Run every 5 hours thereafter
+        """
+
+        # 🔥 Run immediately on startup
+        self.fetch_listed_companies()
+
+        # 🔁 Schedule every 5 hours
+        scheduler.add_job(
+            self.fetch_listed_companies,
+            trigger="interval",
+            hours=5,
+            id=self.job_id,
+            replace_existing=True,
+            max_instances=1,
+            coalesce=True
+        )
+
+        scheduler.start()
+        logger.info("🚀 Listed Companies CRON scheduled (every 5 hours)")
 
 
+# ✅ Singleton instance
 listed_companies_cron_service = ListedCompaniesCronService()

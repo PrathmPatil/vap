@@ -3,16 +3,19 @@ import requests
 from bs4 import BeautifulSoup
 import re
 import time
-import os
+import logging
 from fastapi import HTTPException
+
 from app.config import config
 from app.database.connection import db_manager
 
-# ---------- Data folder ----------
-DATA_FOLDER = "screener_data_json"
-os.makedirs(DATA_FOLDER, exist_ok=True)
+logger = logging.getLogger(__name__)
+logging.basicConfig(level=logging.INFO)
 
-# ---------- Helper functions ----------
+
+# ----------------------------------------------------
+# HELPERS
+# ----------------------------------------------------
 def sanitize_column(col):
     col = col.strip()
     col = re.sub(r'\W+', '_', col)
@@ -20,126 +23,115 @@ def sanitize_column(col):
         col = "col_" + col
     return col or "col_unknown"
 
+
+def ensure_table(cursor, table_name, columns):
+    cols_sql = ", ".join([f"`{c}` TEXT" for c in columns])
+    cursor.execute(
+        f"CREATE TABLE IF NOT EXISTS `{table_name}` "
+        f"(symbol TEXT, {cols_sql})"
+    )
+
+    cursor.execute(f"SHOW COLUMNS FROM `{table_name}`")
+    existing = [c["Field"] for c in cursor.fetchall()]
+
+    for col in columns:
+        if col not in existing:
+            cursor.execute(
+                f"ALTER TABLE `{table_name}` ADD COLUMN `{col}` TEXT"
+            )
+
+
 def create_and_insert_table(table_name, data, cursor, symbol):
     if not data:
         return
 
-    # Case 1: List of dicts
+    # ---------- LIST OF DICTS ----------
     if isinstance(data, list) and isinstance(data[0], dict):
         columns = set()
         for row in data:
             columns.update(row.keys())
-        columns = [sanitize_column(col) for col in columns]
 
-        cols_sql = ", ".join([f"`{col}` TEXT" for col in columns])
-        cursor.execute(f"CREATE TABLE IF NOT EXISTS `{table_name}` (`symbol` TEXT, {cols_sql})")
-
-        # Add missing columns dynamically
-        cursor.execute(f"SHOW COLUMNS FROM `{table_name}`")
-        existing_cols = [c['Field'] for c in cursor.fetchall()]
-        for col in columns:
-            if col not in existing_cols:
-                cursor.execute(f"ALTER TABLE `{table_name}` ADD COLUMN `{col}` TEXT")
+        columns = [sanitize_column(c) for c in columns]
+        ensure_table(cursor, table_name, columns)
 
         for row in data:
-            row = {sanitize_column(k): v for k, v in row.items()}
-            row["symbol"] = symbol
+            clean_row = {sanitize_column(k): v for k, v in row.items()}
+            clean_row["symbol"] = symbol
+
             all_cols = ["symbol"] + columns
             placeholders = ", ".join(["%s"] * len(all_cols))
-            insert_query = f"INSERT INTO `{table_name}` ({', '.join(all_cols)}) VALUES ({placeholders})"
-            cursor.execute(insert_query, tuple(row.get(col, "") for col in all_cols))
 
-    # Case 2: Dict
+            query = (
+                f"INSERT INTO `{table_name}` "
+                f"({', '.join(all_cols)}) VALUES ({placeholders})"
+            )
+
+            cursor.execute(
+                query,
+                tuple(clean_row.get(c, "") for c in all_cols)
+            )
+
+    # ---------- DICT ----------
     elif isinstance(data, dict):
-        cursor.execute(f"CREATE TABLE IF NOT EXISTS `{table_name}` (`symbol` TEXT, `key` TEXT, `value` TEXT)")
-        def insert_dict(d, parent=""):
-            for k, v in d.items():
-                key = f"{parent}.{k}" if parent else k
-                if isinstance(v, dict):
-                    insert_dict(v, key)
-                else:
-                    cursor.execute(
-                        f"INSERT INTO `{table_name}` (`symbol`, `key`, `value`) VALUES (%s,%s,%s)",
-                        (symbol, key, v)
-                    )
-        insert_dict(data)
+        cursor.execute(
+            f"""
+            CREATE TABLE IF NOT EXISTS `{table_name}` (
+                symbol TEXT,
+                `key` TEXT,
+                `value` TEXT
+            )
+            """
+        )
 
-# ---------- Screener Service ----------
+        for k, v in data.items():
+            cursor.execute(
+                f"INSERT INTO `{table_name}` (symbol, `key`, value) VALUES (%s,%s,%s)",
+                (symbol, k, v)
+            )
+
+
+# ----------------------------------------------------
+# SERVICE
+# ----------------------------------------------------
 class ScreenerService:
     def __init__(self):
-        print("✅ ScreenerService initialized")
+        logger.info("✅ ScreenerService initialized")
 
-    def get_company_info(self, symbol: str):
-        try:
-            conn = db_manager.get_connection(config.DB_STOCK_MARKET)
-            with conn.cursor(pymysql.cursors.DictCursor) as cursor:
-                cursor.execute("SHOW COLUMNS FROM listed_companies;")
-                columns = [row['Field'] for row in cursor.fetchall()]
-                name_col = next((c for c in ["company_name", "name_of_company", "name"] if c in columns), None)
-                if not name_col:
-                    raise Exception("No valid company name column found")
-                cursor.execute(f"SELECT {name_col} FROM listed_companies WHERE symbol=%s", (symbol,))
-                result = cursor.fetchone()
-            conn.close()
-            if not result:
-                raise HTTPException(status_code=404, detail=f"Symbol '{symbol}' not found")
-            return result[name_col]
-        except Exception as e:
-            raise HTTPException(status_code=400, detail=str(e))
-
-    def get_screener_data(self, symbol: str, statement_type: str = "consolidated"):
+    # ----------------------------------------------------
+    # SCRAPER
+    # ----------------------------------------------------
+    def get_screener_data(self, symbol, statement_type):
         url = f"https://www.screener.in/company/{symbol}/{statement_type}/"
         headers = {"User-Agent": "Mozilla/5.0"}
 
-        time.sleep(1.5)  # avoid getting blocked
-        response = requests.get(url, headers=headers)
-        response.raise_for_status()
+        time.sleep(1.5)
+        res = requests.get(url, headers=headers, timeout=20)
+        res.raise_for_status()
 
-        soup = BeautifulSoup(response.content, "html.parser")
+        soup = BeautifulSoup(res.text, "html.parser")
 
-        all_data = {
+        data = {
             "company_info": {},
             "financial_ratios": {},
-            "profit_loss": {},
-            "balance_sheet": {},
-            "cash_flow": {},
-            "quarterly_results": {},
-            "shareholding_pattern": {},
-            "other_data": {}
+            "tables": {}
         }
 
-        # ---------- Company Info ----------
-        info_section = soup.find("div", class_="company-info")
-        if info_section:
-            h1 = info_section.find("h1")
-            all_data["company_info"]["name"] = (
-                h1.get_text(strip=True) if h1 else symbol
-            )
+        # ---------- RATIOS ----------
+        for card in soup.select("div.flex-row"):
+            name = card.select_one(".name")
+            value = card.select_one(".number")
+            if name:
+                data["financial_ratios"][
+                    name.get_text(strip=True)
+                ] = value.get_text(strip=True) if value else ""
 
-            for item in info_section.find_all("div", class_="company-ratios"):
-                spans = item.find_all("span")
-                if len(spans) >= 2:
-                    key = spans[0].get_text(strip=True).replace(":", "")
-                    value = spans[1].get_text(strip=True)
-                    all_data["company_info"][key] = value
-
-        # ---------- Financial Ratios ----------
-        for card in soup.find_all("div", class_="flex-row"):
-            title_elem = card.find("span", class_="name")
-            value_elem = card.find("span", class_="number")
-            if title_elem:
-                all_data["financial_ratios"][
-                    title_elem.get_text(strip=True)
-                ] = value_elem.get_text(strip=True) if value_elem else ""
-
-        # ---------- Tables ----------
+        # ---------- TABLES ----------
         for table in soup.find_all("table"):
-            table_name_elem = table.find_previous("h2")
-            table_name = (
-                table_name_elem.get_text(strip=True)
-                if table_name_elem else "unknown_table"
+            title = table.find_previous("h2")
+            name = sanitize_column(
+                title.get_text(strip=True).lower()
+                if title else "unknown_table"
             )
-            table_name = re.sub(r"\W+", "_", table_name.lower())
 
             headers = [th.get_text(strip=True) for th in table.find_all("th")]
             rows = []
@@ -147,45 +139,52 @@ class ScreenerService:
             for tr in table.find_all("tr")[1:]:
                 tds = tr.find_all("td")
                 values = [td.get_text(strip=True) for td in tds]
-                if headers and len(headers) == len(values):
+                if len(headers) == len(values):
                     rows.append(dict(zip(headers, values)))
 
-            if "profit" in table_name or "loss" in table_name:
-                all_data["profit_loss"][table_name] = rows
-            elif "balance" in table_name:
-                all_data["balance_sheet"][table_name] = rows
-            elif "cash" in table_name:
-                all_data["cash_flow"][table_name] = rows
-            elif "quarterly" in table_name:
-                all_data["quarterly_results"][table_name] = rows
-            elif "shareholding" in table_name:
-                all_data["shareholding_pattern"][table_name] = rows
-            else:
-                all_data["other_data"][table_name] = rows
+            if rows:
+                data["tables"][name] = rows
 
-        return all_data
-
-
-    def save_to_mysql(self, data: dict, symbol: str):
-        conn = db_manager.get_connection(config.DB_SCREENER)
-        with conn.cursor(pymysql.cursors.DictCursor) as cursor:
-            for section, content in data.items():
-                if isinstance(content, dict):
-                    for sub_name, sub_content in content.items():
-                        if sub_content:
-                            table_name = f"{section}_{sanitize_column(sub_name)}"
-                            create_and_insert_table(table_name, sub_content, cursor, symbol)
-                else:
-                    if content:
-                        table_name = f"{section}"
-                        create_and_insert_table(table_name, content, cursor, symbol)
-            conn.commit()
-        conn.close()
-
-    def fetch_and_save(self, symbol: str, statement_type='consolidated'):
-        data = self.get_screener_data(symbol, statement_type)
-        self.save_to_mysql(data, symbol)
         return data
 
-# ---------- Singleton ----------
+    # ----------------------------------------------------
+    # SAVE
+    # ----------------------------------------------------
+    def fetch_and_save(self, symbol, statement_type="consolidated"):
+        conn = None
+        cursor = None
+
+        try:
+            data = self.get_screener_data(symbol, statement_type)
+
+            conn = db_manager.get_connection(config.DB_SCREENER)
+            cursor = conn.cursor(pymysql.cursors.DictCursor)
+
+            for section, content in data.items():
+                if isinstance(content, dict):
+                    for name, rows in content.items():
+                        if rows:
+                            table_name = f"{section}_{sanitize_column(name)}"
+                            create_and_insert_table(
+                                table_name,
+                                rows,
+                                cursor,
+                                symbol
+                            )
+
+            conn.commit()
+            logger.info(f"📥 Screener saved for {symbol}")
+
+        except Exception as e:
+            logger.error(f"❌ Screener error for {symbol}: {e}", exc_info=True)
+            raise HTTPException(status_code=500, detail=str(e))
+
+        finally:
+            if cursor:
+                cursor.close()
+            if conn:
+                conn.close()
+
+
+# ✅ SINGLETON
 screener_service = ScreenerService()
