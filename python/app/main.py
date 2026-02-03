@@ -22,14 +22,16 @@ from app.routes import (
 
 from app.config import config
 from app.services.ipo_cron_service import ipo_cron_service
-from app.services.gov_news_db_service import gov_news_db_service
 from app.cron.listed_companies_cron_service import listed_companies_cron_service
 from app.cron.screener_scheduler import screener_scheduler
 from app.cron.nse_indices_cron import start_nse_indices_scheduler
 from app.cron.yfinance_cron import start_yfinance_cron
 from app.cron.gov_news_cron import start_gov_news_cron
 from app.cron.company_profile_cron import start_company_profile_cron
+from app.cron.bhavcopy import fetch_today_bhavcopy_cron  
 
+from app.database.init_databases import init_databases
+  
 # ---------------------------------------------------------
 # Logging Configuration
 # ---------------------------------------------------------
@@ -111,6 +113,7 @@ def initialize_cron_jobs():
         ("YFinance cron", start_yfinance_cron),
         ("Government News cron", start_gov_news_cron),
         ("NSE All Companies cron", start_company_profile_cron),
+        ("Today's Bhavcopy cron", fetch_today_bhavcopy_cron)
     ]
 
     for name, func in cron_services:
@@ -130,6 +133,9 @@ async def startup_event():
 
     # Warmup sessions
     warmup_bse_session()
+    
+    # Initialize databases
+    init_databases()
 
     # Initialize cron jobs
     initialize_cron_jobs()
@@ -184,7 +190,11 @@ async def health_check():
             "ipo_cron": "running",
             "listed_companies_cron": "running",
             "screener_scheduler": "running",
-            "nse_indices_scheduler": "running"
+            "nse_indices_scheduler": "running",
+            "yfinance_cron": "running",
+            "gov_news_cron": "running",
+            "company_profile_cron": "running",
+            "bhavcopy_cron": "running"
         }
     }
 
@@ -202,9 +212,25 @@ async def api_info():
             "stock_market": config.DB_STOCK_MARKET,
             "bhavcopy": config.DB_BHAVCOPY,
             "screener": config.DB_SCREENER,
-            "yfinance": config.DB_YFINANCE
+            "yfinance": config.DB_YFINANCE,
+            "ipo": config.DB_IPO,
+            "bse": config.DB_BSE,
+            "gov_news": config.DB_NEWS,
+            "bse_indices": config.DB_BSE_INDICES,
+            "announcement_db": config.DB_ANNOUNCEMENT_DB_NAME,
+            "screener_data_fastapi": config.DB_SCREENER,
         }
     }
+    #   # Database Names
+    # DB_BHAVCOPY = os.getenv("DB_BHAVCOPY", "bhavcopy_fastapi")
+    # DB_STOCK_MARKET = os.getenv("DB_STOCK_MARKET", "stock_market_fastapi")
+    # DB_SCREENER = os.getenv("DB_SCREENER", "screener_data_fastapi")
+    # DB_YFINANCE = os.getenv("DB_YFINANCE", "yfinance_data_fastapi")
+    # DB_IPO = os.getenv("DB_IPO", "ipo_data_fastapi")
+    # DB_BSE = os.getenv("DB_BSE", "bse_data_fastapi")  
+    # DB_NEWS = os.getenv("DB_NEWS", "gov_news_data_fastapi")
+    # DB_BSE_INDICES = os.getenv("DB_BSE_INDICES", "bse_indices_fastapi")
+    # DB_ANNOUNCEMENT_DB_NAME = os.getenv("DB_ANNOUNCEMENT_DB_NAME", "news_data_fastapi")
 
 @app.get("/status", response_model=StatusResponse, tags=["Info"])
 async def api_status():
