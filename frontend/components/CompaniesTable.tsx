@@ -178,24 +178,24 @@ export function CompaniesTable() {
                       </TableRow>
                     ) : (
                       companies.map((company) => (
-                        <TableRow key={company.id} className="hover:bg-slate-50 transition-colors">
+                        <TableRow key={company?.id} className="hover:bg-slate-50 transition-colors">
                           <TableCell className="font-semibold text-blue-600">
-                            <Link href={`/company/${company.symbol}`}>
-                              {company.symbol}
+                            <Link href={`/company/${company?.symbol}`}>
+                              {company?.symbol}
                             </Link>
                           </TableCell>
-                          <TableCell className="max-w-xs truncate">{company.name}</TableCell>
-                          <TableCell><Badge variant="secondary">{company.series}</Badge></TableCell>
+                          <TableCell className="max-w-xs truncate">{company?.name}</TableCell>
+                          <TableCell><Badge variant="secondary">{company?.series}</Badge></TableCell>
                           <TableCell className="flex items-center space-x-1">
                             <Calendar className="h-3 w-3 text-slate-400" />
-                            <span>{formatDate(company.date_of_listing)}</span>
+                            <span>{formatDate(company?.date_of_listing)}</span>
                           </TableCell>
                           <TableCell className="flex items-center space-x-1">
                             <DollarSign className="h-3 w-3 text-green-600" />
-                            <span>₹{company.face_value}</span>
+                            <span>₹{company?.face_value}</span>
                           </TableCell>
-                          <TableCell>{company.market_lot.toLocaleString()}</TableCell>
-                          <TableCell className="font-mono text-xs">{company.isin}</TableCell>
+                          <TableCell>{company?.market_lot.toLocaleString()}</TableCell>
+                          <TableCell className="font-mono text-xs">{company?.isin}</TableCell>
                         </TableRow>
                       ))
                     )}

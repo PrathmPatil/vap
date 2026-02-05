@@ -43,9 +43,6 @@ class BhavcopyService:
             "user-agent": "Mozilla/5.0"
         }
 
-        # ✅ Ensure DB exists
-        db_manager.ensure_database(config.DB_BHAVCOPY)
-
     # -----------------------------------------------------
     # UPSERT (NO DUPLICATES, SAFE ON SERVER)
     # -----------------------------------------------------
@@ -99,7 +96,7 @@ class BhavcopyService:
                         df = clean_dataframe_for_mysql(df)
 
                         # ✅ Ensure table exists
-                        db_manager.ensure_table_schema(base, df, config.DB_BHAVCOPY)
+                        db_manager.ensure_table_schema(base, df, config.DB_BHAVCOPY, with_id=False)
 
                         # ✅ Upsert
                         self.upsert_dataframe(base, df)
@@ -111,10 +108,9 @@ class BhavcopyService:
                     if expected not in found_files:
                         df_missing = pd.DataFrame([{"source_date": date_obj.date(), "status": "MISSING"}])
                         df_missing = clean_dataframe_for_mysql(df_missing)
-                        db_manager.ensure_table_schema(expected, df_missing, config.DB_BHAVCOPY)
+                        db_manager.ensure_table_schema(expected, df_missing, config.DB_BHAVCOPY, with_id=False)
                         self.upsert_dataframe(expected, df_missing)
                         result_data[expected] = df_missing.to_dict(orient="records")
-
             return {"date": str(date_obj.date()), "status": "SUCCESS", "data": result_data}
 
         except Exception as e:

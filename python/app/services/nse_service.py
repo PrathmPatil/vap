@@ -35,8 +35,9 @@ class NSEService:
             # Main data table
             cur.execute("""
                 CREATE TABLE IF NOT EXISTS all_companies_data (
-                    symbol VARCHAR(20),
-                    date DATE,
+                    id INT AUTO_INCREMENT PRIMARY KEY,
+                    symbol VARCHAR(20) NOT NULL,
+                    date DATE NOT NULL,
                     open DOUBLE,
                     high DOUBLE,
                     low DOUBLE,
@@ -44,7 +45,7 @@ class NSEService:
                     volume BIGINT,
                     dividends DOUBLE,
                     stock_splits DOUBLE,
-                    PRIMARY KEY (symbol, date)
+                    UNIQUE KEY uk_symbol_date (symbol, date)
                 )
             """)
 

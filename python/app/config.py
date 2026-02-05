@@ -3,86 +3,107 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+
+def require_env(key: str) -> str:
+    value = os.getenv(key)
+    if value is None or value == "":
+        raise RuntimeError(f"❌ Missing required environment variable: {key}")
+    return value
+
+
+def env_int(key: str) -> int:
+    return int(require_env(key))
+
+
+def env_bool(key: str) -> bool:
+    return require_env(key).lower() in ("true", "1", "yes", "y")
+
+
 class Config:
-    # -----------------------------------------------------
+    # =====================================================
     # 🔐 API KEYS
-    # -----------------------------------------------------
-    ALPHA_VANTAGE_API_KEY = os.getenv("ALPHA_VANTAGE_API_KEY", "")
-    FINANCIAL_MODELING_PREP_API_KEY = os.getenv("FMP_API_KEY", "")
+    # =====================================================
+    ALPHA_VANTAGE_API_KEY = require_env("ALPHA_VANTAGE_API_KEY")
+    FINANCIAL_MODELING_PREP_API_KEY = require_env("FMP_API_KEY")
 
-    # -----------------------------------------------------
-    # 🗄️ DATABASE CONFIGURATION
-    # -----------------------------------------------------
-    DB_HOST = os.getenv("DB_HOST", "localhost")
-    DB_USER = os.getenv("DB_USER", "root")
-    DB_PASSWORD = os.getenv("DB_PASSWORD", "Patil@2000")
-    DB_PORT = int(os.getenv("DB_PORT", 3306))
+    # =====================================================
+    # 🗄️ DATABASE CONNECTION
+    # =====================================================
+    DB_HOST = require_env("DB_HOST")
+    DB_PORT = env_int("DB_PORT")
+    DB_USER = require_env("DB_USER")
+    DB_PASSWORD = require_env("DB_PASSWORD")
 
-    # Database Names
-    DB_BHAVCOPY = os.getenv("DB_BHAVCOPY", "bhavcopy_fastapi")
-    DB_STOCK_MARKET = os.getenv("DB_STOCK_MARKET", "stock_market_fastapi")
-    DB_SCREENER = os.getenv("DB_SCREENER", "screener_data_fastapi")
-    DB_YFINANCE = os.getenv("DB_YFINANCE", "yfinance_data_fastapi")
-    DB_IPO = os.getenv("DB_IPO", "ipo_data_fastapi")
-    DB_BSE = os.getenv("DB_BSE", "bse_data_fastapi")  
-    DB_NEWS = os.getenv("DB_NEWS", "gov_news_data_fastapi")
-    DB_BSE_INDICES = os.getenv("DB_BSE_INDICES", "bse_indices_fastapi")
-    DB_ANNOUNCEMENT_DB_NAME = os.getenv("DB_ANNOUNCEMENT_DB_NAME", "news_data_fastapi")
+    # =====================================================
+    # 🗄️ DATABASE NAMES
+    # =====================================================
+    DB_BHAVCOPY = require_env("DB_BHAVCOPY")
+    DB_STOCK_MARKET = require_env("DB_STOCK_MARKET")
+    DB_SCREENER = require_env("DB_SCREENER")
+    DB_YFINANCE = require_env("DB_YFINANCE")
+    DB_IPO = require_env("DB_IPO")
+    DB_BSE = require_env("DB_BSE")
+    DB_NEWS = require_env("DB_NEWS")
+    DB_BSE_INDICES = require_env("DB_BSE_INDICES")
+    DB_ANNOUNCEMENT_DB_NAME = require_env("DB_ANNOUNCEMENT_DB_NAME")
 
-    # SQLite fallback or additional storage paths
-    DATABASE_CONFIG = {
-        "db_path": "stock_data.db",
-        "ipo_db_path": "ipo_data.db",  # IPO data
-        "backup_path": "backups/",
-    }
+    # =====================================================
+    # 🌐 NSE / SCREENER CONFIG
+    # =====================================================
+    NSE_BHAVCOPY_URL = require_env("NSE_BHAVCOPY_URL")
+    NSE_LISTED_COMPANIES_URL = require_env("NSE_LISTED_COMPANIES_URL")
+    SCREENER_BASE_URL = require_env("SCREENER_BASE_URL")
 
-    # -----------------------------------------------------
-    # 🌐 NSE / SCREENER CONFIGURATION
-    # -----------------------------------------------------
-    NSE_BHAVCOPY_URL = "https://nsearchives.nseindia.com/archives/equities/bhavcopy/pr/PR{date}.zip"
-    NSE_LISTED_COMPANIES_URL = "https://archives.nseindia.com/content/equities/EQUITY_L.csv"
-
-    SCREENER_BASE_URL = "https://www.screener.in/company/{symbol}/{statement_type}/"
-
-    # -----------------------------------------------------
-    # 🕓 SCHEDULER CONFIGURATION
-    # -----------------------------------------------------
-    SCHEDULER_TIMEZONE = "Asia/Kolkata"
+    # =====================================================
+    # 🕓 SCHEDULER CONFIG
+    # =====================================================
+    SCHEDULER_TIMEZONE = require_env("SCHEDULER_TIMEZONE")
+    ENABLE_SCHEDULER = env_bool("ENABLE_SCHEDULER")
 
     SCHEDULER_CONFIG = {
-        # Enable or disable scheduler globally
-        "enable_scheduler": True,
-
-        # Individual cron schedules (or fallback time strings)
-        "bhavcopy_update": "0 18 * * *",     # Every day at 6:00 PM
-        "historical_update": "30 18 * * *",  # Every day at 6:30 PM
-        "listed_update": "0 19 * * *",       # Every day at 7:00 PM
-        "ipo_update": "0 9 * * *",           # Every day at 9:00 AM
+        "enable_scheduler": ENABLE_SCHEDULER,
+        "bhavcopy_update": require_env("BHAVCOPY_UPDATE_CRON"),
+        "historical_update": require_env("HISTORICAL_UPDATE_CRON"),
+        "listed_update": require_env("LISTED_UPDATE_CRON"),
+        "ipo_update": require_env("IPO_UPDATE_CRON"),
     }
 
-    # -----------------------------------------------------
-    # 💹 IPO SOURCES CONFIGURATION
-    # -----------------------------------------------------
+    # =====================================================
+    # 💹 IPO SOURCES
+    # =====================================================
     IPO_SOURCES = {
-        "chittorgarh": {"enabled": True, "refresh_hours": 6},
-        "nse": {"enabled": True, "refresh_hours": 4},
-        "bse": {"enabled": True, "refresh_hours": 4},
-        "yahoo_finance": {"enabled": True, "refresh_hours": 12},
+        "chittorgarh": {
+            "enabled": env_bool("IPO_CHITTORGARH_ENABLED"),
+            "refresh_hours": env_int("IPO_CHITTORGARH_REFRESH_HOURS"),
+        },
+        "nse": {
+            "enabled": env_bool("IPO_NSE_ENABLED"),
+            "refresh_hours": env_int("IPO_NSE_REFRESH_HOURS"),
+        },
+        "bse": {
+            "enabled": env_bool("IPO_BSE_ENABLED"),
+            "refresh_hours": env_int("IPO_BSE_REFRESH_HOURS"),
+        },
+        "yahoo_finance": {
+            "enabled": env_bool("IPO_YAHOO_FINANCE_ENABLED"),
+            "refresh_hours": env_int("IPO_YAHOO_FINANCE_REFRESH_HOURS"),
+        },
     }
 
-    # -----------------------------------------------------
-    # ⚙️ SCRAPING CONFIGURATION
-    # -----------------------------------------------------
+    # =====================================================
+    # ⚙️ SCRAPING CONFIG
+    # =====================================================
     SCRAPING_CONFIG = {
-        "delay_between_requests": 1,
-        "max_retries": 3,
-        "timeout": 30,
+        "delay_between_requests": env_int("SCRAPING_DELAY_BETWEEN_REQUESTS"),
+        "max_retries": env_int("SCRAPING_MAX_RETRIES"),
+        "timeout": env_int("SCRAPING_TIMEOUT"),
     }
 
-    # -----------------------------------------------------
-    # 🧵 THREADING CONFIGURATION
-    # -----------------------------------------------------
-    MAX_WORKERS = 5
+    # =====================================================
+    # 🧵 THREADING CONFIG
+    # =====================================================
+    MAX_WORKERS = env_int("MAX_WORKERS")
 
 
+# ✅ Singleton
 config = Config()

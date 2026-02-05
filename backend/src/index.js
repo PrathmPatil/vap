@@ -143,35 +143,35 @@ app.use(morgan('combined', { stream: logStream }));
   try {
     console.log('Starting DB connections...');
 
-    await sequelizeStockMarket.authenticate();
-    logger.info('✅ Connected to stock_market database.');
-    await sequelizeStockMarket.sync();
-    logger.info('✅ stock_market database synced.');
+    // await sequelizeStockMarket.authenticate();
+    // logger.info('✅ Connected to stock_market database.');
+    // await sequelizeStockMarket.sync();
+    // logger.info('✅ stock_market database synced.');
 
-    await sequelizeBhavcopy.authenticate();
-    logger.info('✅ Connected to bhavcopy database.');
-    await sequelizeBhavcopy.sync();
-    logger.info('✅ bhavcopy database synced.');
+    // await sequelizeBhavcopy.authenticate();
+    // logger.info('✅ Connected to bhavcopy database.');
+    // await sequelizeBhavcopy.sync();
+    // logger.info('✅ bhavcopy database synced.');
 
-    await sequelizeScreener.authenticate();
-    logger.info('✅ Connected to screener_data database.');
-    await sequelizeScreener.sync();
-    logger.info('✅ screener_data database synced.');
+    // await sequelizeScreener.authenticate();
+    // logger.info('✅ Connected to screener_data database.');
+    // await sequelizeScreener.sync();
+    // logger.info('✅ screener_data database synced.');
 
-    await sequelizeYFinanceDB.authenticate();
-    logger.info('✅ Connected to third_db database.');
-    await sequelizeYFinanceDB.sync();
-    logger.info('✅ third_db database synced.');
+    // await sequelizeYFinanceDB.authenticate();
+    // logger.info('✅ Connected to third_db database.');
+    // await sequelizeYFinanceDB.sync();
+    // logger.info('✅ third_db database synced.');
 
-    await sequelizeIPO.authenticate();
-    logger.info('✅ Connected to ipo_data_fastapi database.');
-    await sequelizeIPO.sync();
-    logger.info('✅ ipo_data_fastapi database synced.');
+    // await sequelizeIPO.authenticate();
+    // logger.info('✅ Connected to ipo_data_fastapi database.');
+    // await sequelizeIPO.sync();
+    // logger.info('✅ ipo_data_fastapi database synced.');
 
-    await sequelizeAnnouncement.authenticate();
-    logger.info('✅ Connected to bse_data database.');
-    await sequelizeAnnouncement.sync();
-    logger.info('✅ bse_data database synced.');
+    // await sequelizeAnnouncement.authenticate();
+    // logger.info('✅ Connected to bse_data database.');
+    // await sequelizeAnnouncement.sync();
+    // logger.info('✅ bse_data database synced.');
 
     const PORT = process.env.APP_PORT || 8000;
     const HOST = process.env.APP_HOST || 'localhost';

@@ -2,9 +2,19 @@ export default (sequelize, DataTypes) => {
   const AllCompaniesData = sequelize.define(
     "AllCompaniesData",
     {
-      id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
-      symbol: { type: DataTypes.STRING(20) },
-      date: DataTypes.DATEONLY,
+      id: {
+        type: DataTypes.INTEGER,
+        autoIncrement: true,
+        primaryKey: true
+      },
+      symbol: {
+        type: DataTypes.STRING(20),
+        allowNull: false
+      },
+      date: {
+        type: DataTypes.DATEONLY,
+        allowNull: false
+      },
       open: DataTypes.FLOAT,
       high: DataTypes.FLOAT,
       low: DataTypes.FLOAT,
@@ -15,7 +25,15 @@ export default (sequelize, DataTypes) => {
     },
     {
       tableName: "all_companies_data",
-      timestamps: false
+      timestamps: false,
+
+      // ✅ Correct composite unique constraint
+      indexes: [
+        {
+          unique: true,
+          fields: ["symbol", "date"]
+        }
+      ]
     }
   );
 

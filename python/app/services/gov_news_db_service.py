@@ -15,14 +15,6 @@ class GovNewsService:
     def __init__(self):
         print("✅ GovNewsService initialized")
 
-    # ---------------------------------------------------------
-    # ✔ Database creation (reuse db_manager)
-    # ---------------------------------------------------------
-    def ensure_database(self, db_name):
-        try:
-            db_manager.ensure_database(db_name)
-        except Exception as e:
-            raise HTTPException(status_code=500, detail=f"Gov DB create failed: {e}")
 
     # ---------------------------------------------------------
     # ✔ Dynamic table creation + column creation + insertion
@@ -87,10 +79,6 @@ class GovNewsService:
     # ---------------------------------------------------------
     def save_gov_news(self, news_data: list, table_name="gov_news"):
         db_name = config.DB_NEWS  # add in .env → DB_GOV_NEWS=gov_news_db
-
-        # (1) Ensure database exists
-        self.ensure_database(db_name)
-        print("🛢 Using DB:", db_name)
 
         try:
             # (2) Get DB connection from DatabaseManager

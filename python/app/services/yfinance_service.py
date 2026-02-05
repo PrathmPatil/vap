@@ -13,7 +13,6 @@ import pymysql
 
 class YFINANCEService:
     def __init__(self):
-        db_manager.ensure_database(config.DB_STOCK_MARKET)
         self.create_tables()
 
     def create_tables(self):
