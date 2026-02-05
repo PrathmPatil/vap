@@ -16,7 +16,8 @@ import { getListedCompaniesData } from '@/utils';
 interface Company {
   id: number;
   symbol: string;
-  name: string;
+  name?: string;
+  company_name?: string;
   series: string;
   date_of_listing: string;
   paid_up_value: number;

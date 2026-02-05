@@ -81,12 +81,6 @@ const NewsComponent = () => {
     }
   }, [searchTerm, page]);
 
-  // getGovNews 
-  //   search = '',
-  // page = 1,
-  // limit = 20,
-  // sortField = 'DT_TM',
-  // sortOrder: string = 'DESC'
   const fetchGovNewsData = useCallback(async () => {
     try {
       const response = await getGovNews(
@@ -177,7 +171,7 @@ const NewsComponent = () => {
           {error}
         </div>
       )}
-      {console.log(newsData, loading)}
+
       {!loading && newsData.length === 0 && (
         <div className="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded">
           No news found

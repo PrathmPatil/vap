@@ -5,7 +5,6 @@ import { IpoResponse2 } from "@/pages/ipo";
 import { BseNewsResponse } from "@/components/news/NewsComponent";
 import { MarketSignalsData } from "@/components/MarketSignals";
 import { FailedSymbolsResponse, ListedCompaniesResponse, StockData } from "@/lib/screener";
-import { GovNewsResponse } from "@/types/api";
 
 // Type for sort order to ensure consistency
 export type SortOrder = 'ASC' | 'DESC';
@@ -135,10 +134,10 @@ export const getGovNews = async (
   limit = 20,
   sortField = 'DT_TM',
   sortOrder: string = 'DESC'
-): Promise<GovNewsResponse> => {
+): Promise<any> => {
   const normalizedSortOrder = normalizeSortOrder(sortOrder);
   
-  return callApi<GovNewsResponse>({
+  return callApi<any>({
     url: 'gov-news/all',
     method: 'GET',
     params: { 
