@@ -11,10 +11,12 @@ import { Badge } from './ui/badge';
 import Link from 'next/link';
 import { getListedCompaniesData } from '@/utils';
 
+
+
 interface Company {
   id: number;
   symbol: string;
-  company_name: string;
+  name: string;
   series: string;
   date_of_listing: string;
   paid_up_value: number;
@@ -59,7 +61,7 @@ export function CompaniesTable() {
         const response = await getListedCompaniesData(currentPage, limit, searchTerm);
         
         // Cast the response to the correct type
-        const data = response as ListedCompaniesApiResponse;
+        const data = response
         
         if (data.success) {
           setCompanies(data.data || []);
