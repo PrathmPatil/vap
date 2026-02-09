@@ -1,3 +1,5 @@
+# app/services/yfinance_service.py
+
 import pandas as pd
 import yfinance as yf
 import requests
@@ -6,21 +8,31 @@ import time
 import random
 from datetime import datetime
 from yfinance import Ticker
-from fastapi import HTTPException
-from app.config import config
-from app.database.connection import db_manager
 import pymysql
 
+from app.config import config
+from app.database.connection import db_manager
+
+
 class YFINANCEService:
-    def __init__(self):
+    """
+    ✔ Lazy initialized
+    ✔ DB-safe
+    ✔ Import-safe
+    ✔ Startup-safe
+    """
+
+    def init(self):
+        """Called explicitly during FastAPI startup"""
         self.create_tables()
 
+    # --------------------------------------------------
+    # TABLES
+    # --------------------------------------------------
     def create_tables(self):
-        
         conn = db_manager.get_connection(config.DB_STOCK_MARKET)
-        cursor = conn.cursor(pymysql.cursors.DictCursor)
+        cursor = conn.cursor()
 
-        # UPDATED: Companies table with all necessary columns
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS companies (
                 id INT AUTO_INCREMENT PRIMARY KEY,
@@ -40,8 +52,7 @@ class YFINANCEService:
                 addedAt DATETIME
             )
         """)
-        
-        # Historical table
+
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS company_price_history (
                 id INT AUTO_INCREMENT PRIMARY KEY,
@@ -56,7 +67,7 @@ class YFINANCEService:
                 UNIQUE KEY unique_record (symbol, recordDate)
             )
         """)
-        
+
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS listed_companies (
                 id INT AUTO_INCREMENT PRIMARY KEY,
@@ -76,174 +87,21 @@ class YFINANCEService:
         cursor.close()
         conn.close()
 
+    # --------------------------------------------------
+    # NSE SYMBOLS
+    # --------------------------------------------------
     def get_indian_tickers(self):
-        """Fetches active symbols from NSE India."""
         try:
             url = "https://archives.nseindia.com/content/equities/EQUITY_L.csv"
             headers = {"User-Agent": "Mozilla/5.0"}
-            response = requests.get(url, headers=headers)
-            
-            if response.status_code != 200:
-                return []
+            res = requests.get(url, headers=headers, timeout=30)
+            res.raise_for_status()
 
-            df = pd.read_csv(io.StringIO(response.content.decode('utf-8')))
-            # Clean symbols and add .NS suffix
-            return [f"{sym.strip()}.NS" for sym in df['SYMBOL'].tolist()]
+            df = pd.read_csv(io.StringIO(res.text))
+            return [f"{s.strip()}.NS" for s in df["SYMBOL"].tolist()]
         except Exception as e:
-            print(f"Ticker Fetch Error: {e}")
+            print(f"❌ NSE fetch error: {e}")
             return []
-
-    # def fetch_company_info(self, symbol: str):
-    #     try:
-    #         ticker = yf.Ticker(symbol)
-    #         info = ticker.info
-            
-    #         cp = info.get('currentPrice') or info.get('regularMarketPrice')
-    #         pc = info.get('previousClose') or info.get('regularMarketPreviousClose')
-            
-    #         change = round(cp - pc, 2) if cp and pc else 0
-    #         p_change = round((change / pc) * 100, 2) if change and pc else 0
-
-    #         return {
-    #             "symbol": symbol,
-    #             "name": info.get('longName') or info.get('shortName'),
-    #             "sector": info.get('sector'),
-    #             "industry": info.get('industry'),
-    #             "currency": info.get('currency', 'INR'),
-    #             "exchange": info.get('exchange'),
-    #             "marketCap": info.get('marketCap'),
-    #             "currentPrice": cp,
-    #             "previousClose": pc,
-    #             "change": change,
-    #             "changePercent": p_change,
-    #             "volume": info.get('volume'),
-    #             "website": info.get('website'),
-    #             "addedAt": datetime.now()
-    #         }
-    #     except Exception as e:
-    #         print(f"Fetch failed for {symbol}: {e}")
-    #         return None
-    
-    def fetch_company_info(self, symbol: str, retry=3):
-        for attempt in range(retry):
-            try:
-                time.sleep(random.uniform(1.2, 2.5))  # ⏱️ throttle
-
-                ticker = Ticker(symbol)
-
-                # 🔹 FAST & SAFE fields
-                fast_info = ticker.fast_info
-                info = ticker.get_info()
-
-                cp = fast_info.get("lastPrice")
-                pc = fast_info.get("previousClose")
-
-                if not cp or not pc:
-                    raise Exception("Price data missing")
-
-                return {
-                    "symbol": symbol,
-                    "name": info.get("longName") or info.get("shortName"),
-                    "sector": info.get("sector"),
-                    "industry": info.get("industry"),
-                    "currency": info.get("currency", "INR"),
-                    "exchange": info.get("exchange"),
-                    "marketCap": info.get("marketCap"),
-                    "currentPrice": cp,
-                    "previousClose": pc,
-                    "change": round(cp - pc, 2),
-                    "changePercent": round(((cp - pc) / pc) * 100, 2),
-                    "volume": fast_info.get("lastVolume"),
-                    "website": info.get("website"),
-                    "addedAt": datetime.now()
-                }
-
-            except Exception as e:
-                if "429" in str(e) and attempt < retry - 1:
-                    time.sleep(5 * (attempt + 1))  # exponential backoff
-                    continue
-
-                print(f"❌ Fetch failed for {symbol}: {e}")
-                return None
-
-    def save_company_info(self, data: dict):
-        if not data: return
-        
-        conn = db_manager.get_connection(config.DB_STOCK_MARKET)
-        cursor = conn.cursor(pymysql.cursors.DictCursor)
-
-        # Logic now matches the CREATE TABLE schema
-        sql = """
-            INSERT INTO companies 
-            (symbol, name, sector, industry, currency, exchange, marketCap, 
-             currentPrice, previousClose, `change`, changePercent, volume, website, addedAt)
-            VALUES (%(symbol)s, %(name)s, %(sector)s, %(industry)s, %(currency)s, %(exchange)s, %(marketCap)s,
-                    %(currentPrice)s, %(previousClose)s, %(change)s, %(changePercent)s, %(volume)s, %(website)s, %(addedAt)s)
-            ON DUPLICATE KEY UPDATE
-                name=VALUES(name),
-                sector=VALUES(sector),
-                currentPrice=VALUES(currentPrice),
-                `change`=VALUES(`change`),
-                changePercent=VALUES(changePercent),
-                volume=VALUES(volume),
-                addedAt=VALUES(addedAt)
-        """
-        cursor.execute(sql, data)
-        conn.commit()
-        cursor.close()
-        conn.close()
-
-    # def fetch_and_store_listed_companies(self, limit=None):
-    #     tickers = self.get_indian_tickers()
-    #     if limit: tickers = tickers[:limit]
-        
-    #     for symbol in tickers:
-    #         data = self.fetch_company_info(symbol)
-    #         if data:
-    #             self.save_company_info(data)
-    #             print(f"Success: {symbol}")
-    #     return {"status": "Done"}
-    def fetch_and_store_listed_companies(self, limit=50, batch_size=5):
-        tickers = self.get_indian_tickers()[:limit]
-
-        for i in range(0, len(tickers), batch_size):
-            batch = tickers[i:i + batch_size]
-
-            for symbol in batch:
-                data = self.fetch_company_info(symbol)
-                if data:
-                    self.save_company_info(data)
-
-            time.sleep(8)  # 🧊 cool down after each batch
-
-        return {"status": "completed", "processed": len(tickers)}
-
-    
-    def fetch_historical_data(self, symbol: str, start_date: str, end_date: str):
-        try:
-            df = yf.download(symbol, start=start_date, end=end_date, auto_adjust=False)
-            if df.empty:
-                return {"status": "empty", "inserted_rows": 0}
-
-            conn = db_manager.get_connection(config.DB_STOCK_MARKET)
-            cursor = conn.cursor(pymysql.cursors.DictCursor)
-
-            for record_date, row in df.iterrows():
-                cursor.execute("""
-                    INSERT INTO company_price_history 
-                    (symbol, recordDate, open, high, low, close, volume, createdAt)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-                    ON DUPLICATE KEY UPDATE
-                        open=VALUES(open), high=VALUES(high), low=VALUES(low), 
-                        close=VALUES(close), volume=VALUES(volume)
-                """, (symbol, record_date.date(), float(row['Open']), float(row['High']), 
-                      float(row['Low']), float(row['Close']), int(row['Volume']), datetime.now()))
-
-            conn.commit()
-            conn.close()
-            return {"status": "success", "inserted_rows": len(df)}
-        except Exception as e:
-            raise Exception(f"History Fetch Error: {e}")
 
     def sync_new_listed_companies(self):
         """
@@ -306,39 +164,103 @@ class YFINANCEService:
 
 
 
-    # def scrape_and_store_nse_symbols(self):
-    #         url = "https://archives.nseindia.com/content/equities/EQUITY_L.csv"
-    #         headers = {"User-Agent": "Mozilla/5.0"}
-    #         res = requests.get(url, headers=headers)
-    #         res.raise_for_status()
+    # --------------------------------------------------
+    # COMPANY INFO
+    # --------------------------------------------------
+    def fetch_company_info(self, symbol: str, retry=3):
+        for attempt in range(retry):
+            try:
+                time.sleep(random.uniform(1.2, 2.5))
 
-    #         df = pd.read_csv(io.StringIO(res.text))
+                ticker = Ticker(symbol)
+                fast = ticker.fast_info
+                info = ticker.get_info()
 
-    #         conn = db_manager.get_connection(config.DB_STOCK_MARKET)
-    #         cursor = conn.cursor()
+                cp = fast.get("lastPrice")
+                pc = fast.get("previousClose")
 
-    #         for _, row in df.iterrows():
-    #             symbol = row["SYMBOL"].strip() + ".NS"
-    #             name = row["NAME OF COMPANY"].strip()
-    #             series = row["SERIES"].strip()
-    #             date_of_listing = row["DATE OF LISTING"].strip()
-    #             paid_up_value = row["PAID UP VALUE"].strip()
-    #             market_lot = row["MARKET LOT"].strip()
-    #             isin = row[" ISIN NUMBER"].strip()
-    #             face_value = row["FACE VALUE"].strip()
-                
+                if not cp or not pc:
+                    raise ValueError("Price missing")
 
-    #             cursor.execute("""
-    #                 INSERT IGNORE INTO listed_companies
-    #                 (symbol, name, series, date_of_listing, paid_up_value, market_lot, isin, face_value)
-    #                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-    #             """, (symbol, name, series, date_of_listing, paid_up_value, market_lot, isin, face_value))
+                return {
+                    "symbol": symbol,
+                    "name": info.get("longName") or info.get("shortName"),
+                    "sector": info.get("sector"),
+                    "industry": info.get("industry"),
+                    "currency": info.get("currency", "INR"),
+                    "exchange": info.get("exchange"),
+                    "marketCap": info.get("marketCap"),
+                    "currentPrice": cp,
+                    "previousClose": pc,
+                    "change": round(cp - pc, 2),
+                    "changePercent": round(((cp - pc) / pc) * 100, 2),
+                    "volume": fast.get("lastVolume"),
+                    "website": info.get("website"),
+                    "addedAt": datetime.now()
+                }
 
-    #         conn.commit()
-    #         cursor.close()
-    #         conn.close()
+            except Exception as e:
+                if attempt < retry - 1:
+                    time.sleep(5 * (attempt + 1))
+                    continue
+                print(f"❌ {symbol} failed: {e}")
+                return None
 
-    #         return {"status": f"Inserted {len(df)} NSE symbols"}
+    # --------------------------------------------------
+    # SAVE COMPANY
+    # --------------------------------------------------
+    def save_company_info(self, data: dict):
+        if not data:
+            return
+
+        conn = db_manager.get_connection(config.DB_STOCK_MARKET)
+        cursor = conn.cursor()
+
+        cursor.execute("""
+            INSERT INTO companies
+            (symbol, name, sector, industry, currency, exchange, marketCap,
+             currentPrice, previousClose, `change`, changePercent, volume, website, addedAt)
+            VALUES
+            (%(symbol)s, %(name)s, %(sector)s, %(industry)s, %(currency)s, %(exchange)s, %(marketCap)s,
+             %(currentPrice)s, %(previousClose)s, %(change)s, %(changePercent)s, %(volume)s, %(website)s, %(addedAt)s)
+            ON DUPLICATE KEY UPDATE
+                name=VALUES(name),
+                sector=VALUES(sector),
+                currentPrice=VALUES(currentPrice),
+                `change`=VALUES(`change`),
+                changePercent=VALUES(changePercent),
+                volume=VALUES(volume),
+                addedAt=VALUES(addedAt)
+        """, data)
+
+        conn.commit()
+        cursor.close()
+        conn.close()
+
+    # --------------------------------------------------
+    # BULK INGEST
+    # --------------------------------------------------
+    def fetch_and_store_listed_companies(self, limit=50, batch_size=5):
+        symbols = self.get_indian_tickers()[:limit]
+
+        for i in range(0, len(symbols), batch_size):
+            for sym in symbols[i:i + batch_size]:
+                data = self.fetch_company_info(sym)
+                if data:
+                    self.save_company_info(data)
+            time.sleep(8)
+
+        return {"status": "completed", "processed": len(symbols)}
 
 
-yfinance_service = YFINANCEService()
+# --------------------------------------------------
+# ✅ LAZY SINGLETON (CRITICAL FIX)
+# --------------------------------------------------
+_yfinance_service: YFINANCEService | None = None
+
+
+def get_yfinance_service() -> YFINANCEService:
+    global _yfinance_service
+    if _yfinance_service is None:
+        _yfinance_service = YFINANCEService()
+    return _yfinance_service

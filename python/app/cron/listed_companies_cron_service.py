@@ -2,7 +2,7 @@
 
 import logging
 from apscheduler.schedulers.background import BackgroundScheduler
-from app.services.yfinance_service import yfinance_service
+from app.services.yfinance_service import get_yfinance_service
 
 logger = logging.getLogger(__name__)
 
@@ -27,7 +27,7 @@ class ListedCompaniesCronService:
         logger.info("🕒 Listed Companies CRON started")
 
         try:
-            result = yfinance_service.sync_new_listed_companies()
+            result = get_yfinance_service().sync_new_listed_companies()
 
             logger.info(
                 f"✅ Listed Companies Sync Completed | "

@@ -47,7 +47,14 @@ class BhavcopyService:
     # UPSERT (NO DUPLICATES, SAFE ON SERVER)
     # -----------------------------------------------------
     def upsert_dataframe(self, table_name, df):
+        if df is None or df.empty:
+            return
+
         engine = db_manager.get_sqlalchemy_engine(config.DB_BHAVCOPY)
+
+        # 🔥 ENSURE SCHEMA FIRST (MANDATORY)
+        db_manager.ensure_table_schema(table_name, df, config.DB_BHAVCOPY)
+
         meta = MetaData()
         table = Table(table_name, meta, autoload_with=engine)
 
@@ -57,7 +64,11 @@ class BhavcopyService:
 
         stmt = insert(table).values(records)
 
-        update_cols = {c.name: stmt.inserted[c.name] for c in table.columns if c.name != "id"}
+        update_cols = {
+            c.name: stmt.inserted[c.name]
+            for c in table.columns
+        }
+
         stmt = stmt.on_duplicate_key_update(**update_cols)
 
         with engine.begin() as conn:
@@ -96,7 +107,7 @@ class BhavcopyService:
                         df = clean_dataframe_for_mysql(df)
 
                         # ✅ Ensure table exists
-                        db_manager.ensure_table_schema(base, df, config.DB_BHAVCOPY, with_id=False)
+                        db_manager.ensure_table_schema(base, df, config.DB_BHAVCOPY)
 
                         # ✅ Upsert
                         self.upsert_dataframe(base, df)
@@ -108,7 +119,7 @@ class BhavcopyService:
                     if expected not in found_files:
                         df_missing = pd.DataFrame([{"source_date": date_obj.date(), "status": "MISSING"}])
                         df_missing = clean_dataframe_for_mysql(df_missing)
-                        db_manager.ensure_table_schema(expected, df_missing, config.DB_BHAVCOPY, with_id=False)
+                        db_manager.ensure_table_schema(expected, df_missing, config.DB_BHAVCOPY)
                         self.upsert_dataframe(expected, df_missing)
                         result_data[expected] = df_missing.to_dict(orient="records")
             return {"date": str(date_obj.date()), "status": "SUCCESS", "data": result_data}

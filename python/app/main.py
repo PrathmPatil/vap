@@ -32,6 +32,9 @@ from app.cron.bhavcopy import fetch_today_bhavcopy_cron
 
 from app.database.init_databases import init_databases
 from app.database.startup import ensure_databases
+
+from app.services.yfinance_service import get_yfinance_service
+
   
 # ---------------------------------------------------------
 # Logging Configuration
@@ -137,6 +140,9 @@ async def startup_event():
     
     # ensure_databases()
     # ensure_databases()
+    
+    # ✅ SAFE init
+    get_yfinance_service().init()
     
     # Warmup sessions
     warmup_bse_session()

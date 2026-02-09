@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Query, HTTPException
 from typing import Optional
-from app.services.yfinance_service import yfinance_service
+from app.services.yfinance_service import get_yfinance_service
 from app.database.connection import db_manager
 from app.config import config
 from datetime import date, timedelta
@@ -18,7 +18,7 @@ async def health():
 @router.get("/company-info/{symbol}")
 async def company_info(symbol: str):
     try:
-        data = yfinance_service.fetch_company_info(symbol)
+        data = get_yfinance_service().fetch_company_info(symbol)
         return {"status": "success", "data": data}
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -28,8 +28,8 @@ async def company_info(symbol: str):
 @router.post("/save-company/{symbol}")
 async def save_company(symbol: str):
     try:
-        data = yfinance_service.fetch_company_info(symbol)
-        yfinance_service.save_company_info(data)
+        data = get_yfinance_service().fetch_company_info(symbol)
+        get_yfinance_service().save_company_info(data)
         return {"status": "success", "message": f"Company info saved for {symbol}"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -45,7 +45,7 @@ async def fetch_history(
     """Fetch historical data for a symbol between given dates and save to DB"""
     try:
         # Call class method
-        data = yfinance_service.fetch_historical_data(symbol, start_date, end_date)
+        data = get_yfinance_service().fetch_historical_data(symbol, start_date, end_date)
         return {
             "status": "success",
             "message": f"Historical data saved for {symbol}",
@@ -122,7 +122,7 @@ async def get_indian_tickers():
 @router.post("/fetch-and-store-listed-companies")
 async def fetch_and_store_listed_companies():
     try:
-        result = yfinance_service.sync_new_listed_companies()
+        result = get_yfinance_service().sync_new_listed_companies()
         return {"status": "success", "message": result}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -141,7 +141,7 @@ async def full_sync(
     - Fetch historical data
     """
     try:
-        symbols = yfinance_service.get_indian_tickers()[:limit]
+        symbols = get_yfinance_service().get_indian_tickers()[:limit]
 
         start_date = (date.today() - timedelta(days=history_days)).isoformat()
         end_date = date.today().isoformat()
@@ -150,11 +150,11 @@ async def full_sync(
 
         for symbol in symbols:
             try:
-                data = yfinance_service.fetch_company_info(symbol)
-                yfinance_service.save_company_info(data)
+                data = get_yfinance_service().fetch_company_info(symbol)
+                get_yfinance_service().save_company_info(data)
                 # REMOVE .NS suffix for history fetch
                 symbol = symbol.replace(".NS", "").replace(".BO", "")
-                yfinance_service.fetch_historical_data(
+                get_yfinance_service().fetch_historical_data(
                     symbol,
                     start_date,
                     end_date

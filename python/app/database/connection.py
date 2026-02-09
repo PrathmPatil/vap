@@ -1,4 +1,5 @@
 import pymysql
+import pandas as pd
 from sqlalchemy import create_engine, inspect, text
 from urllib.parse import quote_plus
 from app.config import config
@@ -51,55 +52,52 @@ class DatabaseManager:
         conn.close()
 
     # --------------------------------------------------
-    # 🔥 TABLE + SCHEMA (FINAL VERSION)
+    # ✅ TABLE + SCHEMA (PERFECT VERSION)
     # --------------------------------------------------
-    def ensure_table_schema(
-        self,
-        table_name: str,
-        df,
-        db_name: str,
-        with_id: bool = True
-    ):
+    def ensure_table_schema(self, table_name: str, df: pd.DataFrame, db_name: str):
         """
-        ✔ Creates table if not exists
-        ✔ Optional AUTO_INCREMENT id
-        ✔ Adds missing columns only
-        ✔ Cron safe
-        ✔ Docker safe
+        ✔ Never creates empty tables
+        ✔ Thread-safe
+        ✔ Cron-safe
+        ✔ NSE-bhavcopy safe
         """
+
+        # 🚨 HARD STOP
+        if df is None or df.empty or len(df.columns) == 0:
+            print(f"⛔ Skipping `{table_name}` — empty dataframe")
+            return
 
         engine = self.get_sqlalchemy_engine(db_name)
         inspector = inspect(engine)
 
         with engine.begin() as conn:
-            # -----------------------------
-            # 1️⃣ Create table if not exists
-            # -----------------------------
-            if not inspector.has_table(table_name):
-                if with_id:
-                    conn.execute(text(f"""
-                        CREATE TABLE `{table_name}` (
-                            id BIGINT AUTO_INCREMENT PRIMARY KEY
-                        )
-                    """))
-                else:
-                    conn.execute(text(f"""
-                        CREATE TABLE `{table_name}` ()
-                    """))
 
-            # -----------------------------
-            # 2️⃣ Fetch existing columns
-            # -----------------------------
+            # -----------------------------------------
+            # 1️⃣ CREATE TABLE WITH FIRST COLUMN
+            # -----------------------------------------
+            if not inspector.has_table(table_name):
+                first_col = df.columns[0]
+
+                conn.execute(text(f"""
+                    CREATE TABLE `{table_name}` (
+                        `{first_col}` TEXT NULL
+                    )
+                """))
+
+            # -----------------------------------------
+            # 2️⃣ FETCH EXISTING COLUMNS
+            # -----------------------------------------
             existing_columns = {
                 col["name"].lower()
                 for col in inspector.get_columns(table_name)
             }
 
-            # -----------------------------
-            # 3️⃣ Add missing DataFrame columns
-            # -----------------------------
+            # -----------------------------------------
+            # 3️⃣ ADD MISSING COLUMNS
+            # -----------------------------------------
             for column in df.columns:
                 col_l = column.lower()
+
                 if col_l in existing_columns:
                     continue
 
@@ -109,10 +107,8 @@ class DatabaseManager:
                         ADD COLUMN `{column}` TEXT NULL
                     """))
                 except Exception as e:
-                    # Ignore race condition
+                    # race-condition safe
                     if "Duplicate column" not in str(e):
                         raise
 
-
-# ✅ SINGLETON
 db_manager = DatabaseManager()
