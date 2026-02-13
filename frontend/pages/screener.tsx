@@ -96,7 +96,9 @@ export default function ScreenerPage() {
   const [stocks, setStocks] = useState<StockData[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
-  const [filters, setFilters] = useState<CompleteFilterCriteria>(completeDefaultFilters);
+  const [filters, setFilters] = useState<CompleteFilterCriteria>(
+    completeDefaultFilters,
+  );
   const [sortBy, setSortBy] = useState<keyof StockData>("marketCap");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
   const [currentPage, setCurrentPage] = useState(1);
@@ -110,22 +112,29 @@ export default function ScreenerPage() {
     try {
       // Convert sortOrder to uppercase for API call
       const apiSortOrder = sortOrder.toUpperCase() as "ASC" | "DESC";
-      
+
       const response = await getAllYFinanceData(
         "",
         currentPage,
         itemsPerPage,
         sortBy,
-        apiSortOrder
+        apiSortOrder,
       );
-
+      console.log("API Response:", response);
       // Cast response to our paginated type
       const paginatedResponse = response as PaginatedYFinanceResponse;
-      const { success, data, pages, page, message, totalPages: resTotalPages } = paginatedResponse;
-      
+      const {
+        success,
+        data,
+        pages,
+        page,
+        message,
+        totalPages: resTotalPages,
+      } = paginatedResponse;
+
       if (success) {
         setStocks(data || []);
-        
+
         // Check multiple possible pagination properties
         if (pages !== undefined) {
           setTotalPages(pages);
@@ -134,7 +143,7 @@ export default function ScreenerPage() {
         } else {
           setTotalPages(1);
         }
-        
+
         if (page !== undefined) {
           setCurrentPage(page);
         }
@@ -161,78 +170,58 @@ export default function ScreenerPage() {
     fetchStocks();
   }, [fetchStocks]);
 
+  console.log("Stocks after fetch:", stocks);
   const filteredStocks = useMemo(() => {
     return stocks.filter((stock) => {
+      if (!stock) return false;
+
+      // Search
       if (
         searchTerm &&
-        !stock.name.toLowerCase().includes(searchTerm.toLowerCase()) &&
-        !stock.symbol.toLowerCase().includes(searchTerm.toLowerCase())
-      )
+        !stock.name?.toLowerCase().includes(searchTerm.toLowerCase()) &&
+        !stock.symbol?.toLowerCase().includes(searchTerm.toLowerCase())
+      ) {
         return false;
-      
-      // Add null/undefined checks for all numeric fields
-      if (stock.marketCap !== null && stock.marketCap !== undefined) {
-        if (
-          stock.marketCap < filters.marketCapMin ||
-          stock.marketCap > filters.marketCapMax
-        )
-          return false;
       }
-      
-      if (stock.currentPrice !== null && stock.currentPrice !== undefined) {
-        if (
-          stock.currentPrice < filters.priceMin ||
-          stock.currentPrice > filters.priceMax
-        )
-          return false;
-      }
-      
-      if (stock.volume !== null && stock.volume !== undefined) {
-        if (stock.volume < filters.volumeMin) return false;
-      }
-      
-      if (stock.dividendYield !== null && stock.dividendYield !== undefined) {
-        if (
-          stock.dividendYield < filters.dividendYieldMin ||
-          stock.dividendYield > filters.dividendYieldMax
-        )
-          return false;
-      }
-      
-      if (stock.forwardPE !== null && stock.forwardPE !== undefined) {
-        if (
-          stock.forwardPE < filters.forwardPEMin ||
-          stock.forwardPE > filters.forwardPEMax
-        )
-          return false;
-      }
-      
-      if (stock.trailingPE !== null && stock.trailingPE !== undefined) {
-        if (
-          stock.trailingPE < filters.trailingPEMin ||
-          stock.trailingPE > filters.trailingPEMax
-        )
-          return false;
-      }
-      
-      if (stock.beta !== null && stock.beta !== undefined) {
-        if (stock.beta < filters.betaMin || stock.beta > filters.betaMax)
-          return false;
-      }
-      
-      if (filters.sector !== "all" && stock.sector !== filters.sector)
+
+      // Market Cap
+      if (
+        stock.marketCap &&
+        (stock.marketCap < filters.marketCapMin ||
+          stock.marketCap > filters.marketCapMax)
+      ) {
         return false;
-      
+      }
+
+      // Price
       if (
-        filters.onlyDividendPaying && 
-        (stock.dividendYield === null || stock.dividendYield === undefined || stock.dividendYield <= 0)
-      ) return false;
-      
-      if (
-        filters.onlyPositiveChange && 
-        (stock.changePercent === null || stock.changePercent === undefined || stock.changePercent <= 0)
-      ) return false;
-      
+        stock.currentPrice &&
+        (stock.currentPrice < filters.priceMin ||
+          stock.currentPrice > filters.priceMax)
+      ) {
+        return false;
+      }
+
+      // Volume
+      if (stock.volume && stock.volume < filters.volumeMin) {
+        return false;
+      }
+
+      // Sector
+      if (filters.sector !== "all" && stock.sector !== filters.sector) {
+        return false;
+      }
+
+      // Dividend Toggle
+      if (filters.onlyDividendPaying && !stock.dividendYield) {
+        return false;
+      }
+
+      // Positive Change Toggle
+      if (filters.onlyPositiveChange && (stock.changePercent ?? 0) <= 0) {
+        return false;
+      }
+
       return true;
     });
   }, [stocks, searchTerm, filters]);
@@ -241,24 +230,24 @@ export default function ScreenerPage() {
     return [...filteredStocks].sort((a, b) => {
       const aValue = a[sortBy];
       const bValue = b[sortBy];
-      
+
       // Handle null/undefined values in sort
-      if (aValue === null || aValue === undefined) return sortOrder === "asc" ? -1 : 1;
-      if (bValue === null || bValue === undefined) return sortOrder === "asc" ? 1 : -1;
-      
+      if (aValue === null || aValue === undefined)
+        return sortOrder === "asc" ? -1 : 1;
+      if (bValue === null || bValue === undefined)
+        return sortOrder === "asc" ? 1 : -1;
+
       if (typeof aValue === "string" && typeof bValue === "string") {
         return sortOrder === "asc"
           ? aValue.localeCompare(bValue)
           : bValue.localeCompare(aValue);
       }
-      
+
       // Convert to numbers for numeric comparison
       const numA = Number(aValue);
       const numB = Number(bValue);
-      
-      return sortOrder === "asc"
-        ? numA - numB
-        : numB - numA;
+
+      return sortOrder === "asc" ? numA - numB : numB - numA;
     });
   }, [filteredStocks, sortBy, sortOrder]);
 
@@ -276,7 +265,7 @@ export default function ScreenerPage() {
     setCurrentPage(1);
     setSearchTerm("");
   };
-
+  console.log(filteredStocks);
   const SortableHeader = ({
     column,
     children,
@@ -299,12 +288,14 @@ export default function ScreenerPage() {
     const headers = getTableConfig()
       .map((col: any) => col.label)
       .join(",");
-    const csv = sortedStocks
+    const csv = stocks
       .map((stock) => {
         // Handle null values in export
-        return Object.values(stock).map(value => 
-          value === null || value === undefined ? '' : String(value)
-        ).join(",");
+        return Object.values(stock)
+          .map((value) =>
+            value === null || value === undefined ? "" : String(value),
+          )
+          .join(",");
       })
       .join("\n");
     const blob = new Blob([headers + "\n" + csv], { type: "text/csv" });
@@ -336,7 +327,7 @@ export default function ScreenerPage() {
             <CardContent className="p-6 flex items-center space-x-2">
               <Target className="h-8 w-8 text-blue-600" />
               <div>
-                <div className="text-2xl font-bold">{sortedStocks.length}</div>
+                <div className="text-2xl font-bold">{stocks.length}</div>
                 <div className="text-sm text-slate-500">Filtered Results</div>
               </div>
             </CardContent>
@@ -355,7 +346,10 @@ export default function ScreenerPage() {
               <TrendingUp className="h-8 w-8 text-purple-600" />
               <div>
                 <div className="text-2xl font-bold">
-                  {sortedStocks.filter((s) => (s.changePercent ?? 0) > 0).length}
+                  {
+                    stocks.filter((s) => (s.changePercent ?? 0) > 0)
+                      .length
+                  }
                 </div>
                 <div className="text-sm text-slate-500">Gainers</div>
               </div>
@@ -366,7 +360,10 @@ export default function ScreenerPage() {
               <TrendingDown className="h-8 w-8 text-red-600" />
               <div>
                 <div className="text-2xl font-bold">
-                  {sortedStocks.filter((s) => (s.changePercent ?? 0) < 0).length}
+                  {
+                    stocks.filter((s) => (s.changePercent ?? 0) < 0)
+                      .length
+                  }
                 </div>
                 <div className="text-sm text-slate-500">Losers</div>
               </div>
@@ -390,7 +387,7 @@ export default function ScreenerPage() {
                   filtersConfig={getFiltersConfig(
                     filters,
                     setFilters,
-                    uniqueSectors
+                    uniqueSectors,
                   )}
                   resetFilters={resetFilters}
                   showFilters={showFilters}
@@ -410,7 +407,7 @@ export default function ScreenerPage() {
                       <span>Screening Results</span>
                     </CardTitle>
                     <CardDescription>
-                      {sortedStocks.length} stocks match your criteria
+                      {stocks.length} stocks match your criteria
                     </CardDescription>
                   </div>
                   <div className="flex items-center space-x-2">
@@ -488,16 +485,16 @@ export default function ScreenerPage() {
                                 </SortableHeader>
                               ) : (
                                 <TableHead key={col.key}>{col.label}</TableHead>
-                              )
+                              ),
                             )}
                             <TableHead>Actions</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
                           {renderTable(
-                            sortedStocks,
+                            stocks,
                             getTableConfig(),
-                            resetFilters
+                            resetFilters,
                           )}
                         </TableBody>
                       </Table>
@@ -557,14 +554,17 @@ export default function ScreenerPage() {
                                     {pageNum}
                                   </Button>
                                 );
-                              }
+                              },
                             )}
                           </div>
                           <Button
                             variant="outline"
                             size="sm"
                             onClick={() => {
-                              const newPage = Math.min(totalPages, currentPage + 1);
+                              const newPage = Math.min(
+                                totalPages,
+                                currentPage + 1,
+                              );
                               setCurrentPage(newPage);
                               fetchStocks();
                             }}

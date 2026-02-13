@@ -48,6 +48,12 @@ class YFINANCEService:
                 `change` FLOAT,
                 changePercent FLOAT,
                 volume BIGINT,
+                high52Week FLOAT,
+                low52Week FLOAT, 
+                beta FLOAT, 
+                dividendYield FLOAT, 
+                forwardPE FLOAT, 
+                trailingPE FLOAT,
                 website VARCHAR(255),
                 addedAt DATETIME
             )
@@ -219,10 +225,11 @@ class YFINANCEService:
         cursor.execute("""
             INSERT INTO companies
             (symbol, name, sector, industry, currency, exchange, marketCap,
-             currentPrice, previousClose, `change`, changePercent, volume, website, addedAt)
+             currentPrice, previousClose, `change`, changePercent, volume, high52Week, low52Week, beta, 
+                dividendYield, forwardPE, trailingPE, website, addedAt)
             VALUES
             (%(symbol)s, %(name)s, %(sector)s, %(industry)s, %(currency)s, %(exchange)s, %(marketCap)s,
-             %(currentPrice)s, %(previousClose)s, %(change)s, %(changePercent)s, %(volume)s, %(website)s, %(addedAt)s)
+             %(currentPrice)s, %(previousClose)s, %(change)s, %(changePercent)s, %(volume)s, %(high52Week)s, %(low52Week)s, %(beta)s, %(dividendYield)s, %(forwardPE)s, %(trailingPE)s, %(website)s, %(addedAt)s)
             ON DUPLICATE KEY UPDATE
                 name=VALUES(name),
                 sector=VALUES(sector),

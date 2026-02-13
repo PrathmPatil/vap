@@ -74,6 +74,7 @@ class NseIndicesService:
     # --------------------------------------------------------
     # CREATE TABLE + UPSERT (NO DUPLICATES)
     # --------------------------------------------------------
+
     def create_and_upsert(self, table_name: str, data: list, cursor):
         if not data:
             print(f"⚠ No data for table {table_name}")
@@ -82,36 +83,68 @@ class NseIndicesService:
         if not isinstance(data, list) or not isinstance(data[0], dict):
             return 0
 
+        # -----------------------------------------
         # Normalize columns
-        columns_map = {}
+        # -----------------------------------------
+        columns_set = set()
         for row in data:
             for k in row.keys():
-                col = sanitize_column(k)
-                columns_map[col] = col
+                columns_set.add(sanitize_column(k))
 
-        columns = list(columns_map.values())
+        columns = list(columns_set)
 
-        # Create table
-        col_defs = ", ".join([f"`{c}` LONGTEXT NULL" for c in columns])
+        # -----------------------------------------
+        # Create table (ID always present)
+        # -----------------------------------------
+        col_defs = []
+
+        for c in columns:
+            if c in ["col_key", "indexsymbol"]:
+                col_defs.append(f"`{c}` VARCHAR(255) NULL")
+            else:
+                col_defs.append(f"`{c}` LONGTEXT NULL")
+
+        col_defs_sql = ", ".join(col_defs)
+
         cursor.execute(f"""
             CREATE TABLE IF NOT EXISTS `{table_name}` (
                 id BIGINT AUTO_INCREMENT PRIMARY KEY,
-                {col_defs},
-                UNIQUE KEY uq_{table_name} (col_key, indexsymbol)
+                {col_defs_sql}
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
         """)
 
-        # Existing columns
+        # -----------------------------------------
+        # Ensure missing columns are added
+        # -----------------------------------------
         cursor.execute(f"SHOW COLUMNS FROM `{table_name}`")
         existing_cols = {r["Field"].lower() for r in cursor.fetchall()}
 
         for col in columns:
             if col.lower() not in existing_cols:
-                cursor.execute(
-                    f"ALTER TABLE `{table_name}` ADD COLUMN `{col}` LONGTEXT NULL"
-                )
+                if col in ["col_key", "indexsymbol"]:
+                    cursor.execute(
+                        f"ALTER TABLE `{table_name}` ADD COLUMN `{col}` VARCHAR(255) NULL"
+                    )
+                else:
+                    cursor.execute(
+                        f"ALTER TABLE `{table_name}` ADD COLUMN `{col}` LONGTEXT NULL"
+                    )
 
+        # -----------------------------------------
+        # Ensure UNIQUE KEY exists safely
+        # -----------------------------------------
+        if "col_key" in columns and "indexsymbol" in columns:
+            try:
+                cursor.execute(f"""
+                    ALTER TABLE `{table_name}`
+                    ADD UNIQUE KEY uq_{table_name} (col_key, indexsymbol)
+                """)
+            except Exception:
+                pass  # already exists
+
+        # -----------------------------------------
         # UPSERT
+        # -----------------------------------------
         unique_keys = {"col_key", "indexsymbol"}
 
         update_clause = ", ".join(

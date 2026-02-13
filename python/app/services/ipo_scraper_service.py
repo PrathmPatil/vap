@@ -51,6 +51,26 @@ def insert_rows(table_name: str, rows: list, cursor):
         return 0
 
     columns = rows[0].keys()
+
+    # ----------------------------------------
+    # 1️⃣ Create table if not exists
+    # ----------------------------------------
+    col_defs = []
+    for col in columns:
+        col_defs.append(f"`{col}` VARCHAR(255) NULL")
+
+    col_defs.append("`created_at` DATETIME DEFAULT CURRENT_TIMESTAMP")
+
+    cursor.execute(f"""
+        CREATE TABLE IF NOT EXISTS `{table_name}` (
+            id BIGINT AUTO_INCREMENT PRIMARY KEY,
+            {", ".join(col_defs)}
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+    """)
+
+    # ----------------------------------------
+    # 2️⃣ Insert Data
+    # ----------------------------------------
     cols_sql = ", ".join(f"`{c}`" for c in columns)
     placeholders = ", ".join(["%s"] * len(columns))
 
@@ -59,11 +79,13 @@ def insert_rows(table_name: str, rows: list, cursor):
         VALUES ({placeholders})
     """
 
+    inserted = 0
+
     for row in rows:
         cursor.execute(sql, tuple(row.get(c) for c in columns))
+        inserted += 1
 
-    return len(rows)
-
+    return inserted
 
 # =====================================================
 # 🚀 IPO SCRAPER SERVICE

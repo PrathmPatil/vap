@@ -62,7 +62,7 @@ def fetch_ipo_data(report_type: str):
 # ------------------------------------------------------------
 # ✅ Fetch both types (today’s data)
 # ------------------------------------------------------------
-@router.get("/fetch/today")
+@router.get("/fetch/all/today")
 def fetch_today_data():
     """
     Fetch today's IPO data for both Mainboard and SME
