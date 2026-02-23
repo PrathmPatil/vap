@@ -29,6 +29,7 @@ from app.cron.yfinance_cron import start_yfinance_cron
 from app.cron.gov_news_cron import start_gov_news_cron
 from app.cron.company_profile_cron import start_company_profile_cron
 from app.cron.bhavcopy import fetch_today_bhavcopy_cron  
+from app.cron.bse_announcements_news import fetch_and_save_bse_announcements
 
 from app.database.init_databases import init_databases
 from app.database.startup import ensure_databases
@@ -117,7 +118,8 @@ def initialize_cron_jobs():
         ("YFinance cron", start_yfinance_cron),
         ("Government News cron", start_gov_news_cron),
         ("NSE All Companies cron", start_company_profile_cron),
-        ("Today's Bhavcopy cron", fetch_today_bhavcopy_cron)
+        ("Today's Bhavcopy cron", fetch_today_bhavcopy_cron),
+        ("BSE Announcements cron", fetch_and_save_bse_announcements)
     ]
 
     for name, func in cron_services:
