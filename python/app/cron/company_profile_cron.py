@@ -21,7 +21,7 @@ def start_company_profile_cron():
     scheduler.add_job(
         company_profile_job,
         trigger="interval",
-        hours=1,                 # ✅ runs every hour
+        hours=10,                 # ✅ runs every hour
         id="company_profile_cron",
         replace_existing=True,
         max_instances=1

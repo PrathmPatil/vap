@@ -17,7 +17,7 @@ from app.routes import (
     nse_master_ingest,
     cron,
     nse_all_companies,
-    company_profile
+    company_profile, finnhub_data
 )
 
 from app.config import config
@@ -29,7 +29,7 @@ from app.cron.yfinance_cron import start_yfinance_cron
 from app.cron.gov_news_cron import start_gov_news_cron
 from app.cron.company_profile_cron import start_company_profile_cron
 from app.cron.bhavcopy import fetch_today_bhavcopy_cron  
-from app.cron.bse_announcements_news import fetch_and_save_bse_announcements
+from app.cron.bse_announcements_news import start_bse_announcements_scheduler
 
 from app.database.init_databases import init_databases
 from app.database.startup import ensure_databases
@@ -72,7 +72,7 @@ app.include_router(nse_master_ingest.router, prefix="/ingest", tags=["NSE Master
 app.include_router(cron.router, prefix="/cron", tags=["Cron Jobs"])
 app.include_router(nse_all_companies.router, prefix="/nse-all-companies", tags=["NSE All Companies"])
 app.include_router(company_profile.router, prefix="/company-profile", tags=["Company Profile"])
-
+app.include_router(finnhub_data.router, prefix="/finnhub", tags=["Finnhub Data"])
 # ---------------------------------------------------------
 # IST timezone
 # ---------------------------------------------------------
@@ -119,7 +119,7 @@ def initialize_cron_jobs():
         ("Government News cron", start_gov_news_cron),
         ("NSE All Companies cron", start_company_profile_cron),
         ("Today's Bhavcopy cron", fetch_today_bhavcopy_cron),
-        ("BSE Announcements cron", fetch_and_save_bse_announcements)
+        ("BSE Announcements cron", start_bse_announcements_scheduler)
     ]
 
     for name, func in cron_services:
