@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Query
-from app.services.company_profile_service import company_profile_service
+from app.services.company_profile_service_copy import company_profile_service
 
 router = APIRouter()
 

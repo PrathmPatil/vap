@@ -1,11 +1,8 @@
-import yfinance as yf
-from datetime import datetime
-from typing import List, Dict, Optional
-import pymysql
-import logging
 import time
-import random
-import requests
+import logging
+import math
+import pymysql
+import yfinance as yf
 
 from app.database.connection import db_manager
 from app.config import config
@@ -13,198 +10,265 @@ from app.config import config
 logger = logging.getLogger(__name__)
 
 
-class CompanyProfileService:
+class CompanyService:
 
     def __init__(self):
-        self.db_name = config.DB_STOCK_MARKET
-        self.max_retries = 5
-        self.base_delay = 1  # base delay between retries (seconds)
-        self.symbol_delay = 0.8  # delay between symbols (prevents 429)
+        self.symbol_delay = 0.3  # faster but safe
+        self.batch_size = 50     # commit every 50 rows
+        logger.info("✅ CompanyService initialized")
 
-    # -------------------------------------------------
-    # FETCH SYMBOLS
-    # -------------------------------------------------
-    def get_listed_symbols(self) -> List[str]:
+    # =========================================================
+    # SAFE FLOAT CONVERSION (handles NaN, inf, -inf)
+    # =========================================================
+    def safe_float(self, value):
         try:
-            with db_manager.get_connection(self.db_name) as conn:
-                with conn.cursor(pymysql.cursors.DictCursor) as cur:
-                    cur.execute("""
-                        SELECT symbol
-                        FROM listed_companies
-                        WHERE symbol IS NOT NULL
-                    """)
-                    symbols = [row["symbol"] for row in cur.fetchall()]
-                    logger.info(f"Fetched {len(symbols)} symbols")
-                    return symbols
+            if value is None:
+                return None
+
+            value = float(value)
+
+            if math.isnan(value) or math.isinf(value):
+                return None
+
+            return value
+
         except Exception:
-            logger.exception("Failed to fetch listed symbols")
-            return []
+            return None
 
-    # -------------------------------------------------
-    # FETCH COMPANY DATA (429 SAFE)
-    # -------------------------------------------------
-    def fetch_company_info(self, symbol: str) -> Optional[Dict]:
-        attempt = 0
+    # =========================================================
+    # SAFE BIGINT (prevents overflow)
+    # =========================================================
+    def safe_bigint(self, value):
+        try:
+            if value is None:
+                return None
 
-        while attempt < self.max_retries:
-            try:
-                ticker = yf.Ticker(symbol)
+            value = int(value)
 
-                # Use fast_info first (lighter request)
-                fast = ticker.fast_info
-                info = ticker.info
+            # MySQL BIGINT max
+            if value > 9223372036854775807:
+                return None
 
-                price = fast.get("last_price") or info.get("currentPrice")
-                prev = info.get("previousClose")
+            return value
 
-                change = None
-                change_pct = None
+        except Exception:
+            return None
 
-                if price is not None and prev not in (None, 0):
-                    change = round(price - prev, 4)
-                    change_pct = round((change / prev) * 100, 4)
+    # =========================================================
+    # CREATE TABLE IF NOT EXISTS
+    # =========================================================
+    def create_table_if_not_exists(self):
+        conn = db_manager.get_connection(config.DB_STOCK_MARKET)
+        cur = conn.cursor()
 
-                return {
-                    "symbol": symbol,
-                    "name": info.get("longName") or info.get("shortName"),
-                    "sector": info.get("sector"),
-                    "industry": info.get("industry"),
-                    "currency": info.get("currency"),
-                    "exchange": info.get("exchange"),
-                    "marketCap": info.get("marketCap"),
-                    "currentPrice": price,
-                    "previousClose": prev,
-                    "change": change,
-                    "changePercent": change_pct,
-                    "volume": info.get("volume"),
-                    "high52Week": info.get("fiftyTwoWeekHigh"),
-                    "low52Week": info.get("fiftyTwoWeekLow"),
-                    "beta": info.get("beta"),
-                    "dividendYield": info.get("dividendYield"),
-                    "forwardPE": info.get("forwardPE"),
-                    "trailingPE": info.get("trailingPE"),
-                    "website": info.get("website"),
-                    "addedAt": datetime.now()
-                }
+        create_table_sql = """
+        CREATE TABLE IF NOT EXISTS companies (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            symbol VARCHAR(20) NOT NULL UNIQUE,
 
-            except requests.exceptions.HTTPError as e:
-                if e.response is not None and e.response.status_code == 429:
-                    wait_time = (2 ** attempt) + random.uniform(0.5, 1.5)
-                    logger.warning(
-                        f"429 Rate limit for {symbol}. Retrying in {round(wait_time,2)}s"
-                    )
-                    time.sleep(wait_time)
-                    attempt += 1
-                else:
-                    logger.warning(f"HTTP error for {symbol}: {e}")
-                    return None
+            marketCap BIGINT NULL,
+            currentPrice DECIMAL(15,4) NULL,
+            previousClose DECIMAL(15,4) NULL,
+            `change` DECIMAL(15,4) NULL,
+            changePercent DECIMAL(10,4) NULL,
+            volume BIGINT NULL,
+            high52Week DECIMAL(15,4) NULL,
+            low52Week DECIMAL(15,4) NULL,
+            beta DECIMAL(10,4) NULL,
+            dividendYield DECIMAL(10,6) NULL,
+            forwardPE DECIMAL(10,4) NULL,
+            trailingPE DECIMAL(10,4) NULL,
 
-            except Exception as e:
-                # Sometimes yfinance hides 429 inside generic exception
-                if "429" in str(e):
-                    wait_time = (2 ** attempt) + random.uniform(0.5, 1.5)
-                    logger.warning(
-                        f"429 detected (generic) for {symbol}. Retrying in {round(wait_time,2)}s"
-                    )
-                    time.sleep(wait_time)
-                    attempt += 1
-                else:
-                    logger.warning(f"Failed to fetch {symbol}: {e}")
-                    return None
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                ON UPDATE CURRENT_TIMESTAMP,
 
-        logger.error(f"Max retries exceeded for {symbol}")
-        return None
+            INDEX idx_symbol (symbol)
+        );
+        """
 
-    # -------------------------------------------------
-    # SAVE DATA
-    # -------------------------------------------------
-    def save_company(self, cur, data: Dict):
-        cur.execute("""
-            INSERT INTO companies (
-                symbol, name, sector, industry,
-                currency, exchange, marketCap,
-                currentPrice, previousClose,
-                `change`, changePercent, volume,
-                high52Week, low52Week, beta,
-                dividendYield, forwardPE, trailingPE,
-                website, addedAt
-            ) VALUES (
-                %(symbol)s, %(name)s, %(sector)s, %(industry)s,
-                %(currency)s, %(exchange)s, %(marketCap)s,
-                %(currentPrice)s, %(previousClose)s,
-                %(change)s, %(changePercent)s, %(volume)s,
-                %(high52Week)s, %(low52Week)s, %(beta)s,
-                %(dividendYield)s, %(forwardPE)s, %(trailingPE)s,
-                %(website)s, %(addedAt)s
-            )
-            ON DUPLICATE KEY UPDATE
-                name=VALUES(name),
-                sector=VALUES(sector),
-                industry=VALUES(industry),
-                currency=VALUES(currency),
-                exchange=VALUES(exchange),
-                marketCap=VALUES(marketCap),
-                currentPrice=VALUES(currentPrice),
-                previousClose=VALUES(previousClose),
-                `change`=VALUES(`change`),
-                changePercent=VALUES(changePercent),
-                volume=VALUES(volume),
-                high52Week=VALUES(high52Week),
-                low52Week=VALUES(low52Week),
-                beta=VALUES(beta),
-                dividendYield=VALUES(dividendYield),
-                forwardPE=VALUES(forwardPE),
-                trailingPE=VALUES(trailingPE),
-                website=VALUES(website),
-                addedAt=VALUES(addedAt)
-        """, data)
+        cur.execute(create_table_sql)
+        conn.commit()
 
-    # -------------------------------------------------
-    # MAIN REFRESH FUNCTION
-    # -------------------------------------------------
-    def fetch_and_save_all(self) -> int:
-        logger.info("Starting company profile refresh")
+        cur.close()
+        conn.close()
 
-        symbols = self.get_listed_symbols()
-        if not symbols:
-            logger.warning("No listed symbols found")
-            return 0
+        logger.info("✅ Companies table ready")
 
-        saved = 0
-        failed = 0
+    # =========================================================
+    # FETCH SYMBOLS
+    # =========================================================
+    def get_symbols(self, limit=None):
+        conn = db_manager.get_connection(config.DB_STOCK_MARKET)
+        cur = conn.cursor(pymysql.cursors.DictCursor)
+
+        query = "SELECT symbol FROM listed_companies WHERE symbol IS NOT NULL"
+
+        if limit:
+            query += " LIMIT %s"
+            cur.execute(query, (limit,))
+        else:
+            cur.execute(query)
+
+        symbols = [row["symbol"] for row in cur.fetchall()]
+
+        cur.close()
+        conn.close()
+
+        logger.info(f"📌 Total symbols fetched: {len(symbols)}")
+        return symbols
+
+    # =========================================================
+    # FETCH COMPANY INFO
+    # =========================================================
+    def fetch_company_info(self, symbol):
+        try:
+            ticker = yf.Ticker(symbol)
+            info = ticker.info
+
+            return {
+                "symbol": symbol,
+                "marketCap": self.safe_bigint(info.get("marketCap")),
+                "currentPrice": self.safe_float(info.get("currentPrice")),
+                "previousClose": self.safe_float(info.get("previousClose")),
+                "change": self.safe_float(info.get("regularMarketChange")),
+                "changePercent": self.safe_float(info.get("regularMarketChangePercent")),
+                "volume": self.safe_bigint(info.get("volume")),
+                "high52Week": self.safe_float(info.get("fiftyTwoWeekHigh")),
+                "low52Week": self.safe_float(info.get("fiftyTwoWeekLow")),
+                "beta": self.safe_float(info.get("beta")),
+                "dividendYield": self.safe_float(info.get("dividendYield")),
+                "forwardPE": self.safe_float(info.get("forwardPE")),
+                "trailingPE": self.safe_float(info.get("trailingPE")),
+            }
+
+        except Exception as e:
+            logger.warning(f"⚠ Fetch failed for {symbol}: {e}")
+            return None
+
+    # =========================================================
+    # SAVE COMPANY (INSERT OR UPDATE)
+    # =========================================================
+    def save_company(self, cur, data):
+
+        sql = """
+        INSERT INTO companies (
+            symbol,
+            marketCap,
+            currentPrice,
+            previousClose,
+            `change`,
+            changePercent,
+            volume,
+            high52Week,
+            low52Week,
+            beta,
+            dividendYield,
+            forwardPE,
+            trailingPE
+        )
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        ON DUPLICATE KEY UPDATE
+            marketCap=VALUES(marketCap),
+            currentPrice=VALUES(currentPrice),
+            previousClose=VALUES(previousClose),
+            `change`=VALUES(`change`),
+            changePercent=VALUES(changePercent),
+            volume=VALUES(volume),
+            high52Week=VALUES(high52Week),
+            low52Week=VALUES(low52Week),
+            beta=VALUES(beta),
+            dividendYield=VALUES(dividendYield),
+            forwardPE=VALUES(forwardPE),
+            trailingPE=VALUES(trailingPE)
+        """
+
+        values = (
+            data["symbol"],
+            data["marketCap"],
+            data["currentPrice"],
+            data["previousClose"],
+            data["change"],
+            data["changePercent"],
+            data["volume"],
+            data["high52Week"],
+            data["low52Week"],
+            data["beta"],
+            data["dividendYield"],
+            data["forwardPE"],
+            data["trailingPE"],
+        )
+
+        cur.execute(sql, values)
+
+    # =========================================================
+    # MAIN CRON
+    # =========================================================
+    def fetch_and_save_all(self, limit=None):
+
+        logger.info("🔥 CRON JOB STARTED")
 
         try:
-            with db_manager.get_connection(self.db_name) as conn:
-                with conn.cursor() as cur:
+            self.create_table_if_not_exists()
+            symbols = self.get_symbols(limit)
 
-                    for idx, symbol in enumerate(symbols, start=1):
-                        data = self.fetch_company_info(symbol)
+            if not symbols:
+                logger.warning("No symbols found.")
+                return
 
-                        if not data:
-                            failed += 1
-                            continue
+            conn = db_manager.get_connection(config.DB_STOCK_MARKET)
+            cur = conn.cursor()
 
-                        self.save_company(cur, data)
-                        saved += 1
+            saved = 0
+            failed = 0
+            batch_counter = 0
 
-                        # Prevent rate limit
-                        time.sleep(self.symbol_delay)
+            for idx, symbol in enumerate(symbols, start=1):
 
-                        if idx % 50 == 0:
-                            logger.info(
-                                f"Progress: {idx}/{len(symbols)} | Saved={saved} | Failed={failed}"
-                            )
+                data = self.fetch_company_info(symbol)
 
-                conn.commit()
+                if not data:
+                    failed += 1
+                    continue
+
+                try:
+                    self.save_company(cur, data)
+                    saved += 1
+                    batch_counter += 1
+
+                    # Batch commit
+                    if batch_counter >= self.batch_size:
+                        conn.commit()
+                        batch_counter = 0
+
+                except Exception as e:
+                    conn.rollback()
+                    logger.warning(f"❌ DB save failed for {symbol}: {e}")
+                    failed += 1
+                    continue
+
+                time.sleep(self.symbol_delay)
+
+                if idx % 50 == 0:
+                    logger.info(
+                        f"Progress: {idx}/{len(symbols)} | Saved={saved} | Failed={failed}"
+                    )
+
+            # Final commit
+            conn.commit()
+
+            cur.close()
+            conn.close()
 
             logger.info(
-                f"Completed | Total={len(symbols)} | Saved={saved} | Failed={failed}"
+                f"✅ COMPLETED | Total={len(symbols)} | Saved={saved} | Failed={failed}"
             )
-            return saved
 
         except Exception:
-            logger.exception("Critical error during refresh")
-            return saved
+            logger.exception("❌ CRON JOB FAILED")
+
+        logger.info("🔥 CRON JOB FINISHED")
 
 
-company_profile_service = CompanyProfileService()
+# Singleton
+company_service = CompanyService()

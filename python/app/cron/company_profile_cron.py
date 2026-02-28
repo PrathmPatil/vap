@@ -1,31 +1,35 @@
 from apscheduler.schedulers.background import BackgroundScheduler
-from app.services.company_profile_service import company_profile_service
+from apscheduler.triggers.interval import IntervalTrigger
+from app.services.company_profile_service import company_service
 import logging
+import pytz
 
 logger = logging.getLogger(__name__)
 
-scheduler = BackgroundScheduler(timezone="Asia/Kolkata")
-
-
-def company_profile_job():
-    logger.info("🕒 CRON started: Fetching company profiles")
-
-    try:
-        saved_count = company_profile_service.fetch_and_save_all()
-        logger.info(f"✅ CRON completed successfully. Saved {saved_count} profiles")
-    except Exception as e:
-        logger.exception("❌ CRON failed while fetching company profiles")
+scheduler = BackgroundScheduler(timezone=pytz.timezone("Asia/Kolkata"))
 
 
 def start_company_profile_cron():
+
+    if scheduler.running:
+        logger.info("Scheduler already running")
+        return
+
+    # ✅ RUN IMMEDIATELY ON STARTUP
+    logger.info("🔥 Running company profile fetch immediately...")
+    company_service.fetch_and_save_all()
+
+    # ✅ THEN SCHEDULE HOURLY
     scheduler.add_job(
-        company_profile_job,
-        trigger="interval",
-        hours=10,                 # ✅ runs every hour
-        id="company_profile_cron",
+        func=company_service.fetch_and_save_all,
+        trigger=IntervalTrigger(hours=1),
+        id="fetch_companies",
         replace_existing=True,
-        max_instances=1
+        max_instances=1,
+        coalesce=True,
+        misfire_grace_time=300
     )
 
     scheduler.start()
+
     logger.info("🚀 Company profile CRON scheduled (every 1 hour)")
