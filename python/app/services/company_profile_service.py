@@ -14,9 +14,11 @@ logger = logging.getLogger(__name__)
 class CompanyService:
 
     def __init__(self):
-        self.symbol_delay = 1.8      # SAFE delay
-        self.batch_size = 50
+        # 🔥 EC2 Safe Config
+        self.symbol_delay = 2.2          # base delay between symbols
+        self.batch_size = 25             # commit every 25 inserts
         self.max_retries = 5
+        self.startup_delay = 10          # wait before starting cron
         logger.info("✅ CompanyService initialized")
 
     # ================= SAFE FLOAT =================
@@ -125,13 +127,18 @@ class CompanyService:
                 }
 
             except Exception as e:
-                error_msg = str(e)
+                error_msg = str(e).lower()
 
-                # Handle 429 Rate Limit
-                if "429" in error_msg or "Too Many Requests" in error_msg:
-                    wait_time = 2 ** attempt
+                # 🔥 Improved Rate Limit Detection
+                if (
+                    "429" in error_msg
+                    or "too many requests" in error_msg
+                    or "rate limit" in error_msg
+                ):
+                    wait_time = (2 ** attempt) + random.uniform(0.5, 1.5)
                     logger.warning(
-                        f"⚠ {symbol} Rate Limited. Waiting {wait_time}s (attempt {attempt+1})"
+                        f"⚠ {symbol} Rate Limited. Waiting {round(wait_time,2)}s "
+                        f"(attempt {attempt+1}/{self.max_retries})"
                     )
                     time.sleep(wait_time)
                     continue
@@ -172,11 +179,15 @@ class CompanyService:
         cur.execute(sql, values)
 
     # ================= MAIN CRON =================
-    def fetch_and_save_all(self, limit=None):
+    def fetch_and_save_all(self, limit=100):
 
         logger.info("🔥 CRON JOB STARTED")
 
         try:
+            # 🔥 Prevent immediate hammering after container restart
+            logger.info(f"⏳ Waiting {self.startup_delay}s before starting...")
+            time.sleep(self.startup_delay)
+
             self.create_table_if_not_exists()
             symbols = self.get_symbols(limit)
 
@@ -214,11 +225,11 @@ class CompanyService:
                     failed += 1
                     continue
 
-                # 🔥 Randomized delay (anti-bot safe)
-                sleep_time = self.symbol_delay + random.uniform(0.2, 0.7)
+                # 🔥 Safe randomized delay
+                sleep_time = self.symbol_delay + random.uniform(0.3, 1.0)
                 time.sleep(sleep_time)
 
-                if idx % 50 == 0:
+                if idx % 25 == 0:
                     logger.info(
                         f"Progress: {idx}/{len(symbols)} | Saved={saved} | Failed={failed}"
                     )
