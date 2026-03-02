@@ -1,252 +1,63 @@
 import time
-import logging
-import math
 import random
-import pymysql
+import logging
+import requests
 import yfinance as yf
-
-from app.database.connection import db_manager
-from app.config import config
 
 logger = logging.getLogger(__name__)
 
-
-class CompanyService:
-
+class CompanyProfileService:
     def __init__(self):
-        # 🔥 EC2 Safe Config
-        self.symbol_delay = 2.2          # base delay between symbols
-        self.batch_size = 25             # commit every 25 inserts
-        self.max_retries = 5
-        self.startup_delay = 10          # wait before starting cron
-        logger.info("✅ CompanyService initialized")
+        # Professional User-Agents to avoid "Python-Requests" detection
+        self.user_agents = [
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36",
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Safari/537.36",
+            "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36"
+        ]
 
-    # ================= SAFE FLOAT =================
-    def safe_float(self, value):
-        try:
-            if value is None:
-                return None
-            value = float(value)
-            if math.isnan(value) or math.isinf(value):
-                return None
-            return value
-        except Exception:
-            return None
+    def fetch_and_save_all(self):
+        logger.info("🔥 CRON JOB STARTED: Fetching Company Profiles")
+        
+        # 1. Get your symbols (example list)
+        symbols = ["20MICRONS.NS", "21STCENMGM.NS", "360ONE.NS", "3IINFOLTD.NS"] 
+        
+        # 2. Setup Session
+        session = requests.Session()
+        
+        success_count = 0
+        fail_count = 0
 
-    # ================= SAFE BIGINT =================
-    def safe_bigint(self, value):
-        try:
-            if value is None:
-                return None
-            value = int(value)
-            if value > 9223372036854775807:
-                return None
-            return value
-        except Exception:
-            return None
-
-    # ================= CREATE TABLE =================
-    def create_table_if_not_exists(self):
-        conn = db_manager.get_connection(config.DB_STOCK_MARKET)
-        cur = conn.cursor()
-
-        cur.execute("""
-        CREATE TABLE IF NOT EXISTS companies (
-            id INT AUTO_INCREMENT PRIMARY KEY,
-            symbol VARCHAR(20) NOT NULL UNIQUE,
-            marketCap BIGINT NULL,
-            currentPrice DECIMAL(15,4) NULL,
-            previousClose DECIMAL(15,4) NULL,
-            `change` DECIMAL(15,4) NULL,
-            changePercent DECIMAL(10,4) NULL,
-            volume BIGINT NULL,
-            high52Week DECIMAL(15,4) NULL,
-            low52Week DECIMAL(15,4) NULL,
-            beta DECIMAL(10,4) NULL,
-            dividendYield DECIMAL(10,6) NULL,
-            forwardPE DECIMAL(10,4) NULL,
-            trailingPE DECIMAL(10,4) NULL,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                ON UPDATE CURRENT_TIMESTAMP,
-            INDEX idx_symbol (symbol)
-        );
-        """)
-
-        conn.commit()
-        cur.close()
-        conn.close()
-        logger.info("✅ Companies table ready")
-
-    # ================= GET SYMBOLS =================
-    def get_symbols(self, limit=None):
-        conn = db_manager.get_connection(config.DB_STOCK_MARKET)
-        cur = conn.cursor(pymysql.cursors.DictCursor)
-
-        query = "SELECT symbol FROM listed_companies WHERE symbol IS NOT NULL"
-
-        if limit:
-            query += " LIMIT %s"
-            cur.execute(query, (limit,))
-        else:
-            cur.execute(query)
-
-        symbols = [row["symbol"] for row in cur.fetchall()]
-
-        cur.close()
-        conn.close()
-
-        logger.info(f"📌 Total symbols fetched: {len(symbols)}")
-        return symbols
-
-    # ================= FETCH INFO WITH RETRY =================
-    def fetch_company_info(self, symbol):
-
-        for attempt in range(self.max_retries):
+        for symbol in symbols:
             try:
-                ticker = yf.Ticker(symbol)
-                info = ticker.info
+                # Rotate User-Agent for every request
+                session.headers.update({"User-Agent": random.choice(self.user_agents)})
+                
+                logger.info(f"⏳ Fetching data for: {symbol}")
+                
+                # Fetch using yfinance with the session
+                ticker = yf.Ticker(symbol, session=session)
+                info = ticker.info # This triggers the network request
+                
+                if info and 'symbol' in info:
+                    # TODO: Add your DB save logic here
+                    # db.save(info)
+                    success_count += 1
+                    logger.info(f"✅ Successfully fetched: {symbol}")
+                else:
+                    logger.warning(f"⚠️ No data returned for: {symbol}")
+                    fail_count += 1
 
-                if not info:
-                    return None
-
-                return {
-                    "symbol": symbol,
-                    "marketCap": self.safe_bigint(info.get("marketCap")),
-                    "currentPrice": self.safe_float(info.get("currentPrice")),
-                    "previousClose": self.safe_float(info.get("previousClose")),
-                    "change": self.safe_float(info.get("regularMarketChange")),
-                    "changePercent": self.safe_float(info.get("regularMarketChangePercent")),
-                    "volume": self.safe_bigint(info.get("volume")),
-                    "high52Week": self.safe_float(info.get("fiftyTwoWeekHigh")),
-                    "low52Week": self.safe_float(info.get("fiftyTwoWeekLow")),
-                    "beta": self.safe_float(info.get("beta")),
-                    "dividendYield": self.safe_float(info.get("dividendYield")),
-                    "forwardPE": self.safe_float(info.get("forwardPE")),
-                    "trailingPE": self.safe_float(info.get("trailingPE")),
-                }
-
-            except Exception as e:
-                error_msg = str(e).lower()
-
-                # 🔥 Improved Rate Limit Detection
-                if (
-                    "429" in error_msg
-                    or "too many requests" in error_msg
-                    or "rate limit" in error_msg
-                ):
-                    wait_time = (2 ** attempt) + random.uniform(0.5, 1.5)
-                    logger.warning(
-                        f"⚠ {symbol} Rate Limited. Waiting {round(wait_time,2)}s "
-                        f"(attempt {attempt+1}/{self.max_retries})"
-                    )
-                    time.sleep(wait_time)
-                    continue
-
-                logger.warning(f"⚠ Fetch failed for {symbol}: {e}")
-                return None
-
-        logger.error(f"❌ Failed after retries: {symbol}")
-        return None
-
-    # ================= SAVE =================
-    def save_company(self, cur, data):
-
-        sql = """
-        INSERT INTO companies (
-            symbol, marketCap, currentPrice, previousClose,
-            `change`, changePercent, volume,
-            high52Week, low52Week, beta,
-            dividendYield, forwardPE, trailingPE
-        )
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-        ON DUPLICATE KEY UPDATE
-            marketCap=VALUES(marketCap),
-            currentPrice=VALUES(currentPrice),
-            previousClose=VALUES(previousClose),
-            `change`=VALUES(`change`),
-            changePercent=VALUES(changePercent),
-            volume=VALUES(volume),
-            high52Week=VALUES(high52Week),
-            low52Week=VALUES(low52Week),
-            beta=VALUES(beta),
-            dividendYield=VALUES(dividendYield),
-            forwardPE=VALUES(forwardPE),
-            trailingPE=VALUES(trailingPE)
-        """
-
-        values = tuple(data.values())
-        cur.execute(sql, values)
-
-    # ================= MAIN CRON =================
-    def fetch_and_save_all(self, limit=100):
-
-        logger.info("🔥 CRON JOB STARTED")
-
-        try:
-            # 🔥 Prevent immediate hammering after container restart
-            logger.info(f"⏳ Waiting {self.startup_delay}s before starting...")
-            time.sleep(self.startup_delay)
-
-            self.create_table_if_not_exists()
-            symbols = self.get_symbols(limit)
-
-            if not symbols:
-                logger.warning("No symbols found.")
-                return
-
-            conn = db_manager.get_connection(config.DB_STOCK_MARKET)
-            cur = conn.cursor()
-
-            saved = 0
-            failed = 0
-            batch_counter = 0
-
-            for idx, symbol in enumerate(symbols, start=1):
-
-                data = self.fetch_company_info(symbol)
-
-                if not data:
-                    failed += 1
-                    continue
-
-                try:
-                    self.save_company(cur, data)
-                    saved += 1
-                    batch_counter += 1
-
-                    if batch_counter >= self.batch_size:
-                        conn.commit()
-                        batch_counter = 0
-
-                except Exception as e:
-                    conn.rollback()
-                    logger.warning(f"❌ DB save failed for {symbol}: {e}")
-                    failed += 1
-                    continue
-
-                # 🔥 Safe randomized delay
-                sleep_time = self.symbol_delay + random.uniform(0.3, 1.0)
+                # --- THE MOST IMPORTANT PART FOR SERVERS ---
+                # Random sleep between 3 to 10 seconds to avoid IP block
+                sleep_time = random.uniform(3, 10)
                 time.sleep(sleep_time)
 
-                if idx % 25 == 0:
-                    logger.info(
-                        f"Progress: {idx}/{len(symbols)} | Saved={saved} | Failed={failed}"
-                    )
+            except Exception as e:
+                logger.error(f"❌ Error fetching {symbol}: {str(e)}")
+                fail_count += 1
+                # If we hit an error, wait longer before trying next symbol
+                time.sleep(20) 
 
-            conn.commit()
-            cur.close()
-            conn.close()
+        logger.info(f"🏁 Sync Completed. Success: {success_count} | Failed: {fail_count}")
 
-            logger.info(
-                f"✅ COMPLETED | Total={len(symbols)} | Saved={saved} | Failed={failed}"
-            )
-
-        except Exception:
-            logger.exception("❌ CRON JOB FAILED")
-
-        logger.info("🔥 CRON JOB FINISHED")
-
-
-# Singleton
-company_service = CompanyService()
+company_service = CompanyProfileService()
