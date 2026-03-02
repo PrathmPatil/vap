@@ -121,6 +121,7 @@ def initialize_cron_jobs():
         # ("Today's Bhavcopy cron", fetch_today_bhavcopy_cron),
         # ("BSE Announcements cron", start_bse_announcements_scheduler)
     ]
+    
 
     for name, func in cron_services:
         try:
