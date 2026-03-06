@@ -101,13 +101,18 @@ export const getIpoData = async (
 };
 
 // reportsCount
-export const getIpoReportsCount = async (reportTypes: string[]): Promise<{ success: boolean; reportType: { mainboard_data: number; sme_data: number } }> => {
-  return callApi<{ success: boolean; reportType: { mainboard_data: number; sme_data: number } }>({
-    url: 'ipo/finnhub/reportsCount',
-    method: 'POST',
-    data: reportTypes,
+export const getIpoReportsCount = async (
+  reportTypes: string[]
+): Promise<{ success: boolean; counts: { mainboard_data: number; sme_data: number } }> => {
+  return callApi<{
+    success: boolean;
+    counts: { mainboard_data: number; sme_data: number };
+  }>({
+    url: "ipo/finnhub/reportsCount",
+    method: "POST",
+    data: { reportTypes },   // ✅ correct payload
   });
-}
+};
 
 // -----------------------------
 // BSE Announcements

@@ -58,7 +58,9 @@ export interface IpoResponse2 {
 }
 
 const Index = () => {
-  const [ipoType, setIpoType] = useState<"mainboard_data" | "sme_data">("mainboard_data");
+  const [ipoType, setIpoType] = useState<"mainboard_data" | "sme_data">(
+    "mainboard_data",
+  );
   const [ipoData, setIpoData] = useState<{
     mainboard_data: IpoResponse;
     sme_data: IpoResponse;
@@ -75,27 +77,24 @@ const Index = () => {
     key: null,
     direction: "asc",
   });
-  const [reportCounts, setReportCounts] = useState<{ mainboard_data: number; sme_data: number }>({ mainboard_data: 0, sme_data: 0 });
+  const [reportCounts, setReportCounts] = useState<{
+    mainboard_data: number;
+    sme_data: number;
+  }>({ mainboard_data: 0, sme_data: 0 });
 
   // Fetch data for selected IPO type
   const fetchIpoData = async (type: "mainboard_data" | "sme_data") => {
     setLoading(true);
+
     try {
       const response = await getIpoData(type, currentPage, recordsPerPage);
-      const countResponse = await getIpoReportsCount({ "reportTypes": ["mainboard_data", "sme_data"] });
-
-      if(countResponse.success) {
-        setReportCounts(countResponse.counts);
-      }else {
-        setReportCounts({ mainboard_data: 0, sme_data: 0 });
-        console.error("Failed to fetch report counts:", countResponse.message);
-      }
 
       if (response.success) {
         setIpoData((prev) => ({
           ...prev,
           [type]: response,
         }));
+
         setError(null);
       } else {
         setError(response.message || "Failed to fetch data");
@@ -108,7 +107,29 @@ const Index = () => {
     }
   };
 
+  const fetchReportCounts = async () => {
+    try {
+      const countResponse = await getIpoReportsCount([
+        "mainboard_data",
+        "sme_data",
+      ]);
+
+      if (countResponse.success) {
+        setReportCounts(countResponse.counts);
+      } else {
+        setReportCounts({ mainboard_data: 0, sme_data: 0 });
+        console.error("Failed to fetch report counts:", countResponse?.message);
+      }
+    } catch (err) {
+      console.error("Error fetching report counts:", err);
+    }
+  };
+
   // Fetch IPO data when tab, page, or records per page change
+  useEffect(() => {
+    fetchReportCounts();
+  }, []);
+
   useEffect(() => {
     fetchIpoData(ipoType);
   }, [ipoType, currentPage, recordsPerPage]);
@@ -200,8 +221,12 @@ const Index = () => {
                 loading={loading}
                 currentPage={currentPage}
                 recordsPerPage={recordsPerPage}
-                totalItems={ipoData[type as "mainboard_data" | "sme_data"].total}
-                totalPages={ipoData[type as "mainboard_data" | "sme_data"].pages}
+                totalItems={
+                  ipoData[type as "mainboard_data" | "sme_data"].total
+                }
+                totalPages={
+                  ipoData[type as "mainboard_data" | "sme_data"].pages
+                }
                 onPageChange={handlePageChange}
                 onRecordsPerPageChange={handleRecordsPerPageChange}
                 sortConfig={sortConfig}
