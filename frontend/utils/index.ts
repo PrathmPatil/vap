@@ -288,4 +288,15 @@ export const getFinnhubData = async (type: string, params?: any): Promise<any> =
   });
 }
 
-
+export const getDynamicData = async (
+  dynamicURL: string,
+  page = 1,
+  limit = 10,
+  searchTerm = ''
+): Promise<any> => {
+  return callApi<any>({
+    url: `${dynamicURL}`,
+    method: 'GET',
+    params: { page, limit, search: searchTerm }
+  });
+}

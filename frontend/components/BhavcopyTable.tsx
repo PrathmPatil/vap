@@ -8,6 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '.
 import { Button } from './ui/button';
 import { formatCellValue } from '@/lib/utils';
 import { Skeleton } from './ui/skeleton';
+import { getDynamicData } from '@/utils';
 
 interface ApiResponse<T> {
   success: boolean;
@@ -44,14 +45,13 @@ export function BhavcopyTable({
     const fetchData = async () => {
       setLoading(true);
       try {
-        const url = `${baseURL}/${dynamicURL}?page=${currentPage}&limit=${limit}${searchTerm ? `&search=${encodeURIComponent(searchTerm)}` : ''}`;
-        const response = await fetch(url);
-
-        if (response.ok) {
-          const data: ApiResponse<Record<string, any>> = await response.json();
-          setRows(data.data || []);
-          setTotalPages(data.pages || 1);
-          setTotalItems(data.total || 0);
+        const response = await getDynamicData(dynamicURL, currentPage, limit, searchTerm);
+        console.log(response);
+        const {data, pages, success, total, page} = response;
+        if (success) {
+          setRows(data || []);
+          setTotalPages(pages || 1);
+          setTotalItems(total || 0);
         }
       } catch (error) {
         console.error(`Failed to fetch ${dynamicURL}:`, error);
