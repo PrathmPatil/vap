@@ -5,6 +5,7 @@ import { MarketOverview } from "@/components/MarketOverview";
 // import { StockCharts } from "@/components/StockCharts";
 import { CompaniesTable } from "@/components/CompaniesTable";
 import { FailedSymbols } from "@/components/FailedSymbols";
+import MarketDataDashboard from "@/components/MarketDataDashboard";
 
 
 export default function Home() {
@@ -38,6 +39,8 @@ export default function Home() {
 
           {/* Failed Symbols */}
           <FailedSymbols />
+
+          <MarketDataDashboard />
         </div>
       </main>
     </div>

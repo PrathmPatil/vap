@@ -30,7 +30,7 @@ export function BhavcopyTable({
   description = 'Browse and search through data',
   columns
 }: DynamicTableProps) {
-  const baseURL = process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:8000/vap';
+  const baseURL =  process.env.NEXT_PUBLIC_API_URL;
   
   const [rows, setRows] = useState<Record<string, any>[]>([]);
   const [loading, setLoading] = useState(true);

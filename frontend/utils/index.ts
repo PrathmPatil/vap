@@ -100,6 +100,15 @@ export const getIpoData = async (
   });
 };
 
+// reportsCount
+export const getIpoReportsCount = async (reportTypes: string[]): Promise<{ success: boolean; reportType: { mainboard_data: number; sme_data: number } }> => {
+  return callApi<{ success: boolean; reportType: { mainboard_data: number; sme_data: number } }>({
+    url: 'ipo/finnhub/reportsCount',
+    method: 'POST',
+    data: reportTypes,
+  });
+}
+
 // -----------------------------
 // BSE Announcements
 // -----------------------------
@@ -264,3 +273,19 @@ export interface ListedCompaniesApiResponse {
   total?: number;
   message?: string;
 }
+
+// finnhub/
+// | earnings_calendar              |
+// | ipo_calendar                   |
+// | market_holiday                 |
+// | market_status
+
+export const getFinnhubData = async (type: string, params?: any): Promise<any> => {
+  return callApi<any>({
+    url: `finnhub/${type}`,
+    method: 'GET',
+    params
+  });
+}
+
+

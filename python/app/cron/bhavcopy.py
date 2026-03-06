@@ -8,7 +8,7 @@ from app.services.bhavcopy_service import bhavcopy_service
 logger = logging.getLogger(__name__)
 
 # IST timezone
-IST = timezone(timedelta(hours=5, minutes=30))
+IST = timezone(timedelta(hours=7, minutes=00))
 
 scheduler = BackgroundScheduler(timezone=IST)
 

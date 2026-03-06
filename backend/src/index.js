@@ -105,6 +105,7 @@ import ipoRoutes from './routes/ipoDataRoutes.js';
 import announcementsRoutes from './routes/announcementsRoutes.js';
 import govNewsRouter from './routes/govNewsRouter.js';
 import indicesRoute from './routes/ingestRoutes.js';
+import finnhubRoute from './routes/finnhubRoutes.js';``
 
 import {
   sequelizeStockMarket,
@@ -199,6 +200,7 @@ app.use('/vap/ipo', ipoRoutes);
 app.use('/vap/bse-news', announcementsRoutes);
 app.use('/vap/gov-news', govNewsRouter);
 app.use('/vap/indices', indicesRoute);
+app.use('/vap/finnhub', finnhubRoute);
 
 app.get('/vap/welcome', (req, res) => {
   res.send('📂 Welcome to the Corporate Events Ingestion API.');

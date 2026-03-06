@@ -1,9 +1,15 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Skeleton } from '@/components/ui/skeleton';
+import { useEffect, useState, useMemo } from "react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Table,
   TableBody,
@@ -11,9 +17,10 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table';
-import { AlertTriangle, Clock, XCircle } from 'lucide-react';
-import { getFailedSymbolsList } from '@/utils';
+} from "@/components/ui/table";
+import { Button } from "@/components/ui/button";
+import { AlertTriangle, Clock, XCircle } from "lucide-react";
+import { getFailedSymbolsList } from "@/utils";
 
 interface FailedSymbol {
   id: number;
@@ -33,30 +40,23 @@ export function FailedSymbols() {
   const [failedSymbols, setFailedSymbols] = useState<FailedSymbol[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // ✅ Pagination states
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
+
   useEffect(() => {
     const fetchFailedSymbols = async () => {
       try {
-        // OPTION 1: Type assertion (quick fix)
-        const response = await getFailedSymbolsList() as FailedSymbolsResponse;
-        
-        // OPTION 2: Type guard approach (safer)
-        // const response = await getFailedSymbolsList();
-        // if (!response || typeof response !== 'object') {
-        //   throw new Error('Invalid response format');
-        // }
-        // const data = response as FailedSymbolsResponse;
-        
-        // Check if the response indicates success
-        if (response.success) {
-          // The data is already in the response object, no need to parse JSON
-          if (response.data) {
-            setFailedSymbols(response.data);
-          }
+        const response =
+          (await getFailedSymbolsList()) as FailedSymbolsResponse;
+
+        if (response.success && response.data) {
+          setFailedSymbols(response.data);
         } else {
-          console.error('Failed to fetch symbols:', response.message);
+          console.error("Failed to fetch symbols:", response.message);
         }
       } catch (error) {
-        console.error('Failed to fetch failed symbols:', error);
+        console.error("Failed to fetch failed symbols:", error);
       } finally {
         setLoading(false);
       }
@@ -65,25 +65,60 @@ export function FailedSymbols() {
     fetchFailedSymbols();
   }, []);
 
+  // ✅ Pagination calculations
+  const totalPages = Math.ceil(failedSymbols.length / itemsPerPage);
+
+  const paginatedData = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    return failedSymbols.slice(startIndex, startIndex + itemsPerPage);
+  }, [failedSymbols, currentPage]);
+
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
+    return new Date(dateString).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
     });
   };
 
   const getReasonType = (reason: string) => {
     const lowerReason = reason.toLowerCase();
-    if (lowerReason.includes('not found') || lowerReason.includes('invalid')) {
-      return { type: 'error', icon: XCircle };
+    if (lowerReason.includes("not found") || lowerReason.includes("invalid")) {
+      return { type: "error", icon: XCircle };
     }
-    if (lowerReason.includes('timeout') || lowerReason.includes('connection')) {
-      return { type: 'warning', icon: Clock };
+    if (lowerReason.includes("timeout") || lowerReason.includes("connection")) {
+      return { type: "warning", icon: Clock };
     }
-    return { type: 'default', icon: AlertTriangle };
+    return { type: "default", icon: AlertTriangle };
+  };
+
+  const handleNext = () => {
+    if (currentPage < totalPages) setCurrentPage((prev) => prev + 1);
+  };
+
+  const handlePrevious = () => {
+    if (currentPage > 1) setCurrentPage((prev) => prev - 1);
+  };
+
+  const getVisiblePages = () => {
+    const pages = [];
+    const maxVisible = 5;
+
+    let start = Math.max(1, currentPage - Math.floor(maxVisible / 2));
+    let end = start + maxVisible - 1;
+
+    if (end > totalPages) {
+      end = totalPages;
+      start = Math.max(1, end - maxVisible + 1);
+    }
+
+    for (let i = start; i <= end; i++) {
+      pages.push(i);
+    }
+
+    return pages;
   };
 
   return (
@@ -98,6 +133,7 @@ export function FailedSymbols() {
             Symbols that encountered issues during data processing
           </CardDescription>
         </CardHeader>
+
         <CardContent>
           {loading ? (
             <div className="space-y-4">
@@ -116,20 +152,28 @@ export function FailedSymbols() {
                   <AlertTriangle className="h-8 w-8 text-green-600" />
                 </div>
               </div>
-              <h3 className="text-lg font-semibold text-slate-900 mb-2">All Clear!</h3>
-              <p className="text-slate-600">No failed symbols found. All systems running smoothly.</p>
+              <h3 className="text-lg font-semibold text-slate-900 mb-2">
+                All Clear!
+              </h3>
+              <p className="text-slate-600">
+                No failed symbols found. All systems running smoothly.
+              </p>
             </div>
           ) : (
             <div className="space-y-4">
+              {/* Header Info */}
               <div className="flex items-center justify-between">
                 <div className="text-sm text-slate-600">
-                  {failedSymbols.length} symbol{failedSymbols.length !== 1 ? 's' : ''} with issues
+                  Showing {(currentPage - 1) * itemsPerPage + 1}–
+                  {Math.min(currentPage * itemsPerPage, failedSymbols.length)}{" "}
+                  of {failedSymbols.length}
                 </div>
                 <Badge variant="destructive">
                   {failedSymbols.length} Failed
                 </Badge>
               </div>
-              
+
+              {/* Table */}
               <div className="rounded-lg border">
                 <Table>
                   <TableHeader>
@@ -141,10 +185,10 @@ export function FailedSymbols() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {failedSymbols.map((failed) => {
+                    {paginatedData.map((failed) => {
                       const reasonInfo = getReasonType(failed.reason);
                       const ReasonIcon = reasonInfo.icon;
-                      
+
                       return (
                         <TableRow key={failed.id}>
                           <TableCell className="font-mono font-semibold text-red-600">
@@ -153,18 +197,32 @@ export function FailedSymbols() {
                           <TableCell>
                             <div className="flex items-center space-x-2">
                               <ReasonIcon className="h-4 w-4 text-slate-400" />
-                              <span className="max-w-md truncate">{failed.reason}</span>
+                              <span className="max-w-md truncate">
+                                {failed.reason}
+                              </span>
                             </div>
                           </TableCell>
                           <TableCell className="flex items-center space-x-1">
                             <Clock className="h-3 w-3 text-slate-400" />
-                            <span className="text-sm">{formatDate(failed.created_at)}</span>
+                            <span className="text-sm">
+                              {formatDate(failed.created_at)}
+                            </span>
                           </TableCell>
                           <TableCell>
-                            <Badge 
-                              variant={reasonInfo.type === 'error' ? 'destructive' : reasonInfo.type === 'warning' ? 'outline' : 'secondary'}
+                            <Badge
+                              variant={
+                                reasonInfo.type === "error"
+                                  ? "destructive"
+                                  : reasonInfo.type === "warning"
+                                    ? "outline"
+                                    : "secondary"
+                              }
                             >
-                              {reasonInfo.type === 'error' ? 'Error' : reasonInfo.type === 'warning' ? 'Warning' : 'Issue'}
+                              {reasonInfo.type === "error"
+                                ? "Error"
+                                : reasonInfo.type === "warning"
+                                  ? "Warning"
+                                  : "Issue"}
                             </Badge>
                           </TableCell>
                         </TableRow>
@@ -172,6 +230,38 @@ export function FailedSymbols() {
                     })}
                   </TableBody>
                 </Table>
+              </div>
+
+              {/* ✅ Pagination Controls */}
+              <div className="flex items-center justify-center space-x-2 pt-4">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handlePrevious}
+                  disabled={currentPage === 1}
+                >
+                  Previous
+                </Button>
+
+                {getVisiblePages().map((page) => (
+                  <Button
+                    key={page}
+                    size="sm"
+                    variant={currentPage === page ? "default" : "outline"}
+                    onClick={() => setCurrentPage(page)}
+                  >
+                    {page}
+                  </Button>
+                ))}
+
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleNext}
+                  disabled={currentPage === totalPages}
+                >
+                  Next
+                </Button>
               </div>
             </div>
           )}

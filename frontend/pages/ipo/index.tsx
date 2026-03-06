@@ -3,7 +3,7 @@ import Navigation from "@/components/Navigation";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { getIpoData } from "@/utils";
+import { getIpoData, getIpoReportsCount } from "@/utils";
 import { useEffect, useState } from "react";
 
 // Types
@@ -75,12 +75,21 @@ const Index = () => {
     key: null,
     direction: "asc",
   });
+  const [reportCounts, setReportCounts] = useState<{ mainboard_data: number; sme_data: number }>({ mainboard_data: 0, sme_data: 0 });
 
   // Fetch data for selected IPO type
   const fetchIpoData = async (type: "mainboard_data" | "sme_data") => {
     setLoading(true);
     try {
       const response = await getIpoData(type, currentPage, recordsPerPage);
+      const countResponse = await getIpoReportsCount({ "reportTypes": ["mainboard_data", "sme_data"] });
+
+      if(countResponse.success) {
+        setReportCounts(countResponse.counts);
+      }else {
+        setReportCounts({ mainboard_data: 0, sme_data: 0 });
+        console.error("Failed to fetch report counts:", countResponse.message);
+      }
 
       if (response.success) {
         setIpoData((prev) => ({
@@ -178,7 +187,7 @@ const Index = () => {
               <TabsTrigger key={type} value={type}>
                 {type === "mainboard_data" ? "Mainboard" : "SME"}
                 <Badge className="ml-2">
-                  {ipoData[type as "mainboard_data" | "sme_data"].total}
+                  {reportCounts[type as "mainboard_data" | "sme_data"]}
                 </Badge>
               </TabsTrigger>
             ))}

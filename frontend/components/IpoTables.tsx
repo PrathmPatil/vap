@@ -1,11 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from "react";
-import Navigation from "@/components/Navigation";
-import { Skeleton } from "@/components/ui/skeleton";
-import { getIpoData } from "@/utils";
-
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import React, { useMemo } from "react";
 import {
   Table,
   TableHeader,
@@ -15,44 +10,39 @@ import {
   TableCell,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
-  ChevronLeft,
-  ChevronRight,
   ArrowUpDown,
   ArrowUp,
   ArrowDown,
 } from "lucide-react";
 
-const ITEMS_PER_PAGE_OPTIONS = [5, 10, 20, 50];
-
 // Types
 interface IpoData {
   id: number;
-  Company_Name: string;
-  Close_Date: string;
-  Open_Date: string;
-  QIB_x_: string;
-  NII_x_: string;
-  Retail_x_: string;
-  Applications: string;
-  Total_x_: string;
-  _Highlight_Row: string;
-  _Issue_Open_Date: string;
-  _Issue_Close_Date: string;
   _id: string;
   _URLRewrite_Folder_Name: string;
-  Total_Issue_Amount_Incl_Firm_reservations_Rs_cr_: string;
   created_at: string;
   type: "mainboard_data" | "sme_data";
-}
 
-interface IpoResponse {
-  success: boolean;
-  total: number;
-  page: number;
-  pages: number;
-  data: IpoData[];
+  Company_Name?: string;
+  Open_Date?: string;
+  Close_Date?: string;
+  _Issue_Open_Date?: string;
+  _Issue_Close_Date?: string;
+
+  QIB_x_?: string;
+  NII_x_?: string;
+  bNII_x_?: string;
+  sNII_x_?: string;
+  Retail_x_?: string;
+  Employee_x_?: string;
+  Shareholder_x_?: string;
+  Others_x_?: string;
+  Total_x_?: string;
+
+  Applications?: string;
+  Total_Issue_Amount_Incl_Firm_reservations_Rs_cr_?: string;
 }
 
 interface SortConfig {
@@ -60,17 +50,23 @@ interface SortConfig {
   direction: "asc" | "desc";
 }
 
-// Sortable Table Header Component
+interface Props {
+  data: IpoData[];
+  loading: boolean;
+  sortConfig: SortConfig;
+  onSort: (key: keyof IpoData) => void;
+}
+
+// Sortable Header Component
 const SortableHeader: React.FC<{
   column: string;
   sortKey: keyof IpoData;
   sortConfig: SortConfig;
   onSort: (key: keyof IpoData) => void;
-  className?: string;
-}> = ({ column, sortKey, sortConfig, onSort, className }) => {
+}> = ({ column, sortKey, sortConfig, onSort }) => {
   return (
     <TableHead
-      className={`cursor-pointer hover:bg-gray-50 transition-colors ${className}`}
+      className="cursor-pointer hover:bg-gray-50 transition-colors"
       onClick={() => onSort(sortKey)}
     >
       <div className="flex items-center gap-1">
@@ -89,27 +85,9 @@ const SortableHeader: React.FC<{
   );
 };
 
-// IPO Table Component
-const IpoTable: React.FC<{
-  data: IpoData[];
-  loading: boolean;
-  currentPage: number;
-  recordsPerPage: number;
-  totalItems: number;
-  totalPages: number;
-  onPageChange: (page: number) => void;
-  onRecordsPerPageChange: (value: number) => void;
-  sortConfig: SortConfig;
-  onSort: (key: keyof IpoData) => void;
-}> = ({
+const IpoTable: React.FC<Props> = ({
   data,
   loading,
-  currentPage,
-  recordsPerPage,
-  totalItems,
-  totalPages,
-  onPageChange,
-  onRecordsPerPageChange,
   sortConfig,
   onSort,
 }) => {
@@ -119,6 +97,9 @@ const IpoTable: React.FC<{
     return [...data].sort((a, b) => {
       const aValue = a[sortConfig.key!];
       const bValue = b[sortConfig.key!];
+
+      if (!aValue) return 1;
+      if (!bValue) return -1;
 
       if (aValue < bValue) {
         return sortConfig.direction === "asc" ? -1 : 1;
@@ -130,208 +111,97 @@ const IpoTable: React.FC<{
     });
   }, [data, sortConfig]);
 
-  const handleRecordsPerPageChange = (
-    e: React.ChangeEvent<HTMLSelectElement>
-  ) => {
-    onRecordsPerPageChange(parseInt(e.target.value));
-  };
-
-  const renderPaginationButtons = () => {
-    const buttons = [];
-    const maxVisiblePages = 5;
-
-    let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
-    let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
-
-    if (endPage - startPage + 1 < maxVisiblePages) {
-      startPage = Math.max(1, endPage - maxVisiblePages + 1);
-    }
-
-    for (let i = startPage; i <= endPage; i++) {
-      buttons.push(
-        <Button
-          key={i}
-          size="sm"
-          variant={currentPage === i ? "default" : "outline"}
-          onClick={() => onPageChange(i)}
-        >
-          {i}
-        </Button>
-      );
-    }
-
-    return buttons;
-  };
-
   if (loading) {
     return (
-      <div className="space-y-4">
-        <div className="flex items-center gap-2">
-          <Skeleton className="h-10 w-40" />
-          <Skeleton className="h-10 w-32" />
-        </div>
-        <div className="space-y-2">
-          {[...Array(5)].map((_, i) => (
-            <Skeleton key={i} className="h-12 w-full" />
-          ))}
-        </div>
+      <div className="space-y-2">
+        {[...Array(6)].map((_, i) => (
+          <Skeleton key={i} className="h-12 w-full" />
+        ))}
       </div>
     );
   }
 
   return (
-    <div className="space-y-4">
-      {/* Table */}
-      <div className="rounded-lg border border-gray-200 bg-white">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <SortableHeader
-                column="Company Name"
-                sortKey="Company_Name"
-                sortConfig={sortConfig}
-                onSort={onSort}
-              />
-              <SortableHeader
-                column="Open Date"
-                sortKey="Open_Date"
-                sortConfig={sortConfig}
-                onSort={onSort}
-              />
-              <SortableHeader
-                column="Close Date"
-                sortKey="Close_Date"
-                sortConfig={sortConfig}
-                onSort={onSort}
-              />
-              <SortableHeader
-                column="QIB (%)"
-                sortKey="QIB_x_"
-                sortConfig={sortConfig}
-                onSort={onSort}
-              />
-              <SortableHeader
-                column="NII (%)"
-                sortKey="NII_x_"
-                sortConfig={sortConfig}
-                onSort={onSort}
-              />
-              <SortableHeader
-                column="Retail (%)"
-                sortKey="Retail_x_"
-                sortConfig={sortConfig}
-                onSort={onSort}
-              />
-              <SortableHeader
-                column="Applications"
-                sortKey="Applications"
-                sortConfig={sortConfig}
-                onSort={onSort}
-              />
-              <SortableHeader
-                column="Total (%)"
-                sortKey="Total_x_"
-                sortConfig={sortConfig}
-                onSort={onSort}
-              />
-              <SortableHeader
-                column="Issue Amount (Cr)"
-                sortKey="Total_Issue_Amount_Incl_Firm_reservations_Rs_cr_"
-                sortConfig={sortConfig}
-                onSort={onSort}
-              />
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {sortedData.length > 0 ? (
-              sortedData.map((ipo) => (
-                <TableRow key={ipo.id} className="hover:bg-gray-50">
-                  <TableCell className="font-medium">
-                    <a
-                      href={`/ipo/${ipo._URLRewrite_Folder_Name}`}
-                      className="text-blue-600 hover:text-blue-800 hover:underline transition-colors"
-                    >
-                      {ipo.Company_Name}
-                    </a>
-                  </TableCell>
-                  <TableCell>{ipo.Open_Date}</TableCell>
-                  <TableCell>{ipo.Close_Date}</TableCell>
-                  <TableCell>{ipo.QIB_x_}</TableCell>
-                  <TableCell>{ipo.NII_x_}</TableCell>
-                  <TableCell>{ipo.Retail_x_}</TableCell>
-                  <TableCell>{ipo.Applications}</TableCell>
-                  <TableCell className="font-semibold text-green-600">
-                    {ipo.Total_x_}
-                  </TableCell>
-                  <TableCell>
-                    {ipo.Total_Issue_Amount_Incl_Firm_reservations_Rs_cr_}
-                  </TableCell>
-                </TableRow>
-              ))
-            ) : (
-              <TableRow>
-                <TableCell
-                  colSpan={9}
-                  className="text-center py-8 text-gray-500"
-                >
-                  No IPOs available
+    <div className="rounded-lg border border-gray-200 bg-white overflow-x-auto">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Type</TableHead>
+            <SortableHeader column="Company" sortKey="Company_Name" sortConfig={sortConfig} onSort={onSort} />
+            <SortableHeader column="Open Date" sortKey="_Issue_Open_Date" sortConfig={sortConfig} onSort={onSort} />
+            <SortableHeader column="Close Date" sortKey="_Issue_Close_Date" sortConfig={sortConfig} onSort={onSort} />
+            <SortableHeader column="QIB" sortKey="QIB_x_" sortConfig={sortConfig} onSort={onSort} />
+            <SortableHeader column="NII" sortKey="NII_x_" sortConfig={sortConfig} onSort={onSort} />
+            <SortableHeader column="bNII" sortKey="bNII_x_" sortConfig={sortConfig} onSort={onSort} />
+            <SortableHeader column="sNII" sortKey="sNII_x_" sortConfig={sortConfig} onSort={onSort} />
+            <SortableHeader column="Retail" sortKey="Retail_x_" sortConfig={sortConfig} onSort={onSort} />
+            <SortableHeader column="Employee" sortKey="Employee_x_" sortConfig={sortConfig} onSort={onSort} />
+            <SortableHeader column="Shareholder" sortKey="Shareholder_x_" sortConfig={sortConfig} onSort={onSort} />
+            <SortableHeader column="Others" sortKey="Others_x_" sortConfig={sortConfig} onSort={onSort} />
+            <SortableHeader column="Total" sortKey="Total_x_" sortConfig={sortConfig} onSort={onSort} />
+            <SortableHeader column="Applications" sortKey="Applications" sortConfig={sortConfig} onSort={onSort} />
+            <SortableHeader
+              column="Issue Amount (Cr)"
+              sortKey="Total_Issue_Amount_Incl_Firm_reservations_Rs_cr_"
+              sortConfig={sortConfig}
+              onSort={onSort}
+            />
+            <SortableHeader column="Created At" sortKey="created_at" sortConfig={sortConfig} onSort={onSort} />
+          </TableRow>
+        </TableHeader>
+
+        <TableBody>
+          {sortedData.length > 0 ? (
+            sortedData.map((ipo) => (
+              <TableRow key={ipo.id} className="hover:bg-gray-50">
+
+                <TableCell>
+                  <Badge variant={ipo.type === "mainboard_data" ? "default" : "secondary"}>
+                    {ipo.type === "mainboard_data" ? "Mainboard" : "SME"}
+                  </Badge>
                 </TableCell>
+
+                <TableCell className="font-medium">
+                  {ipo.Company_Name || "—"}
+                </TableCell>
+
+                <TableCell>{ipo._Issue_Open_Date || "—"}</TableCell>
+                <TableCell>{ipo._Issue_Close_Date || "—"}</TableCell>
+
+                <TableCell>{ipo.QIB_x_ || "—"}</TableCell>
+                <TableCell>{ipo.NII_x_ || "—"}</TableCell>
+                <TableCell>{ipo.bNII_x_ || "—"}</TableCell>
+                <TableCell>{ipo.sNII_x_ || "—"}</TableCell>
+                <TableCell>{ipo.Retail_x_ || "—"}</TableCell>
+                <TableCell>{ipo.Employee_x_ || "—"}</TableCell>
+                <TableCell>{ipo.Shareholder_x_ || "—"}</TableCell>
+                <TableCell>{ipo.Others_x_ || "—"}</TableCell>
+
+                <TableCell className="font-semibold text-green-600">
+                  {ipo.Total_x_ || "—"}
+                </TableCell>
+
+                <TableCell>{ipo.Applications || "—"}</TableCell>
+
+                <TableCell>
+                  {ipo.Total_Issue_Amount_Incl_Firm_reservations_Rs_cr_ || "—"}
+                </TableCell>
+
+                <TableCell>
+                  {new Date(ipo.created_at).toLocaleDateString()}
+                </TableCell>
+
               </TableRow>
-            )}
-          </TableBody>
-        </Table>
-      </div>
-
-      {/* Pagination */}
-      {totalPages > 1 && (
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-4">
-          <div className="text-sm text-gray-600">
-            Showing {(currentPage - 1) * recordsPerPage + 1} to{" "}
-            {Math.min(currentPage * recordsPerPage, totalItems)} of {totalItems}{" "}
-            entries
-          </div>
-          <div className="flex items-center space-x-2">
-            {/* Records per page */}
-            <div className="flex items-center gap-2">
-              <label className="text-sm font-medium text-gray-700">
-                Records per page:
-              </label>
-              <select
-                value={recordsPerPage}
-                onChange={handleRecordsPerPageChange}
-                className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              >
-                {ITEMS_PER_PAGE_OPTIONS.map((opt) => (
-                  <option key={opt} value={opt}>
-                    {opt}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => onPageChange(currentPage - 1)}
-              disabled={currentPage === 1}
-              className="flex items-center gap-1"
-            >
-              <ChevronLeft className="h-4 w-4" /> Previous
-            </Button>
-
-            {renderPaginationButtons()}
-
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => onPageChange(currentPage + 1)}
-              disabled={currentPage === totalPages}
-              className="flex items-center gap-1"
-            >
-              Next <ChevronRight className="h-4 w-4" />
-            </Button>
-          </div>
-        </div>
-      )}
+            ))
+          ) : (
+            <TableRow>
+              <TableCell colSpan={16} className="text-center py-8 text-gray-500">
+                No IPO data available
+              </TableCell>
+            </TableRow>
+          )}
+        </TableBody>
+      </Table>
     </div>
   );
 };

@@ -2,7 +2,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 
 export default function handler(req: NextApiRequest, res: NextApiResponse) {
-  const baseUrl = process.env.BASE_URL || 'http://localhost:3000/vap';
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL ;
 
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method not allowed' });
