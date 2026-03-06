@@ -100,17 +100,21 @@ export const getIpoData = async (
   });
 };
 
-// reportsCount
+type IpoReportCountResponse = {
+  success: boolean;
+  counts: {
+    mainboard_data: number;
+    sme_data: number;
+  };
+  message?: string;
+};
 export const getIpoReportsCount = async (
   reportTypes: string[]
-): Promise<{ success: boolean; counts: { mainboard_data: number; sme_data: number } }> => {
-  return callApi<{
-    success: boolean;
-    counts: { mainboard_data: number; sme_data: number };
-  }>({
+): Promise<IpoReportCountResponse> => {
+  return callApi<IpoReportCountResponse>({
     url: "ipo/finnhub/reportsCount",
     method: "POST",
-    data: { reportTypes },   // ✅ correct payload
+    data: { reportTypes },
   });
 };
 

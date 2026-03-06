@@ -74,7 +74,7 @@ const Index = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [recordsPerPage, setRecordsPerPage] = useState(10);
   const [sortConfig, setSortConfig] = useState<SortConfig>({
-    key: null,
+    key: "Company_Name",
     direction: "asc",
   });
   const [reportCounts, setReportCounts] = useState<{
@@ -134,7 +134,7 @@ const Index = () => {
     fetchIpoData(ipoType);
   }, [ipoType, currentPage, recordsPerPage]);
 
-  const handleSort = (key: keyof IpoData) => {
+  const handleSort = (key: any) => {
     setSortConfig((current) => ({
       key,
       direction:
@@ -219,16 +219,16 @@ const Index = () => {
               <IpoTable
                 data={ipoData[type as "mainboard_data" | "sme_data"].data}
                 loading={loading}
-                currentPage={currentPage}
-                recordsPerPage={recordsPerPage}
-                totalItems={
-                  ipoData[type as "mainboard_data" | "sme_data"].total
-                }
-                totalPages={
-                  ipoData[type as "mainboard_data" | "sme_data"].pages
-                }
-                onPageChange={handlePageChange}
-                onRecordsPerPageChange={handleRecordsPerPageChange}
+                // currentPage={currentPage}
+                // recordsPerPage={recordsPerPage}
+                // totalItems={
+                //   ipoData[type as "mainboard_data" | "sme_data"].total
+                // }
+                // totalPages={
+                //   ipoData[type as "mainboard_data" | "sme_data"].pages
+                // }
+                // onPageChange={handlePageChange}
+                // onRecordsPerPageChange={handleRecordsPerPageChange}
                 sortConfig={sortConfig}
                 onSort={handleSort}
               />

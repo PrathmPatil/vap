@@ -30,6 +30,7 @@ interface IpoData {
   Close_Date?: string;
   _Issue_Open_Date?: string;
   _Issue_Close_Date?: string;
+  _Highlight_Row: string;
 
   QIB_x_?: string;
   NII_x_?: string;
@@ -64,6 +65,7 @@ const SortableHeader: React.FC<{
   sortConfig: SortConfig;
   onSort: (key: keyof IpoData) => void;
 }> = ({ column, sortKey, sortConfig, onSort }) => {
+  console.log(sortConfig)
   return (
     <TableHead
       className="cursor-pointer hover:bg-gray-50 transition-colors"
