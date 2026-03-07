@@ -36,13 +36,23 @@ from app.database.startup import ensure_databases
 
 from app.services.yfinance_service import get_yfinance_service
 
-  
+
+import os
+
+LOG_DIR = "logs"
+
+os.makedirs(LOG_DIR, exist_ok=True)
+
 # ---------------------------------------------------------
 # Logging Configuration
 # ---------------------------------------------------------
 logging.basicConfig(
     level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] %(name)s - %(message)s"
+    format="%(asctime)s [%(levelname)s] %(name)s - %(message)s",
+    handlers=[
+        logging.FileHandler("logs/app.log"),
+        logging.StreamHandler()
+    ]
 )
 logger = logging.getLogger("UnifiedStockAPI")
 
@@ -139,10 +149,10 @@ async def startup_event():
     logger.info("🚀 Starting Unified Stock Data API...")
     
     # Initialize databases
-    init_databases()
+    # init_databases()
     
     # ensure_databases()
-    ensure_databases()
+    # ensure_databases()
     
     # ✅ SAFE init
     get_yfinance_service().init()
