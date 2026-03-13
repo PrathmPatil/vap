@@ -121,15 +121,15 @@ def initialize_cron_jobs():
     CRONS_STARTED = True
 
     cron_services = [
-        # ("IPO cron service", ipo_cron_service.start),
-        # ("Listed companies cron", listed_companies_cron_service.start),
-        # ("Screener scheduler", screener_scheduler.start),
-        # ("NSE indices scheduler", start_nse_indices_scheduler),
-        # ("YFinance cron", start_yfinance_cron),
+        ("IPO cron service", ipo_cron_service.start),
+        ("Listed companies cron", listed_companies_cron_service.start),
+        ("Screener scheduler", screener_scheduler.start),
+        ("NSE indices scheduler", start_nse_indices_scheduler),
+        ("YFinance cron", start_yfinance_cron),
         ("Government News cron", start_gov_news_cron),
-        # ("NSE All Companies cron", start_company_profile_cron),
-        # ("Today's Bhavcopy cron", fetch_today_bhavcopy_cron),
-        # ("BSE Announcements cron", start_bse_announcements_scheduler)
+        ("NSE All Companies cron", start_company_profile_cron),
+        ("Today's Bhavcopy cron", fetch_today_bhavcopy_cron),
+        ("BSE Announcements cron", start_bse_announcements_scheduler)
     ]
     
 
