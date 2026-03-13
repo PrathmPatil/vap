@@ -1,63 +1,116 @@
 import time
-import random
 import logging
-import requests
+import pymysql
 import yfinance as yf
+from app.config import config
 
 logger = logging.getLogger(__name__)
 
 class CompanyProfileService:
+
     def __init__(self):
-        # Professional User-Agents to avoid "Python-Requests" detection
-        self.user_agents = [
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36",
-            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Safari/537.36",
-            "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36"
-        ]
+        self.db_config = {
+            "host":config.DB_HOST,
+            "user": config.DB_USER,
+            "password": config.DB_PASSWORD,
+            "database": config.DB_STOCK_MARKET,
+            "cursorclass": pymysql.cursors.DictCursor
+        }
+
+    def get_symbols(self):
+        """Fetch symbols from listed_companies table"""
+        connection = pymysql.connect(**self.db_config)
+
+        try:
+            with connection.cursor() as cursor:
+                cursor.execute("SELECT symbol FROM listed_companies")
+                rows = cursor.fetchall()
+                return [row["symbol"] for row in rows]
+
+        finally:
+            connection.close()
+
+    def save_company_profile(self, data):
+        """Save company profile into DB"""
+        connection = pymysql.connect(**self.db_config)
+
+        try:
+            with connection.cursor() as cursor:
+
+                sql = """
+                INSERT INTO all_companies_data (
+                    symbol,
+                    company_name,
+                    sector,
+                    industry,
+                    market_cap,
+                    website
+                )
+                VALUES (%s,%s,%s,%s,%s,%s)
+                ON DUPLICATE KEY UPDATE
+                    company_name = VALUES(company_name),
+                    sector = VALUES(sector),
+                    industry = VALUES(industry),
+                    market_cap = VALUES(market_cap),
+                    website = VALUES(website)
+                """
+
+                cursor.execute(sql, (
+                    data.get("symbol"),
+                    data.get("longName"),
+                    data.get("sector"),
+                    data.get("industry"),
+                    data.get("marketCap"),
+                    data.get("website")
+                ))
+
+                connection.commit()
+
+        finally:
+            connection.close()
 
     def fetch_and_save_all(self):
+
         logger.info("🔥 CRON JOB STARTED: Fetching Company Profiles")
-        
-        # 1. Get your symbols (example list)
-        symbols = ["20MICRONS.NS", "21STCENMGM.NS", "360ONE.NS", "3IINFOLTD.NS"] 
-        
-        # 2. Setup Session
-        session = requests.Session()
-        
-        success_count = 0
-        fail_count = 0
+
+        symbols = self.get_symbols()
+
+        success = 0
+        failed = 0
 
         for symbol in symbols:
-            try:
-                # Rotate User-Agent for every request
-                session.headers.update({"User-Agent": random.choice(self.user_agents)})
-                
-                logger.info(f"⏳ Fetching data for: {symbol}")
-                
-                # Fetch using yfinance with the session
-                ticker = yf.Ticker(symbol, session=session)
-                info = ticker.info # This triggers the network request
-                
-                if info and 'symbol' in info:
-                    # TODO: Add your DB save logic here
-                    # db.save(info)
-                    success_count += 1
-                    logger.info(f"✅ Successfully fetched: {symbol}")
-                else:
-                    logger.warning(f"⚠️ No data returned for: {symbol}")
-                    fail_count += 1
 
-                # --- THE MOST IMPORTANT PART FOR SERVERS ---
-                # Random sleep between 3 to 10 seconds to avoid IP block
-                sleep_time = random.uniform(3, 10)
-                time.sleep(sleep_time)
+            try:
+
+                logger.info(f"⏳ Fetching {symbol}")
+
+                ticker = yf.Ticker(symbol)
+                info = ticker.info
+
+                if info and "symbol" in info:
+
+                    self.save_company_profile(info)
+
+                    logger.info(f"✅ Saved {symbol}")
+                    success += 1
+
+                else:
+                    logger.warning(f"⚠️ No data for {symbol}")
+                    failed += 1
+
+                # ✅ 1 minute delay between companies
+                logger.info("⏱ Waiting 60 seconds before next company...")
+                time.sleep(60)
 
             except Exception as e:
-                logger.error(f"❌ Error fetching {symbol}: {str(e)}")
-                fail_count += 1
-                # If we hit an error, wait longer before trying next symbol
-                time.sleep(20) 
 
-        logger.info(f"🏁 Sync Completed. Success: {success_count} | Failed: {fail_count}")
+                logger.error(f"❌ Error fetching {symbol}: {e}")
+                failed += 1
+
+                # wait before retrying next
+                time.sleep(60)
+
+        logger.info(f"🏁 Sync Completed | Success: {success} | Failed: {failed}")
+
 
 company_service = CompanyProfileService()

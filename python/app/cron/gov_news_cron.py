@@ -68,11 +68,20 @@ def start_gov_news_cron():
     Register daily government news cron
     """
 
+    # scheduler.add_job(
+    #     cron_fetch_all_gov_news,
+    #     trigger="cron",
+    #     minute=5,   # runs every hour at :05
+    #     id="gov_news_daily_cron",
+    #     replace_existing=True,
+    #     max_instances=1,
+    #     coalesce=True
+    # )
     scheduler.add_job(
         cron_fetch_all_gov_news,
         trigger="cron",
-        minute=5,   # runs every hour at :05
-        id="gov_news_daily_cron",
+        minute="*/5",   # every 5 minutes
+        id="gov_news_5min_cron",
         replace_existing=True,
         max_instances=1,
         coalesce=True

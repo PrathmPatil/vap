@@ -1,17 +1,35 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
-import { Search, ChevronLeft, ChevronRight, Building2, Calendar, DollarSign } from 'lucide-react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
-import { Input } from './ui/input';
-import { Skeleton } from './ui/skeleton';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
-import { Button } from './ui/button';
-import { Badge } from './ui/badge';
-import Link from 'next/link';
-import { getListedCompaniesData } from '@/utils';
-
-
+import { useEffect, useState } from "react";
+import {
+  Search,
+  ChevronLeft,
+  ChevronRight,
+  Building2,
+  Calendar,
+  DollarSign,
+} from "lucide-react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "./ui/card";
+import { Input } from "./ui/input";
+import { Skeleton } from "./ui/skeleton";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "./ui/table";
+import { Button } from "./ui/button";
+import { Badge } from "./ui/badge";
+import Link from "next/link";
+import { getListedCompaniesData } from "@/utils";
 
 interface Company {
   id: number;
@@ -48,7 +66,7 @@ interface ListedCompaniesApiResponse {
 export function CompaniesTable() {
   const [companies, setCompanies] = useState<Company[]>([]);
   const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [limit, setLimit] = useState(10); // ✅ dynamic records per page
   const [totalPages, setTotalPages] = useState(1);
@@ -59,14 +77,18 @@ export function CompaniesTable() {
       setLoading(true);
       try {
         // Call the API function
-        const response = await getListedCompaniesData(currentPage, limit, searchTerm);
-        
+        const response = await getListedCompaniesData(
+          currentPage,
+          limit,
+          searchTerm,
+        );
+
         // Cast the response to the correct type
-        const data = response
-        
+        const data = response;
+
         if (data.success) {
           setCompanies(data.data || []);
-          
+
           // Handle pagination properties with fallbacks
           if (data.pages !== undefined) {
             setTotalPages(data.pages);
@@ -76,7 +98,7 @@ export function CompaniesTable() {
           } else {
             setTotalPages(1);
           }
-          
+
           if (data.total !== undefined) {
             setTotalCompanies(data.total);
           } else {
@@ -84,7 +106,7 @@ export function CompaniesTable() {
           }
         }
       } catch (error) {
-        console.error('Failed to fetch companies:', error);
+        console.error("Failed to fetch companies:", error);
       } finally {
         setLoading(false);
       }
@@ -94,10 +116,10 @@ export function CompaniesTable() {
   }, [currentPage, searchTerm, limit]);
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
+    return new Date(dateString).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
     });
   };
 
@@ -112,7 +134,8 @@ export function CompaniesTable() {
                 <span>Listed Companies</span>
               </CardTitle>
               <CardDescription>
-                Browse and search through {totalCompanies.toLocaleString()} listed companies
+                Browse and search through {totalCompanies.toLocaleString()}{" "}
+                listed companies
               </CardDescription>
             </div>
             <div className="flex items-center space-x-2">
@@ -136,8 +159,10 @@ export function CompaniesTable() {
                 }}
                 className="border rounded p-1"
               >
-                {[10, 25, 50, 100].map(size => (
-                  <option key={size} value={size}>{size} / page</option>
+                {[10, 25, 50, 100].map((size) => (
+                  <option key={size} value={size}>
+                    {size} / page
+                  </option>
                 ))}
               </select>
             </div>
@@ -175,30 +200,58 @@ export function CompaniesTable() {
                   <TableBody>
                     {companies.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={7} className="text-center py-8 text-slate-500">
+                        <TableCell
+                          colSpan={7}
+                          className="text-center py-8 text-slate-500"
+                        >
                           No companies found
                         </TableCell>
                       </TableRow>
                     ) : (
                       companies.map((company) => (
-                        <TableRow key={company?.id} className="hover:bg-slate-50 transition-colors">
+                        <TableRow
+                          key={company?.id}
+                          className="hover:bg-slate-50 transition-colors"
+                        >
                           <TableCell className="font-semibold text-blue-600">
                             <Link href={`/company/${company?.symbol}`}>
                               {company?.symbol}
                             </Link>
                           </TableCell>
-                          <TableCell className="max-w-xs truncate">{company?.name}</TableCell>
-                          <TableCell><Badge variant="secondary">{company?.series}</Badge></TableCell>
-                          <TableCell className="flex items-center space-x-1">
-                            <Calendar className="h-3 w-3 text-slate-400" />
-                            <span>{formatDate(company?.date_of_listing)}</span>
+
+                          <TableCell className="max-w-xs truncate">
+                            {company?.name}
                           </TableCell>
-                          <TableCell className="flex items-center space-x-1">
-                            <DollarSign className="h-3 w-3 text-green-600" />
-                            <span>₹{company?.face_value}</span>
+
+                          <TableCell>
+                            <Badge variant="secondary">{company?.series}</Badge>
                           </TableCell>
-                          <TableCell>{company?.market_lot.toLocaleString()}</TableCell>
-                          <TableCell className="font-mono text-xs">{company?.isin}</TableCell>
+
+                          <TableCell>
+                            <div className="flex items-center space-x-1">
+                              <Calendar className="h-3 w-3 text-slate-400" />
+                              <span>
+                                {formatDate(company?.date_of_listing)}
+                              </span>
+                            </div>
+                          </TableCell>
+
+                          <TableCell>
+                            <div className="flex items-center space-x-1">
+                              <DollarSign className="h-3 w-3 text-green-600" />
+                              <span>
+                                ₹{company?.face_value ?? company?.paid_up_value}
+                              </span>
+                            </div>
+                          </TableCell>
+
+                          <TableCell>
+                            {company?.market_lot?.toLocaleString?.() ?? "-"}
+                          </TableCell>
+
+                          <TableCell className="font-mono text-xs">
+                            {company?.isin}
+                          </TableCell>
                         </TableRow>
                       ))
                     )}
@@ -209,7 +262,8 @@ export function CompaniesTable() {
               {/* Pagination */}
               <div className="flex items-center justify-between mt-4">
                 <div className="text-sm text-slate-600">
-                  Showing page {currentPage} of {totalPages} ({totalCompanies.toLocaleString()} total)
+                  Showing page {currentPage} of {totalPages} (
+                  {totalCompanies.toLocaleString()} total)
                 </div>
                 <div className="flex items-center space-x-2">
                   <Button
@@ -223,7 +277,9 @@ export function CompaniesTable() {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+                    onClick={() =>
+                      setCurrentPage(Math.min(totalPages, currentPage + 1))
+                    }
                     disabled={currentPage === totalPages || loading}
                   >
                     Next <ChevronRight className="h-4 w-4" />

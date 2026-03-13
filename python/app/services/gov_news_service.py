@@ -89,16 +89,45 @@ class GovNewsCombinedService:
 
         table_name = sanitize_column(table_name)
 
-        cursor.execute(f"""
-            CREATE TABLE IF NOT EXISTS `{table_name}` (
-                id INT AUTO_INCREMENT PRIMARY KEY,
-                title TEXT,
-                link TEXT,
-                pubdate VARCHAR(255),
-                UNIQUE KEY unique_news (link(255))
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
-        """)
+        query = f"""
+        CREATE TABLE IF NOT EXISTS `{table_name}` (
+            id BIGINT AUTO_INCREMENT PRIMARY KEY,
+            title TEXT,
+            link TEXT,
+            pubdate VARCHAR(255),
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE KEY unique_link (link(255))
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+        """
 
+        cursor.execute(query)
+
+        logger.info(f"✅ Table ensured: {table_name}")
+
+    def ensure_created_at_column(self, table_name: str, cursor):
+        """
+        Check if created_at column exists in table.
+        If not, alter table and add it.
+        """
+
+        table_name = sanitize_column(table_name)
+
+        # Check column existence
+        cursor.execute(f"""
+            SELECT COLUMN_NAME 
+            FROM INFORMATION_SCHEMA.COLUMNS
+            WHERE TABLE_SCHEMA = DATABASE()
+            AND TABLE_NAME = %s
+            AND COLUMN_NAME = 'created_at'
+        """, (table_name,))
+
+        column = cursor.fetchone()
+
+        if not column:
+            cursor.execute(
+                f"ALTER TABLE `{table_name}` ADD COLUMN created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP"
+            )
+            logger.info(f"✅ created_at column added to {table_name}")
     # -------------------------------------------------------
     # API Fetch
     # -------------------------------------------------------
@@ -121,7 +150,7 @@ class GovNewsCombinedService:
                 )
 
             response.raise_for_status()
-
+            print(f"✅ Fetched: {response.json()}")
             return response.json()
 
         except Exception:
@@ -135,30 +164,23 @@ class GovNewsCombinedService:
 
         try:
 
-            if "getnewsonair" in endpoint:
-                return response.get("newsOnAirResponse", {}).get("results", [])
+            # Look for results in nested responses
+            for key, value in response.items():
 
-            if "getpibministry" in endpoint:
-                return response.get("pibnewsMinistryResponse", {}).get("results", [])
+                if isinstance(value, dict) and "results" in value:
+                    return value.get("results", [])
 
-            if "getpibnews" in endpoint:
-                return response.get("pibnewsResponse", {}).get("results", [])
+            # If API directly returns list
+            if isinstance(response, list):
+                return response
 
-            if "getPIBSearchNews" in endpoint:
-                return response.get("pibSearchNewsResponse", {}).get("results", [])
-
-            if "getddnews" in endpoint:
-                return response.get("ddnewsResponse", {}).get("results", [])
-
-            if "getddnewsfacet" in endpoint:
-                return response.get("ddnewsFacetResponse", {}).get("results", [])
+            logger.warning("⚠️ No results found in API response")
 
             return []
 
         except Exception:
             logger.exception("❌ Result extraction failed")
             return []
-
     # -------------------------------------------------------
     # Create Table Columns Dynamically
     # -------------------------------------------------------
@@ -216,6 +238,37 @@ class GovNewsCombinedService:
     # -------------------------------------------------------
     # Save News
     # -------------------------------------------------------
+    # def save_news(self, table_name: str, news_list: list):
+
+    #     db_name = config.DB_NEWS
+
+    #     self.ensure_database_exists(db_name)
+
+    #     try:
+
+    #         conn = db_manager.get_connection(db_name)
+
+    #         with conn.cursor(pymysql.cursors.DictCursor) as cursor:
+
+    #             self.ensure_table_exists(table_name, cursor)
+
+    #             saved = self.insert_news(
+    #                 table_name,
+    #                 news_list,
+    #                 cursor
+    #             )
+
+    #             conn.commit()
+
+    #         conn.close()
+
+    #         logger.info(f"✅ {saved} records saved in {table_name}")
+
+    #         return saved
+
+    #     except Exception:
+    #         logger.exception("❌ Database save failed")
+    #         raise HTTPException(status_code=500, detail="Database save failed")
     def save_news(self, table_name: str, news_list: list):
 
         db_name = config.DB_NEWS
@@ -226,10 +279,16 @@ class GovNewsCombinedService:
 
             conn = db_manager.get_connection(db_name)
 
+            # ✅ Use DictCursor
             with conn.cursor(pymysql.cursors.DictCursor) as cursor:
 
+                # Ensure table exists
                 self.ensure_table_exists(table_name, cursor)
 
+                # Ensure created_at column exists
+                self.ensure_created_at_column(table_name, cursor)
+
+                # Insert data
                 saved = self.insert_news(
                     table_name,
                     news_list,
@@ -246,9 +305,7 @@ class GovNewsCombinedService:
 
         except Exception:
             logger.exception("❌ Database save failed")
-            raise HTTPException(status_code=500, detail="Database save failed")
-
-    # -------------------------------------------------------
+            raise HTTPException(status_code=500, detail="Database save failed")  # -------------------------------------------------------
     # Fetch + Save
     # -------------------------------------------------------
     def fetch_and_save(self, table_name: str, endpoint: str, payload: dict = None):

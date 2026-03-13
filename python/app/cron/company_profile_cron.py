@@ -48,7 +48,7 @@ def start_company_profile_cron():
     # Market data every 1 hour
     scheduler.add_job(
         func=fetch_and_save_market_data,
-        trigger=IntervalTrigger(hours=1),
+        trigger=IntervalTrigger(minutes=4),
         id="market_data_job",
         replace_existing=True,
         max_instances=1,

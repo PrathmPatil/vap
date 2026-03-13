@@ -38,14 +38,13 @@ const db = {};
 db.NewsOnAir = sequelize.define(
   'news_on_air',
   {
-    __typename: { type: DataTypes.TEXT },
     body: { type: DataTypes.TEXT },
     image: { type: DataTypes.TEXT },
     news_category: { type: DataTypes.TEXT },
     source: { type: DataTypes.TEXT },
     title: { type: DataTypes.TEXT },
-    updatedAt: { type: DataTypes.TEXT },
-    updatedAtEpoch: { type: DataTypes.TEXT },
+    updatedAt: { type: DataTypes.TEXT, field: 'updatedat' },
+    updatedAtEpoch: { type: DataTypes.TEXT, field: 'updatedatepoch' },
     url: { type: DataTypes.TEXT }
   },
   { tableName: 'news_on_air', timestamps: false }
@@ -57,7 +56,6 @@ db.NewsOnAir = sequelize.define(
 db.PibMinistry = sequelize.define(
   'pib_ministry',
   {
-    __typename: { type: DataTypes.TEXT },
     ministry_id: { type: DataTypes.TEXT },
     title: { type: DataTypes.TEXT }
   },
@@ -70,8 +68,7 @@ db.PibMinistry = sequelize.define(
 db.PibNews = sequelize.define(
   'pib_news',
   {
-    __typename: { type: DataTypes.TEXT },
-    createdAt: { type: DataTypes.TEXT },
+    created_at: { type: DataTypes.TEXT },
     ministry_title: { type: DataTypes.TEXT },
     npiMinistry: { type: DataTypes.TEXT },
     source: { type: DataTypes.TEXT },
@@ -89,13 +86,12 @@ db.PibNews = sequelize.define(
 db.DdNews = sequelize.define(
   'dd_news',
   {
-    __typename: { type: DataTypes.TEXT },
-    createdAt: { type: DataTypes.TEXT },
+    created_at: { type: DataTypes.TEXT, field: 'createdat' },
     image: { type: DataTypes.TEXT },
     news_category: { type: DataTypes.TEXT },
     source: { type: DataTypes.TEXT },
     title: { type: DataTypes.TEXT },
-    updatedAt: { type: DataTypes.TEXT },
+    updatedAt: { type: DataTypes.TEXT, field: 'updatedat' },
     url: { type: DataTypes.TEXT }
   },
   { tableName: 'dd_news', timestamps: false }

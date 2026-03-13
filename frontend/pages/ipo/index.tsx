@@ -1,6 +1,7 @@
 import IpoTable from "@/components/IpoTables";
 import Navigation from "@/components/Navigation";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getIpoData, getIpoReportsCount } from "@/utils";
@@ -94,6 +95,21 @@ const Index = () => {
           ...prev,
           [type]: response,
         }));
+        // page
+// : 
+// 1
+// pages
+// : 
+// 9
+// reportType
+// : 
+// "mainboard_data"
+// success
+// : 
+// true
+// total
+// : 
+// 82
 
         setError(null);
       } else {
@@ -142,14 +158,33 @@ const Index = () => {
     }));
   };
 
-  const handleRecordsPerPageChange = (value: number) => {
-    setRecordsPerPage(value);
-    setCurrentPage(1);
+   const handleNext = () => {
+    if (currentPage < totalPages) setCurrentPage((prev) => prev + 1);
   };
 
-  const handlePageChange = (page: number) => {
-    setCurrentPage(page);
+  const handlePrevious = () => {
+    if (currentPage > 1) setCurrentPage((prev) => prev - 1);
   };
+
+  const getVisiblePages = () => {
+    const pages = [];
+    const maxVisible = 5;
+
+    let start = Math.max(1, currentPage - Math.floor(maxVisible / 2));
+    let end = start + maxVisible - 1;
+
+    if (end > totalPages) {
+      end = totalPages;
+      start = Math.max(1, end - maxVisible + 1);
+    }
+
+    for (let i = start; i <= end; i++) {
+      pages.push(i);
+    }
+
+    return pages;
+  };
+
 
   const currentData = ipoData[ipoType];
   const totalPages = currentData.pages;
@@ -213,6 +248,27 @@ const Index = () => {
               </TabsTrigger>
             ))}
           </TabsList>
+          {/* {
+    "id": 80,
+    "Company_Name": "Shadowfax Technologies Ltd.",
+    "Close_Date": "Jan 22, 2026",
+    "QIB_x_": "4",
+    "NII_x_": "0.88",
+    "Retail_x_": "2.43",
+    "Employee_x_": "2.17",
+    "Others_x_": "",
+    "Applications": "2,25,616",
+    "Total_x_": "2.86",
+    "_Highlight_Row": "",
+    "_Issue_Open_Date": "2026-01-20",
+    "_Issue_Close_Date": "2026-01-22",
+    "_id": "2526",
+    "_URLRewrite_Folder_Name": "shadowfax-technologies-ipo",
+    "Total_Issue_Amount_Incl_Firm_reservations_Rs_cr_": "1907.27",
+    "bNII_x_": "0.66",
+    "sNII_x_": "1.33",
+    "created_at": "2026-03-09T00:47:50.000Z"
+} */}
 
           {["mainboard_data", "sme_data"].map((type) => (
             <TabsContent key={type} value={type}>
@@ -232,6 +288,37 @@ const Index = () => {
                 sortConfig={sortConfig}
                 onSort={handleSort}
               />
+                            {/* ✅ Pagination Controls */}
+              <div className="flex items-center justify-center space-x-2 pt-4">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handlePrevious}
+                  disabled={currentPage === 1}
+                >
+                  Previous
+                </Button>
+
+                {getVisiblePages().map((page) => (
+                  <Button
+                    key={page}
+                    size="sm"
+                    variant={currentPage === page ? "default" : "outline"}
+                    onClick={() => setCurrentPage(page)}
+                  >
+                    {page}
+                  </Button>
+                ))}
+
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleNext}
+                  disabled={currentPage === totalPages}
+                >
+                  Next
+                </Button>
+              </div>
             </TabsContent>
           ))}
         </Tabs>
