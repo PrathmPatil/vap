@@ -8,24 +8,37 @@ import { getIpoData, getIpoReportsCount } from "@/utils";
 import { useEffect, useState } from "react";
 
 // Types
-interface IpoData {
+export interface IpoData {
   id: number;
-  Company_Name: string;
-  Close_Date: string;
-  Open_Date: string;
-  QIB_x_: string;
-  NII_x_: string;
-  Retail_x_: string;
-  Applications: string;
-  Total_x_: string;
-  _Highlight_Row: string;
-  _Issue_Open_Date: string;
-  _Issue_Close_Date: string;
   _id: string;
   _URLRewrite_Folder_Name: string;
-  Total_Issue_Amount_Incl_Firm_reservations_Rs_cr_: string;
   created_at: string;
   type: "mainboard_data" | "sme_data";
+
+  Company_Name?: string;
+  Close_Date?: string;
+  Open_Date?: string;
+
+  _Issue_Open_Date?: string;
+  _Issue_Close_Date?: string;
+
+  QIB_x_?: string;
+  NII_x_?: string;
+  bNII_x_?: string;
+  sNII_x_?: string;
+  Retail_x_?: string;
+  Employee_x_?: string;
+  Shareholder_x_?: string;
+  Others_x_?: string;
+  Total_x_?: string;
+
+  Applications?: string;
+  Total_Issue_Amount_Incl_Firm_reservations_Rs_cr_?: string;
+}
+
+export interface SortConfig {
+  key: keyof IpoData | null;
+  direction: "asc" | "desc";
 }
 
 interface IpoResponse {
@@ -34,11 +47,6 @@ interface IpoResponse {
   page: number;
   pages: number;
   data: IpoData[];
-}
-
-interface SortConfig {
-  key: keyof IpoData | null;
-  direction: "asc" | "desc";
 }
 
 // types/ipo.ts
@@ -150,8 +158,8 @@ const Index = () => {
     fetchIpoData(ipoType);
   }, [ipoType, currentPage, recordsPerPage]);
 
-  const handleSort = (key: any) => {
-    setSortConfig((current) => ({
+  const handleSort = (key: keyof IpoData) => {
+      setSortConfig((current) => ({
       key,
       direction:
         current.key === key && current.direction === "asc" ? "desc" : "asc",

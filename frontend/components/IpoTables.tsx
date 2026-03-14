@@ -12,36 +12,8 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import { IpoData, SortConfig } from "@/pages/ipo";
 
-interface IpoData {
-  id: number;
-  _id: string;
-  _URLRewrite_Folder_Name: string;
-  created_at: string;
-  type: "mainboard_data" | "sme_data";
-
-  Company_Name?: string;
-  _Issue_Open_Date?: string;
-  _Issue_Close_Date?: string;
-
-  QIB_x_?: string;
-  NII_x_?: string;
-  bNII_x_?: string;
-  sNII_x_?: string;
-  Retail_x_?: string;
-  Employee_x_?: string;
-  Shareholder_x_?: string;
-  Others_x_?: string;
-  Total_x_?: string;
-
-  Applications?: string;
-  Total_Issue_Amount_Incl_Firm_reservations_Rs_cr_?: string;
-}
-
-interface SortConfig {
-  key: keyof IpoData | null;
-  direction: "asc" | "desc";
-}
 
 interface Props {
   data: IpoData[];
@@ -91,8 +63,9 @@ const IpoTable: React.FC<Props> = ({
     if (!sortConfig.key) return data;
 
     return [...data].sort((a, b) => {
-      const aValue = a[sortConfig.key!];
-      const bValue = b[sortConfig.key!];
+      const key = sortConfig.key as keyof IpoData;
+      const aValue = a[key];
+      const bValue = b[key];
 
       if (!aValue) return 1;
       if (!bValue) return -1;

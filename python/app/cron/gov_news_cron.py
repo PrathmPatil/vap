@@ -51,11 +51,11 @@ def cron_fetch_all_gov_news():
         )
 
         # 6️⃣ DD News Facet (filters metadata)
-        gov_news_service.fetch_and_save(
-            table_name="dd_news_facet",
-            endpoint="/news/dd-news/dataservices/getddnewsfacet",
-            payload={},
-        )
+        # gov_news_service.fetch_and_save(
+        #     table_name="dd_news_facet",
+        #     endpoint="/news/dd-news/dataservices/getddnewsfacet",
+        #     payload={},
+        # )
 
         logger.info("✅ Gov News CRON completed successfully")
 
