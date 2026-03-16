@@ -25,6 +25,7 @@ await Promise.all([
   ensureDatabase(process.env.IPO_DB_NAME, baseDBConfig),
   ensureDatabase(process.env.ANNOUNCEMENT_DB_NAME, baseDBConfig),
   ensureDatabase(process.env.NSE_DYNAMIC_DB_NAME, baseDBConfig),
+  ensureDatabase(process.env.FORMULA_DB_NAME, baseDBConfig),
 ]);
 
 /* ---------------------------------------------
@@ -114,6 +115,19 @@ export const sequelizeNseDynamic = new Sequelize(
   }
 );
 
+// FORMULA_DB_NAME
+export const sequelizeFormula = new Sequelize(
+  process.env.FORMULA_DB_NAME,
+  baseDBConfig.user,
+  baseDBConfig.password,
+  {
+    host: baseDBConfig.host,
+    port: baseDBConfig.port,
+    dialect: 'mysql',
+    logging: false,
+  }
+);
+
 /* ---------------------------------------------
    EXPORT DATATYPES (FOR MODELS)
 --------------------------------------------- */
@@ -162,6 +176,7 @@ import SmeDataModel from './ipo/SmeData.js';
 // Misc models
 import Announcements from './announcements_model.js';
 import NseDynamic from './ingestModel.js';
+import { BhavcopyPR, BuyDay, FollowThroughDay, RallyAttemptDay } from './formulaModel.js';
 
 /* ---------------------------------------------
    INITIALIZE MODELS
@@ -208,6 +223,12 @@ const AnnouncementsModel = Announcements(sequelizeAnnouncement, DataTypes);
 // NSE Dynamic
 const nseModel = NseDynamic(sequelizeNseDynamic, DataTypes);
 
+// Formula
+const RallyAttemptDayModel = RallyAttemptDay(sequelizeFormula, DataTypes);
+const FollowThroughDayModel = FollowThroughDay(sequelizeFormula, DataTypes);
+const BuyDayModel = BuyDay(sequelizeFormula, DataTypes);
+
+
 /* ---------------------------------------------
    EXPORT EVERYTHING
 --------------------------------------------- */
@@ -245,6 +266,8 @@ export {
 
   AnnouncementsModel,
   nseModel,
+
+  RallyAttemptDayModel, FollowThroughDayModel, BuyDayModel
 };
 
 /* Mapping for dynamic routes */

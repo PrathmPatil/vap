@@ -105,7 +105,8 @@ import ipoRoutes from './routes/ipoDataRoutes.js';
 import announcementsRoutes from './routes/announcementsRoutes.js';
 import govNewsRouter from './routes/govNewsRouter.js';
 import indicesRoute from './routes/ingestRoutes.js';
-import finnhubRoute from './routes/finnhubRoutes.js';``
+import finnhubRoute from './routes/finnhubRoutes.js';
+import formulaRoutes from './routes/formulaRoutes.js';
 
 import {
   sequelizeStockMarket,
@@ -127,7 +128,9 @@ app.use(
     origin: [
       'http://localhost:3000',
       'http://44.199.57.0:3000',
-      'http://44.199.57.0'
+      'http://44.199.57.0',
+      'http://trendtraders.in',
+      'https://trendtraders.in',
     ],
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
     credentials: true
@@ -201,6 +204,8 @@ app.use('/vap/bse-news', announcementsRoutes);
 app.use('/vap/gov-news', govNewsRouter);
 app.use('/vap/indices', indicesRoute);
 app.use('/vap/finnhub', finnhubRoute);
+app.use("/vap/formula", formulaRoutes);
+
 
 app.get('/vap/welcome', (req, res) => {
   res.send('📂 Welcome to the Corporate Events Ingestion API.');
