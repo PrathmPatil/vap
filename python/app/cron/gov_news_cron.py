@@ -16,11 +16,11 @@ def cron_fetch_all_gov_news():
     try:
 
         # 1️⃣ News On Air
-        gov_news_service.fetch_and_save(
-            table_name="news_on_air",
-            endpoint="/news/news-on-air/dataservices/getnewsonair",
-            payload={"pageNumber": 1, "pageSize": 100},
-        )
+        # gov_news_service.fetch_and_save(
+        #     table_name="news_on_air",
+        #     endpoint="/news/news-on-air/dataservices/getnewsonair",
+        #     payload={"pageNumber": 1, "pageSize": 100},
+        # )
 
         # 2️⃣ PIB Ministry
         gov_news_service.fetch_and_save(

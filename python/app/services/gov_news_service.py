@@ -14,12 +14,20 @@ BASE_URL = "https://www.india.gov.in"
 
 HEADERS = {
     "Accept": "application/json, text/plain, */*",
-    "Content-Type": "application/json",
+    # "Content-Type": "application/json",
     "User-Agent": "Mozilla/5.0",
     "Origin": "https://www.india.gov.in",
     "Referer": "https://www.india.gov.in/",
     "X-Requested-With": "XMLHttpRequest",
 }
+
+# HEADERS = {
+#     "Accept": "application/json, text/plain, */*",
+#     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
+#     "Referer": "https://www.india.gov.in/news/",
+#     "Origin": "https://www.india.gov.in",
+#     "X-Requested-With": "XMLHttpRequest",
+# }
 
 
 # -------------------------------------------------------
@@ -134,29 +142,20 @@ class GovNewsCombinedService:
     def fetch(self, endpoint: str, payload: dict = None):
 
         try:
-
             url = f"{BASE_URL}{endpoint}"
 
-            if payload:
-                response = self.session.post(
-                    url,
-                    json=payload,
-                    timeout=30
-                )
-            else:
-                response = self.session.get(
-                    url,
-                    timeout=30
-                )
+            response = self.session.get(
+                url,
+                params=payload,
+                timeout=30
+            )
 
             response.raise_for_status()
-            print(f"✅ Fetched: {response.json()}")
             return response.json()
 
         except Exception:
             logger.exception(f"❌ Fetch failed: {endpoint}")
             raise HTTPException(status_code=500, detail="Gov API fetch failed")
-
     # -------------------------------------------------------
     # Extract Results
     # -------------------------------------------------------

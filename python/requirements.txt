@@ -17,3 +17,4 @@ openpyxl==3.1.2
 matplotlib==3.7.2
 seaborn==0.12.2
 schedule==1.2.0
+tls-client==0.2.2
