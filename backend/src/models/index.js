@@ -17,16 +17,16 @@ const baseDBConfig = {
 /* ---------------------------------------------
    AUTO-CREATE ALL DATABASES (ON APP BOOT)
 --------------------------------------------- */
-await Promise.all([
-  ensureDatabase(process.env.STOCK_DB_NAME, baseDBConfig),
-  ensureDatabase(process.env.BHAVCOPY_DB_NAME, baseDBConfig),
-  ensureDatabase(process.env.SCREENER_DB_NAME, baseDBConfig),
-  ensureDatabase(process.env.YFINANCE_DB_NAME, baseDBConfig),
-  ensureDatabase(process.env.IPO_DB_NAME, baseDBConfig),
-  ensureDatabase(process.env.ANNOUNCEMENT_DB_NAME, baseDBConfig),
-  ensureDatabase(process.env.NSE_DYNAMIC_DB_NAME, baseDBConfig),
-  ensureDatabase(process.env.FORMULA_DB_NAME, baseDBConfig),
-]);
+// await Promise.all([
+//   ensureDatabase(process.env.STOCK_DB_NAME, baseDBConfig),
+//   ensureDatabase(process.env.BHAVCOPY_DB_NAME, baseDBConfig),
+//   ensureDatabase(process.env.SCREENER_DB_NAME, baseDBConfig),
+//   ensureDatabase(process.env.YFINANCE_DB_NAME, baseDBConfig),
+//   ensureDatabase(process.env.IPO_DB_NAME, baseDBConfig),
+//   ensureDatabase(process.env.ANNOUNCEMENT_DB_NAME, baseDBConfig),
+//   ensureDatabase(process.env.NSE_DYNAMIC_DB_NAME, baseDBConfig),
+//   ensureDatabase(process.env.FORMULA_DB_NAME, baseDBConfig),
+// ]);
 
 /* ---------------------------------------------
    SEQUELIZE CONNECTIONS
