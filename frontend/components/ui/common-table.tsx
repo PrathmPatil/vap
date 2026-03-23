@@ -93,7 +93,7 @@ export default function CommonTable({
       {totalPages > 1 && (
 <div className="flex items-center gap-1">
 
-  {getPaginationPages().map((page, index) => {
+  {getPaginationPages(currentPage, totalPages).map((page, index) => {
 
     if (page === "...") {
       return (
@@ -122,9 +122,8 @@ export default function CommonTable({
   );
 }
 
-const getPaginationPages = () => {
-  const pages = [];
-
+const getPaginationPages = (currentPage: number, totalPages: number) => {
+  const pages: (number | string)[] = [];
   const maxVisible = 5;
 
   if (totalPages <= maxVisible + 2) {

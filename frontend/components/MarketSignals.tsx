@@ -174,6 +174,7 @@ export default function MarketSignalsPage() {
     }
   };
 
+  const config = getTabConfig(activeTab);
   return (
     <div className="">
       {/* Main Content */}
