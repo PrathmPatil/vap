@@ -3,6 +3,7 @@ import {
   RallyAttemptDayModel,
   FollowThroughDayModel,
   BuyDayModel,
+  StrongBullishCandleModel,
 } from "../models/index.js";
 
 export const runFormulaEngineService = async () => {
@@ -151,5 +152,144 @@ export const runFormulaEngineService = async () => {
     console.error("Formula Engine Error:", error);
     throw error;
 
+  }
+};
+
+import { fn, col, where } from "sequelize";
+
+export const generateStrongBullishService = async () => {
+  try {
+
+    console.log("🚀 Strong Bullish Engine Started");
+
+    await StrongBullishCandleModel.sync();
+    console.log("✅ strong_bullish_candle table verified");
+
+    /* --------------------------------
+       GET LATEST DATE
+    -------------------------------- */
+
+    const latestDateRaw = await PR.max("source_date");
+
+    const latestDate = latestDateRaw
+      ? latestDateRaw.toISOString().split("T")[0]
+      : null;
+
+    console.log("📅 Latest PR Date:", latestDate);
+
+    if (!latestDate) {
+      return {
+        success: false,
+        data: [],
+        message: "No PR data found"
+      };
+    }
+
+    /* --------------------------------
+       CHECK IF ALREADY GENERATED
+    -------------------------------- */
+
+    const existingCount = await StrongBullishCandleModel.count({
+      where: { trade_date: latestDate }
+    });
+
+    console.log("📊 Existing rows for this date:", existingCount);
+
+    if (existingCount > 0) {
+
+      const existingData = await StrongBullishCandleModel.findAll({
+        where: { trade_date: latestDate },
+        raw: true
+      });
+
+      return {
+        success: true,
+        data: existingData,
+        message: "Strong bullish data already generated for latest date",
+        latest_date: latestDate,
+        inserted_rows: 0
+      };
+    }
+
+    /* --------------------------------
+       FETCH PR DATA
+    -------------------------------- */
+
+    const stocks = await PR.findAll({
+      attributes: [
+        "SECURITY",
+        "OPEN_PRICE",
+        "CLOSE_PRICE",
+        "source_date"
+      ],
+      where: where(fn("DATE", col("source_date")), latestDate),
+      raw: true
+    });
+
+    console.log("📦 Total stocks fetched:", stocks.length);
+
+    if (!stocks.length) {
+      return {
+        success: false,
+        data: [],
+        message: "No stocks found for latest date"
+      };
+    }
+
+    /* --------------------------------
+       APPLY STRONG BULLISH RULE
+    -------------------------------- */
+
+    const bullishStocks = [];
+
+    for (const stock of stocks) {
+
+      const open = parseFloat(stock.OPEN_PRICE);
+      const close = parseFloat(stock.CLOSE_PRICE);
+
+      if (!open || !close) continue;
+
+      const percent = ((close - open) / open) * 100;
+
+      if (percent >= 2) {
+
+        bullishStocks.push({
+          security: stock.SECURITY,
+          trade_date: stock.source_date,
+          open_price: open,
+          close_price: close,
+          change_percent: percent
+        });
+
+      }
+    }
+
+    /* --------------------------------
+       INSERT DATA
+    -------------------------------- */
+
+    if (bullishStocks.length > 0) {
+      await StrongBullishCandleModel.bulkCreate(bullishStocks);
+    }
+
+    console.log("✅ Strong Bullish Inserted:", bullishStocks.length);
+
+    return {
+      success: true,
+      data: bullishStocks,
+      message: "Strong bullish candles generated successfully",
+      latest_date: latestDate,
+      inserted_rows: bullishStocks.length
+    };
+
+  } catch (error) {
+
+    console.error("❌ Strong Bullish Engine Error:", error);
+
+    return {
+      success: false,
+      data: [],
+      message: error.message
+    };
   }
 };

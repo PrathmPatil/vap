@@ -5,33 +5,33 @@ Rally Attempt Day
 */
 export const RallyAttemptDay = (sequelize, DataTypes) => {
   return sequelize.define(
-    "RallyAttemptDay",
+    'RallyAttemptDay',
     {
       id: {
         type: DataTypes.INTEGER,
         primaryKey: true,
-        autoIncrement: true,
+        autoIncrement: true
       },
       symbol: {
         type: DataTypes.STRING(255),
-        allowNull: false,
+        allowNull: false
       },
       rally_date: {
-        type: DataTypes.DATEONLY,
+        type: DataTypes.DATEONLY
       },
       close_price: {
-        type: DataTypes.DOUBLE,
+        type: DataTypes.DOUBLE
       },
       status: {
-        type: DataTypes.STRING(100),
-      },
+        type: DataTypes.STRING(100)
+      }
     },
     {
-      tableName: "ralley_attempt_day",
+      tableName: 'ralley_attempt_day',
       timestamps: true,
-      createdAt: "created_at",
-      updatedAt: "updated_at",
-      indexes: [{ fields: ["symbol"] }],
+      createdAt: 'created_at',
+      updatedAt: 'updated_at',
+      indexes: [{ fields: ['symbol'] }]
     }
   );
 };
@@ -43,38 +43,38 @@ Follow Through Day
 */
 export const FollowThroughDay = (sequelize, DataTypes) => {
   return sequelize.define(
-    "FollowThroughDay",
+    'FollowThroughDay',
     {
       id: {
         type: DataTypes.INTEGER,
         primaryKey: true,
-        autoIncrement: true,
+        autoIncrement: true
       },
       symbol: {
-        type: DataTypes.STRING(255),
+        type: DataTypes.STRING(255)
       },
       rally_date: {
-        type: DataTypes.DATEONLY,
+        type: DataTypes.DATEONLY
       },
       ftd_date: {
-        type: DataTypes.DATEONLY,
+        type: DataTypes.DATEONLY
       },
       change_percent: {
-        type: DataTypes.DOUBLE,
+        type: DataTypes.DOUBLE
       },
       volume: {
-        type: DataTypes.BIGINT,
+        type: DataTypes.BIGINT
       },
       status: {
-        type: DataTypes.STRING(100),
-      },
+        type: DataTypes.STRING(100)
+      }
     },
     {
-      tableName: "follow_throught_day",
+      tableName: 'follow_throught_day',
       timestamps: true,
-      createdAt: "created_at",
-      updatedAt: "updated_at",
-      indexes: [{ fields: ["symbol"] }],
+      createdAt: 'created_at',
+      updatedAt: 'updated_at',
+      indexes: [{ fields: ['symbol'] }]
     }
   );
 };
@@ -86,74 +86,79 @@ Buy Day
 */
 export const BuyDay = (sequelize, DataTypes) => {
   return sequelize.define(
-    "BuyDay",
+    'BuyDay',
     {
       id: {
         type: DataTypes.INTEGER,
         primaryKey: true,
-        autoIncrement: true,
+        autoIncrement: true
       },
       symbol: {
-        type: DataTypes.STRING(255),
+        type: DataTypes.STRING(255)
       },
       rally_date: {
-        type: DataTypes.DATEONLY,
+        type: DataTypes.DATEONLY
       },
       ftd_date: {
-        type: DataTypes.DATEONLY,
+        type: DataTypes.DATEONLY
       },
       buy_date: {
-        type: DataTypes.DATEONLY,
+        type: DataTypes.DATEONLY
       },
       breakout_price: {
-        type: DataTypes.DOUBLE,
+        type: DataTypes.DOUBLE
       },
       status: {
-        type: DataTypes.STRING(100),
-      },
+        type: DataTypes.STRING(100)
+      }
     },
     {
-      tableName: "buy_day",
+      tableName: 'buy_day',
       timestamps: true,
-      createdAt: "created_at",
-      updatedAt: "updated_at",
-      indexes: [{ fields: ["symbol"] }],
+      createdAt: 'created_at',
+      updatedAt: 'updated_at',
+      indexes: [{ fields: ['symbol'] }]
     }
   );
 };
 
 /*
 ---------------------------------------------------
-Bhavcopy PR Table (Data Source)
+Strong Bullish Candle
 ---------------------------------------------------
 */
-export const BhavcopyPR = (sequelize, DataTypes) => {
+
+export const StrongBullishCandle = (sequelize, DataTypes) => {
   return sequelize.define(
-    "BhavcopyPR",
+    'StrongBullishCandle',
     {
       id: {
         type: DataTypes.INTEGER,
         primaryKey: true,
+        autoIncrement: true
       },
-      SECURITY: {
-        type: DataTypes.STRING,
+      security: {
+        type: DataTypes.STRING(255)
       },
-      CLOSE_PRICE: {
-        type: DataTypes.STRING,
+      open_price: {
+        type: DataTypes.DOUBLE
       },
-      HIGH_PRICE: {
-        type: DataTypes.STRING,
+      close_price: {
+        type: DataTypes.DOUBLE
       },
-      NET_TRDQTY: {
-        type: DataTypes.STRING,
+      change_percent: {
+        type: DataTypes.DOUBLE
       },
-      source_date: {
-        type: DataTypes.STRING,
-      },
+      trade_date: {
+        type: DataTypes.DATEONLY
+      }
     },
     {
-      tableName: "pr",
-      timestamps: false,
+      tableName: 'strong_bullish_candle',
+      timestamps: true,
+      createdAt: 'created_at',
+      updatedAt: 'updated_at',
+      indexes: [{ fields: ['security', 'trade_date'] }]
     }
   );
 };

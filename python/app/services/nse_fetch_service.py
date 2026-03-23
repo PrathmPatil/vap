@@ -1,4 +1,4 @@
-import tls-client
+import tls_client
 import time
 import random
 

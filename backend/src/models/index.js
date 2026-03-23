@@ -176,7 +176,7 @@ import SmeDataModel from './ipo/SmeData.js';
 // Misc models
 import Announcements from './announcements_model.js';
 import NseDynamic from './ingestModel.js';
-import { BuyDay, FollowThroughDay, RallyAttemptDay } from './formulaModel.js';
+import { BuyDay, FollowThroughDay, RallyAttemptDay, StrongBullishCandle } from './formulaModel.js';
 
 /* ---------------------------------------------
    INITIALIZE MODELS
@@ -227,6 +227,7 @@ const nseModel = NseDynamic(sequelizeNseDynamic, DataTypes);
 const RallyAttemptDayModel = RallyAttemptDay(sequelizeFormula, DataTypes);
 const FollowThroughDayModel = FollowThroughDay(sequelizeFormula, DataTypes);
 const BuyDayModel = BuyDay(sequelizeFormula, DataTypes);
+const StrongBullishCandleModel = StrongBullishCandle(sequelizeFormula, DataTypes);
 
 
 /* ---------------------------------------------
@@ -267,7 +268,7 @@ export {
   AnnouncementsModel,
   nseModel,
 
-  RallyAttemptDayModel, FollowThroughDayModel, BuyDayModel
+  RallyAttemptDayModel, FollowThroughDayModel, BuyDayModel, StrongBullishCandleModel
 };
 
 /* Mapping for dynamic routes */

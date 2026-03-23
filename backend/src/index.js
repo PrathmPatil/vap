@@ -114,7 +114,8 @@ import {
   sequelizeYFinanceDB,
   sequelizeScreener,
   sequelizeIPO,
-  sequelizeAnnouncement
+  sequelizeAnnouncement,
+  StrongBullishCandleModel
 } from './models/index.js';
 
 // Init app
@@ -176,6 +177,9 @@ app.use(morgan('combined', { stream: logStream }));
     // logger.info('✅ Connected to bse_data database.');
     // await sequelizeAnnouncement.sync();
     // logger.info('✅ bse_data database synced.');
+
+    // sequenilize formula tables.
+    await StrongBullishCandleModel.sync();
 
     const PORT = process.env.APP_PORT || 8000;
     const HOST = process.env.APP_HOST || 'localhost';

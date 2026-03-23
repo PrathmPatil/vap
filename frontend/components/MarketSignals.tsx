@@ -38,7 +38,6 @@ import Navigation from "./Navigation";
 import CalendarPicker from "./CalendarPicker";
 import { getAnalyzeCompaniesData } from "@/utils";
 
-
 export interface MarketSignal {
   symbol: string;
   date: string;
@@ -50,17 +49,16 @@ export interface MarketSignalsData {
   BuyDay: MarketSignal[];
 }
 
-
 export default function MarketSignalsPage() {
   const [data, setData] = useState<MarketSignalsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<"rally" | "followthrough" | "buy">(
-    "rally"
+    "rally",
   );
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedDate, setSelectedDate] = useState(
-    new Date().toISOString().split("T")[0]
+    new Date().toISOString().split("T")[0],
   );
 
   const itemsPerPage = 10;
@@ -68,12 +66,12 @@ export default function MarketSignalsPage() {
   useEffect(() => {
     fetchData(selectedDate);
   }, [selectedDate]);
-  const fetchData = async (date:string) => {
+  const fetchData = async (date: string) => {
     setLoading(true);
     try {
       const response = await getAnalyzeCompaniesData(date);
       console.log("Response from analyze companies API:", response);
-      setData(response );
+      setData(response);
     } catch (error) {
       console.error("Error fetching company data:", error);
     } finally {
@@ -107,7 +105,7 @@ export default function MarketSignalsPage() {
     return currentData.filter(
       (item) =>
         item.symbol.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        item.date.includes(searchTerm)
+        item.date.includes(searchTerm),
     );
   }, [data, activeTab, searchTerm]);
 
@@ -176,82 +174,84 @@ export default function MarketSignalsPage() {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
-        <Navigation />
-        <main className="container mx-auto px-4 py-8">
-          <div className="space-y-8">
-            <div className="text-center">
-              <Skeleton className="h-10 w-64 mx-auto mb-2" />
-              <Skeleton className="h-6 w-96 mx-auto" />
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {[...Array(3)].map((_, i) => (
-                <Skeleton key={i} className="h-32" />
-              ))}
-            </div>
-            <Skeleton className="h-96" />
-          </div>
-        </main>
-      </div>
-    );
-  }
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
-      <Navigation />
-      <main className="container mx-auto px-4 py-8">
-        <div className="space-y-8">
-          {/* Header */}
-          <div className="text-center">
-            <h1 className="text-4xl font-bold text-slate-900 mb-2">
-              Market Signals Dashboard
-            </h1>
-            <p className="text-slate-600 text-lg">
-              Track rally attempts, follow-through days, and buy signals
-            </p>
-          </div>
+    <div className="">
+      {/* Main Content */}
+      <div className="rounded-lg border">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Symbol</TableHead>
+              <TableHead>Signal Date</TableHead>
+              <TableHead>Days Ago</TableHead>
+              <TableHead>Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {paginatedData.length > 0 ? (
+              paginatedData.map((signal, index) => {
+                const daysAgo = getDaysAgo(signal.date);
 
-          {/* Statistics Overview */}
-          {/* <div>
-            <CalendarPicker
-              selectedDate={selectedDate}
-              setSelectedDate={setSelectedDate}
-            />
-          </div> */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {(["rally", "followthrough", "buy"] as const).map((tab) => {
-              const config = getTabConfig(tab);
-              const IconComponent = config.icon;
-
-              return (
-                <Card
-                  key={tab}
-                  className="transition-all duration-300 hover:shadow-lg hover:scale-105"
+                return (
+                  <TableRow
+                    key={`${signal.symbol}-${signal.date}-${index}`}
+                    className="hover:bg-slate-50 transition-colors"
+                  >
+                    <TableCell className="font-semibold text-blue-600">
+                      <Link
+                        href={`/company/${signal.symbol}`}
+                        className="hover:underline"
+                      >
+                        {signal.symbol}
+                      </Link>
+                    </TableCell>
+                    <TableCell className="flex items-center space-x-1">
+                      <Calendar className="h-3 w-3 text-slate-400" />
+                      <span>{formatDate(signal.date)}</span>
+                    </TableCell>
+                    <TableCell>
+                      <Badge
+                        variant={
+                          daysAgo <= 1
+                            ? "default"
+                            : daysAgo <= 3
+                              ? "secondary"
+                              : "outline"
+                        }
+                        className={daysAgo <= 1 ? config.color : ""}
+                      >
+                        {daysAgo === 0
+                          ? "Today"
+                          : daysAgo === 1
+                            ? "1 day ago"
+                            : `${daysAgo} days ago`}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Link href={`/company/${signal.symbol}`}>
+                        <Button variant="outline" size="sm">
+                          <Eye className="mr-2 h-3 w-3" />
+                          View Details
+                        </Button>
+                      </Link>
+                    </TableCell>
+                  </TableRow>
+                );
+              })
+            ) : (
+              <TableRow>
+                <TableCell
+                  colSpan={4}
+                  className="text-center py-8 text-slate-500"
                 >
-                  <CardContent className="p-6">
-                    <div className="flex items-center space-x-4">
-                      <div className={`p-3 rounded-lg ${config.bgColor}`}>
-                        <IconComponent className={`h-8 w-8 ${config.color}`} />
-                      </div>
-                      <div>
-                        <div className="text-2xl font-bold text-slate-900">
-                          {config.count}
-                        </div>
-                        <div className="text-sm text-slate-500">
-                          {config.title}
-                        </div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </div>
-
-          {/* Main Content */}
-          <Card>
+                  No results found
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </div>
+      {/* <Card>
             <CardHeader>
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
                 <div>
@@ -424,7 +424,6 @@ export default function MarketSignalsPage() {
                             </Table>
                           </div>
 
-                          {/* Pagination */}
                           {totalPages > 1 && (
                             <div className="flex items-center justify-between">
                               <div className="text-sm text-slate-600">
@@ -511,9 +510,7 @@ export default function MarketSignalsPage() {
                 })}
               </Tabs>
             </CardContent>
-          </Card>
-        </div>
-      </main>
+          </Card> */}
     </div>
   );
 }
