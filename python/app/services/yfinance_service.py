@@ -5,6 +5,7 @@ import os
 import time
 import random
 import logging
+import math
 from datetime import datetime
 from yfinance import Ticker
 import pymysql
@@ -16,6 +17,7 @@ from app.database.connection import db_manager
 # --------------------------------------------------
 # LOGGER CONFIG
 # --------------------------------------------------
+
 LOG_DIR = "logs"
 os.makedirs(LOG_DIR, exist_ok=True)
 
@@ -30,29 +32,48 @@ formatter = logging.Formatter(
 )
 
 file_handler.setFormatter(formatter)
-
 logger.addHandler(file_handler)
+
+
+# --------------------------------------------------
+# HELPERS
+# --------------------------------------------------
+
+def clean_value(value):
+    """Convert NaN values to None for MySQL"""
+    if value is None:
+        return None
+
+    if isinstance(value, float) and math.isnan(value):
+        return None
+
+    return value
 
 
 # --------------------------------------------------
 # REQUEST TRACKING
 # --------------------------------------------------
+
 REQUEST_COUNT = 0
-REQUEST_START_TIME = time.time()
 
 
 # --------------------------------------------------
 # SERVICE
 # --------------------------------------------------
+
 class YFINANCEService:
 
-    def init(self):
+    def __init__(self):
+
         logger.info("Initializing YFinance Service")
+
         self.create_tables()
+
 
     # --------------------------------------------------
     # CREATE TABLES
     # --------------------------------------------------
+
     def create_tables(self):
 
         logger.info("Creating database tables if not exist")
@@ -61,8 +82,6 @@ class YFINANCEService:
         cursor = conn.cursor()
 
         try:
-
-            logger.info("Creating table: companies")
 
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS companies (
@@ -89,8 +108,6 @@ class YFINANCEService:
                     addedAt DATETIME
                 )
             """)
-
-            logger.info("Creating table: listed_companies")
 
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS listed_companies (
@@ -120,9 +137,11 @@ class YFINANCEService:
             cursor.close()
             conn.close()
 
+
     # --------------------------------------------------
     # FETCH NSE SYMBOLS
     # --------------------------------------------------
+
     def get_indian_tickers(self):
 
         url = "https://archives.nseindia.com/content/equities/EQUITY_L.csv"
@@ -134,9 +153,6 @@ class YFINANCEService:
             headers = {"User-Agent": "Mozilla/5.0"}
 
             response = requests.get(url, headers=headers, timeout=30)
-
-            logger.info(f"NSE CSV Response Status: {response.status_code}")
-
             response.raise_for_status()
 
             df = pd.read_csv(io.StringIO(response.text))
@@ -152,9 +168,11 @@ class YFINANCEService:
             logger.error(f"NSE fetch error: {e}")
             return []
 
+
     # --------------------------------------------------
     # SYNC NEW LISTED COMPANIES
     # --------------------------------------------------
+
     def sync_new_listed_companies(self):
 
         logger.info("Starting NSE company sync")
@@ -163,9 +181,6 @@ class YFINANCEService:
         headers = {"User-Agent": "Mozilla/5.0"}
 
         response = requests.get(url, headers=headers, timeout=30)
-
-        logger.info(f"NSE CSV Status: {response.status_code}")
-
         response.raise_for_status()
 
         df = pd.read_csv(io.StringIO(response.text))
@@ -175,10 +190,7 @@ class YFINANCEService:
         cursor = conn.cursor(pymysql.cursors.DictCursor)
 
         cursor.execute("SELECT symbol FROM listed_companies")
-
         existing = {row["symbol"] for row in cursor.fetchall()}
-
-        logger.info(f"Existing companies in DB: {len(existing)}")
 
         inserted = 0
 
@@ -189,27 +201,32 @@ class YFINANCEService:
             if symbol in existing:
                 continue
 
-            logger.info(f"Inserting new company: {symbol}")
+            try:
 
-            cursor.execute("""
-                INSERT INTO listed_companies
-                (symbol,name,series,date_of_listing,paid_up_value,market_lot,isin,face_value)
-                VALUES (%s,%s,%s,%s,%s,%s,%s,%s)
-            """, (
-                symbol,
-                row["NAME OF COMPANY"],
-                row.get("SERIES"),
-                pd.to_datetime(row.get("DATE OF LISTING"), errors="coerce"),
-                pd.to_numeric(row.get("PAID UP VALUE"), errors="coerce"),
-                pd.to_numeric(row.get("MARKET LOT"), errors="coerce"),
-                row.get("ISIN NUMBER"),
-                pd.to_numeric(row.get("FACE VALUE"), errors="coerce")
-            ))
+                cursor.execute("""
+                    INSERT INTO listed_companies
+                    (symbol,name,series,date_of_listing,paid_up_value,market_lot,isin,face_value)
+                    VALUES (%s,%s,%s,%s,%s,%s,%s,%s)
+                """, (
 
-            inserted += 1
+                    symbol,
+                    clean_value(row["NAME OF COMPANY"]),
+                    clean_value(row.get("SERIES")),
+                    clean_value(pd.to_datetime(row.get("DATE OF LISTING"), errors="coerce")),
+                    clean_value(pd.to_numeric(row.get("PAID UP VALUE"), errors="coerce")),
+                    clean_value(pd.to_numeric(row.get("MARKET LOT"), errors="coerce")),
+                    clean_value(row.get("ISIN NUMBER")),
+                    clean_value(pd.to_numeric(row.get("FACE VALUE"), errors="coerce"))
+
+                ))
+
+                inserted += 1
+
+            except Exception as e:
+
+                logger.error(f"Insert error for {symbol}: {e}")
 
         conn.commit()
-
         cursor.close()
         conn.close()
 
@@ -220,9 +237,11 @@ class YFINANCEService:
             "new_companies_added": inserted
         }
 
+
     # --------------------------------------------------
     # FETCH COMPANY INFO
     # --------------------------------------------------
+
     def fetch_company_info(self, symbol: str, retry=3):
 
         global REQUEST_COUNT
@@ -235,95 +254,57 @@ class YFINANCEService:
 
                 REQUEST_COUNT += 1
 
-                logger.info(f"{symbol} | Attempt {attempt+1}")
-                logger.info(f"Total API Requests: {REQUEST_COUNT}")
-
-                sleep_time = random.uniform(2, 5)
-
-                logger.info(f"{symbol} | Sleeping {sleep_time:.2f}s")
-
-                time.sleep(sleep_time)
+                time.sleep(random.uniform(2, 5))
 
                 ticker = Ticker(symbol)
 
-                logger.info(f"{symbol} | Fetching fast_info")
-
                 fast = ticker.fast_info
-
-                logger.info(f"{symbol} | Fetching full info")
-
                 info = ticker.get_info()
 
                 cp = fast.get("lastPrice")
                 pc = fast.get("previousClose")
 
-                logger.info(f"{symbol} | Price={cp} PrevClose={pc}")
-
                 if not cp or not pc:
                     raise ValueError("Missing price")
 
-                logger.info(f"{symbol} | Fetch successful")
-
                 return {
+
                     "symbol": symbol,
-                    "name": info.get("longName") or info.get("shortName"),
-                    "sector": info.get("sector"),
-                    "industry": info.get("industry"),
-                    "currency": info.get("currency", "INR"),
-                    "exchange": info.get("exchange"),
-                    "marketCap": info.get("marketCap"),
-                    "currentPrice": cp,
-                    "previousClose": pc,
-                    "change": round(cp - pc, 2),
-                    "changePercent": round(((cp - pc) / pc) * 100, 2),
-                    "volume": fast.get("lastVolume"),
-                    "website": info.get("website"),
+                    "name": clean_value(info.get("longName") or info.get("shortName")),
+                    "sector": clean_value(info.get("sector")),
+                    "industry": clean_value(info.get("industry")),
+                    "currency": clean_value(info.get("currency", "INR")),
+                    "exchange": clean_value(info.get("exchange")),
+                    "marketCap": clean_value(info.get("marketCap")),
+                    "currentPrice": clean_value(cp),
+                    "previousClose": clean_value(pc),
+                    "change": clean_value(round(cp - pc, 2)),
+                    "changePercent": clean_value(round(((cp - pc) / pc) * 100, 2)),
+                    "volume": clean_value(fast.get("lastVolume")),
+                    "website": clean_value(info.get("website")),
                     "addedAt": datetime.now()
+
                 }
 
             except Exception as e:
 
-                error_text = str(e)
+                logger.error(f"{symbol} error: {e}")
 
-                logger.error(f"{symbol} | Error: {error_text}")
-
-                if "429" in error_text:
-
-                    wait = 60 * (attempt + 1)
-
-                    logger.warning(
-                        f"{symbol} | RATE LIMITED (429). Waiting {wait}s"
-                    )
-
-                    time.sleep(wait)
-
-                else:
-
-                    wait = 10 * (attempt + 1)
-
-                    logger.warning(
-                        f"{symbol} | Retry in {wait}s"
-                    )
-
-                    time.sleep(wait)
+                wait = 10 * (attempt + 1)
+                time.sleep(wait)
 
                 if attempt == retry - 1:
-
-                    logger.error(f"{symbol} | FAILED after {retry} attempts")
-
                     return None
+
 
     # --------------------------------------------------
     # SAVE COMPANY INFO
     # --------------------------------------------------
+
     def save_company_info(self, data: dict):
 
         if not data:
             return
-
-        symbol = data["symbol"]
-
-        logger.info(f"Saving company: {symbol}")
 
         conn = db_manager.get_connection(config.DB_STOCK_MARKET)
         cursor = conn.cursor()
@@ -346,20 +327,20 @@ class YFINANCEService:
 
             conn.commit()
 
-            logger.info(f"{symbol} saved successfully")
-
         except Exception as e:
 
-            logger.error(f"DB save error {symbol}: {e}")
+            logger.error(f"DB save error: {e}")
 
         finally:
 
             cursor.close()
             conn.close()
 
+
     # --------------------------------------------------
     # BULK FETCH
     # --------------------------------------------------
+
     def fetch_and_store_listed_companies(self, batch_size=5):
 
         logger.info("Starting bulk stock ingestion")
@@ -368,10 +349,7 @@ class YFINANCEService:
         cursor = conn.cursor(pymysql.cursors.DictCursor)
 
         cursor.execute("SELECT symbol FROM listed_companies")
-
         symbols = [row["symbol"] for row in cursor.fetchall()]
-
-        logger.info(f"Total symbols: {len(symbols)}")
 
         processed = 0
 
@@ -380,7 +358,6 @@ class YFINANCEService:
             batch = symbols[i:i + batch_size]
 
             logger.info(f"Processing batch {i//batch_size + 1}")
-            logger.info(f"Batch symbols: {batch}")
 
             for sym in batch:
 
@@ -389,8 +366,6 @@ class YFINANCEService:
                 if data:
                     self.save_company_info(data)
                     processed += 1
-
-            logger.info("Sleeping 15s before next batch")
 
             time.sleep(15)
 
@@ -402,6 +377,7 @@ class YFINANCEService:
 # --------------------------------------------------
 # LAZY SINGLETON
 # --------------------------------------------------
+
 _yfinance_service: YFINANCEService | None = None
 
 

@@ -155,7 +155,7 @@ async def startup_event():
     # ensure_databases()
     
     # ✅ SAFE init
-    get_yfinance_service().init()
+    get_yfinance_service().__init__()
     
     # Warmup sessions
     warmup_bse_session()

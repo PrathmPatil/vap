@@ -144,7 +144,7 @@ class GovNewsCombinedService:
         try:
             url = f"{BASE_URL}{endpoint}"
 
-            response = self.session.get(
+            response = self.session.post(
                 url,
                 params=payload,
                 timeout=30
