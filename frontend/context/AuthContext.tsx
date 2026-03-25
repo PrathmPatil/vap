@@ -19,7 +19,7 @@ interface AuthContextType {
   role: string;
   isSubscribed: boolean; 
   login: (email: string, password: string) => void;
-  register: (name: string, email: string, password: string) => void;
+  register: (name: string, email: string, password: string, phoneNumber:string, whatsappNumber:string) => void;
   logout: () => void;
 }
 
