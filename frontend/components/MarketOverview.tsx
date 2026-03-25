@@ -139,11 +139,6 @@ export function MarketOverview() {
 
   return (
     <section id="overview" className="space-y-6">
-      <div className="text-center">
-        <h2 className="text-2xl font-bold text-slate-900 mb-2">Market Overview</h2>
-        <p className="text-slate-600">Key metrics and statistics</p>
-      </div>
-
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatCard
           title="Total Companies"

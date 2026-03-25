@@ -15,20 +15,6 @@ const baseDBConfig = {
 };
 
 /* ---------------------------------------------
-   AUTO-CREATE ALL DATABASES (ON APP BOOT)
---------------------------------------------- */
-// await Promise.all([
-//   ensureDatabase(process.env.STOCK_DB_NAME, baseDBConfig),
-//   ensureDatabase(process.env.BHAVCOPY_DB_NAME, baseDBConfig),
-//   ensureDatabase(process.env.SCREENER_DB_NAME, baseDBConfig),
-//   ensureDatabase(process.env.YFINANCE_DB_NAME, baseDBConfig),
-//   ensureDatabase(process.env.IPO_DB_NAME, baseDBConfig),
-//   ensureDatabase(process.env.ANNOUNCEMENT_DB_NAME, baseDBConfig),
-//   ensureDatabase(process.env.NSE_DYNAMIC_DB_NAME, baseDBConfig),
-//   ensureDatabase(process.env.FORMULA_DB_NAME, baseDBConfig),
-// ]);
-
-/* ---------------------------------------------
    SEQUELIZE CONNECTIONS
 --------------------------------------------- */
 export const sequelizeStockMarket = new Sequelize(
@@ -143,6 +129,8 @@ import AllCompaniesDataModel from './all_companies_data.js';
 import CompaniesDataModel from './companies_data.js';
 import FailedSymbolsModel from './failed_symbols.js';
 import ListedCompaniesModel from './listed_companies.js';
+// User
+import UserModel from './user.js';
 
 // Bhavcopy
 import BCModel from './bhavcopy/bc.js';
@@ -187,6 +175,9 @@ const AllCompaniesData = AllCompaniesDataModel(sequelizeStockMarket, DataTypes);
 const CompaniesData = CompaniesDataModel(sequelizeStockMarket, DataTypes);
 const FailedSymbols = FailedSymbolsModel(sequelizeStockMarket, DataTypes);
 const ListedCompanies = ListedCompaniesModel(sequelizeStockMarket, DataTypes);
+
+// user
+const User = UserModel(sequelizeStockMarket, DataTypes);
 
 // Bhavcopy
 const BC = BCModel(sequelizeBhavcopy, DataTypes);
@@ -238,6 +229,8 @@ export {
   CompaniesData,
   FailedSymbols,
   ListedCompanies,
+
+  User,
 
   BC,
   BH,

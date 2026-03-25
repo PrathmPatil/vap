@@ -1,46 +1,69 @@
-import MarketSignalsPage from "@/components/MarketSignals";
 import Navigation from "@/components/Navigation";
+import MarketSignalsPage from "@/components/MarketSignals";
 import CommonTable from "@/components/ui/common-table";
 import {
   Select,
   SelectItem,
   SelectTrigger,
   SelectValue,
+  SelectContent,
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useMarketSignalsData } from "@/hooks/use-market-formulas";
-import { SelectContent } from "@radix-ui/react-select";
 
 export default function Home() {
-  const { data, selectedFilters, setSelectedFilters, loading, error, itemsPerPage, setItemsPerPage, currentPage, setCurrentPage } =
-    useMarketSignalsData();
-  
+  const {
+    data,
+    selectedFilters,
+    setSelectedFilters,
+    loading,
+    error,
+    itemsPerPage,
+    setItemsPerPage,
+    currentPage,
+    setCurrentPage,
+  } = useMarketSignalsData();
 
-      if (loading) {
-        return (
-          <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
-             <Navigation />
-            <main className="container mx-auto px-4 py-8">
-              <div className="space-y-8">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  {[...Array(3)].map((_, i) => (
-                    <Skeleton key={i} className="h-32" />
-                  ))}
-                </div>
-                <Skeleton className="h-96" />
-              </div>
-            </main>
-          </div>
-        );
-      }
-  return (
-    <div
-      className={`flex flex-col min-h-screen ${loading ? "pointer-events-none opacity-50" : ""}`}
-    >
+  // Loading UI
+  if (loading) {
+    return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
         <Navigation />
         <main className="container mx-auto px-4 py-8">
-          <div className="mb-6 flex items-center gap-4 justify-end">
+          <div className="space-y-8">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {[...Array(3)].map((_, i) => (
+                <Skeleton key={i} className="h-32 rounded-xl" />
+              ))}
+            </div>
+            <Skeleton className="h-96 rounded-xl" />
+          </div>
+        </main>
+      </div>
+    );
+  }
+
+  // Error UI
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center text-red-500">
+        Failed to load data
+      </div>
+    );
+  }
+
+  return (
+    <div
+      className={`flex flex-col min-h-screen ${
+        loading ? "pointer-events-none opacity-50" : ""
+      }`}
+    >
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
+        <Navigation />
+
+        <main className="container mx-auto px-4 py-8">
+          {/* Filter Section */}
+          <div className="mb-6 flex items-center justify-end gap-4">
             <Select
               value={selectedFilters[0] || ""}
               onValueChange={(value) => setSelectedFilters([value])}
@@ -64,8 +87,16 @@ export default function Home() {
             </Select>
           </div>
 
-          <CommonTable data={data} itemsPerPage={itemsPerPage} setItemsPerPage={setItemsPerPage} currentPage={currentPage} setCurrentPage={setCurrentPage} />
+          {/* Table */}
+          <CommonTable
+            data={data}
+            itemsPerPage={itemsPerPage}
+            setItemsPerPage={setItemsPerPage}
+            currentPage={currentPage}
+            setCurrentPage={setCurrentPage}
+          />
 
+          {/* Additional Market Signals */}
           <MarketSignalsPage />
         </main>
       </div>

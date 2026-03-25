@@ -1,5 +1,4 @@
 import IpoTable from "@/components/IpoTables";
-import Navigation from "@/components/Navigation";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -66,7 +65,7 @@ export interface IpoResponse2 {
   message?: string;
 }
 
-const Index = () => {
+const Ipo = () => {
   const [ipoType, setIpoType] = useState<"mainboard_data" | "sme_data">(
     "mainboard_data",
   );
@@ -200,7 +199,6 @@ const Index = () => {
   if (loading && currentPage === 1) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
-        <Navigation />
         <main className="container mx-auto px-4 py-8">
           <div className="space-y-8 text-center">
             <Skeleton className="h-10 w-64 mx-auto mb-2" />
@@ -218,7 +216,6 @@ const Index = () => {
   if (error && currentPage === 1) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
-        <Navigation />
         <main className="container mx-auto px-4 py-8">
           <div className="flex justify-center items-center py-12 text-red-600 text-lg">
             {error}
@@ -230,7 +227,6 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
-      {/* <Navigation /> */}
       <main className="container mx-auto px-4 py-8 space-y-6">
         {/* Header */}
         <h2 className="text-2xl font-bold text-gray-900">
@@ -334,4 +330,4 @@ const Index = () => {
   );
 };
 
-export default Index;
+export default Ipo;

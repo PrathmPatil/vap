@@ -17,7 +17,6 @@ export const useMarketSignalsData = () => {
 
       try {
         const response = await generateStrongBullishData("");
-        console.log(response);
         const {message, data, success} = response;
         if (!success) {
           throw new Error(message || "Failed to fetch market signals data");

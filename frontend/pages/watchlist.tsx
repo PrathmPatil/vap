@@ -10,7 +10,7 @@ export default function  Watchlist (){
           {/* Header */}
           <div className="text-center">
             <h1 className="text-4xl font-bold text-slate-900 mb-2">
-              MarketView Watchlist
+              TrendTraders Watchlist
             </h1>
             <p className="text-slate-600 text-lg">
               Track your favorite stocks and monitor their performance

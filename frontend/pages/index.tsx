@@ -6,6 +6,7 @@ import { MarketOverview } from "@/components/MarketOverview";
 import { CompaniesTable } from "@/components/CompaniesTable";
 import { FailedSymbols } from "@/components/FailedSymbols";
 import MarketDataDashboard from "@/components/MarketDataDashboard";
+import Ipo from "@/components/IPO";
 
 
 export default function Home() {
@@ -29,7 +30,7 @@ export default function Home() {
           </div>
 
           {/* Market Overview */}
-          <MarketOverview />
+          {/* <MarketOverview /> */}
 
           {/* Stock Charts */}
           {/* <StockCharts /> */}
@@ -38,9 +39,10 @@ export default function Home() {
           <CompaniesTable />
 
           {/* Failed Symbols */}
-          <FailedSymbols />
+          {/* <FailedSymbols /> */}
 
           <MarketDataDashboard />
+          <Ipo />
         </div>
       </main>
     </div>

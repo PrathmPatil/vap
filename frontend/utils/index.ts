@@ -318,3 +318,21 @@ export const generateStrongBullishData = async (date: string): Promise<any> => {
     params: { date }
   });
 }
+
+//  http://localhost:8000/vap/user/login
+export const loginUser = async (email: string, password: string): Promise<any> => {
+  return callApi<any>({
+    url: 'user/login',
+    method: 'POST',
+    data: { email, password }
+  });
+}
+
+//  http://localhost:8000/vap/user/register
+export const registerUser = async (name: string, email: string, password: string, phoneNumber: string, whatsappNumber: string): Promise<any> => {
+  return callApi<any>({
+    url: 'user/register',
+    method: 'POST',
+    data: { name, email, password, phoneNumber, whatsappNumber }
+  });
+}

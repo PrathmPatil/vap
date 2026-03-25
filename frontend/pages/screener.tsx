@@ -120,7 +120,6 @@ export default function ScreenerPage() {
         sortBy,
         apiSortOrder,
       );
-      console.log("API Response:", response);
       // Cast response to our paginated type
       const paginatedResponse = response as PaginatedYFinanceResponse;
       const {
@@ -170,7 +169,6 @@ export default function ScreenerPage() {
     fetchStocks();
   }, [fetchStocks]);
 
-  console.log("Stocks after fetch:", stocks);
   const filteredStocks = useMemo(() => {
     return stocks.filter((stock) => {
       if (!stock) return false;
@@ -265,7 +263,7 @@ export default function ScreenerPage() {
     setCurrentPage(1);
     setSearchTerm("");
   };
-  console.log(filteredStocks);
+
   const SortableHeader = ({
     column,
     children,

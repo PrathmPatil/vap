@@ -80,7 +80,6 @@ export default function News() {
           "DT_TM",
           "DESC"
         );
-        console.log("Gov News Response:", response);
         if (response.status === "success") {
           const transformed: NewsTableViewData = {
             total_records: {
@@ -123,14 +122,11 @@ export default function News() {
 
     fetchNewsData();
   }, []);
-  console.log(newsTableViewData);
 
   /* -------------------- FILTER DATA -------------------- */
 
   const filteredNewsData = useMemo(() => {
     if (!newsTableViewData) return null;
-
-    console.log("Filtering news data for source:", newsSource, newsTableViewData);
 
     if (newsSource === "BSE") {
       return {

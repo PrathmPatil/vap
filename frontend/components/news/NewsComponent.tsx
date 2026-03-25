@@ -149,7 +149,7 @@ const NewsComponent = () => {
   return (
     <div className="max-w-6xl mx-auto p-6">
       {/* Header */}
-      <div className="mb-8 sticky top-16 bg-gradient-to-br from-slate-50 to-slate-100 py-4 z-10">
+      <div className="mb-8 sticky top-16 py-4 z-10">
         <div>
           <h1 className="text-3xl font-bold text-gray-800 mb-2">Latest News</h1>
         </div>
