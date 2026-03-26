@@ -11,6 +11,11 @@ import { loginUser, registerUser } from "@/utils";
 interface User {
   name?: string;
   email: string;
+  role?: string;
+  is_subscribed?: boolean;
+  phoneNumber?: string;
+  whatsappNumber?: string;
+  [key: string]: any;
 }
 
 interface AuthContextType {
