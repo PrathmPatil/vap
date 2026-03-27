@@ -121,7 +121,7 @@ app.use(morgan('combined', { stream: logStream }));
 app.use('/vap/stocks', stockDataRoutes);
 app.use('/vap/company-data', stockDataRoutes);
 app.use('/vap/bhavcopy', bhavcopyDataRoutes);
-app.use('/vap/formula', formularoutes);
+// app.use('/vap/formula', formularoutes);
 app.use('/vap/financial-data', financialDataRoutes);
 app.use('/vap/company', yFinanceRoutes);
 app.use('/vap/screener', screenerDataRoutes);

@@ -6,13 +6,14 @@ import {
   FileText,
   LogOut,
   LogIn,
+  Calculator,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
 
 function Navigation() {
-  const { isAuthenticated, role, isSubscribed, logout } = useAuth();
+  const { isAuthenticated, role, isSubscribed = true, logout } = useAuth();
 
   return (
     <nav className="bg-white/80 backdrop-blur-md border-b border-slate-200 sticky top-0 z-50">
@@ -66,6 +67,14 @@ function Navigation() {
                 <Button variant="ghost">
                   <FileText className="h-4 w-4 mr-2" />
                   Watchlist
+                </Button>
+              </Link>
+            )}
+            {isAuthenticated && isSubscribed && (
+              <Link href="/company/formula">
+                <Button variant="ghost">
+                  <Calculator className="h-4 w-4 mr-2" />
+                  Formulas
                 </Button>
               </Link>
             )}

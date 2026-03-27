@@ -313,9 +313,23 @@ export const getDynamicData = async (
 // http://localhost:8000/vap/formula/generate-strong-bullish
 export const generateStrongBullishData = async (date: string): Promise<any> => {
   return callApi<any>({
-    url: 'formula/generate-strong-bullish',
+    url: 'formula/strong-bullish',
     method: 'GET',
     params: { date }
+  });
+}
+
+  // "/run-formula-engine",
+  // "/strong-bullish",
+  // "/rally-attempt",
+  // "/follow-through-day",
+  // "/buy-day"
+
+export const getFormulaData = async (formulaType: string, currentPage: number, itemsPerPage: number, searchTerm?: string, basePercent?: number): Promise<any> => {
+  return callApi<any>({
+    url: `formula/${formulaType}`,
+    method: 'POST',
+    data: { currentPage, itemsPerPage, searchTerm, basePercent }
   });
 }
 

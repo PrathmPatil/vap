@@ -8,34 +8,65 @@ export const RallyAttemptDay = (sequelize, DataTypes) => {
     'RallyAttemptDay',
     {
       id: {
-        type: DataTypes.INTEGER,
+        type: DataTypes.BIGINT,
         primaryKey: true,
         autoIncrement: true
       },
-      symbol: {
+
+      security: {
         type: DataTypes.STRING(255),
         allowNull: false
       },
+
+      symbol: {
+        type: DataTypes.STRING(50),
+        allowNull: false
+      },
+
       rally_date: {
-        type: DataTypes.DATEONLY
+        type: DataTypes.DATEONLY,
+        allowNull: false
       },
+
       close_price: {
-        type: DataTypes.DOUBLE
+        type: DataTypes.DOUBLE,
+        allowNull: false
       },
+
       status: {
-        type: DataTypes.STRING(100)
+        type: DataTypes.STRING(100),
+        allowNull: false,
+        defaultValue: 'rally_detected'
       }
     },
     {
-      tableName: 'ralley_attempt_day',
+      tableName: 'rally_attempt_day',
+
       timestamps: true,
+
       createdAt: 'created_at',
       updatedAt: 'updated_at',
-      indexes: [{ fields: ['symbol'] }]
+
+      indexes: [
+        {
+          name: 'idx_rally_symbol',
+          fields: ['symbol']
+        },
+
+        {
+          name: 'idx_rally_date',
+          fields: ['rally_date']
+        },
+
+        {
+          name: 'idx_rally_symbol_date',
+          unique: true,
+          fields: ['symbol', 'rally_date']
+        }
+      ]
     }
   );
 };
-
 /*
 ---------------------------------------------------
 Follow Through Day
@@ -151,10 +182,48 @@ export const StrongBullishCandle = (sequelize, DataTypes) => {
       },
       trade_date: {
         type: DataTypes.DATEONLY
+      },
+      base_percent: {
+        type: DataTypes.DOUBLE
       }
     },
     {
       tableName: 'strong_bullish_candle',
+      timestamps: true,
+      createdAt: 'created_at',
+      updatedAt: 'updated_at',
+      indexes: [{ fields: ['security', 'trade_date'] }]
+    }
+  );
+};
+
+/* =========================================================
+    Volume Breakout
+========================================================= */
+export const VolumeBreakout = (sequelize, DataTypes) => {
+  sequelize.define(
+    'StrongBullishCandle',
+    {
+      id: {
+        type: DataTypes.INTEGER,
+        autoIncrement: true,
+        primaryKey: true
+      },
+
+      security: DataTypes.STRING,
+      symbol: DataTypes.STRING,
+
+      trade_date: DataTypes.DATE,
+
+      close_price: DataTypes.FLOAT,
+      volume: DataTypes.BIGINT,
+
+      avg_volume_10d: DataTypes.BIGINT,
+
+      volume_ratio: DataTypes.FLOAT
+    },
+    {
+      tableName: 'volume_breakout',
       timestamps: true,
       createdAt: 'created_at',
       updatedAt: 'updated_at',

@@ -27,6 +27,7 @@ export const registerUser = async (req, res) => {
       username,
       email,
       password: hashedPassword,
+      role: 'user',
       phoneNumber,
       whatsappNumber
     });
@@ -42,15 +43,17 @@ export const registerUser = async (req, res) => {
     //   sameSite: 'strict'
     // });
 
-    delete user.password;
-    delete user.createdAt;
-    delete user.updatedAt;
+    const userData = user.toJSON();
+
+    delete userData.password;
+    delete userData.createdAt;
+    delete userData.updatedAt;
 
     return res.status(201).json({
       success: true,
       message: 'Registration successful',
       accessToken,
-      user
+      user: userData
     });
   } catch (error) {
     // Handle duplicate email
@@ -111,15 +114,17 @@ export const loginUser = async (req, res) => {
     //   sameSite: 'strict'
     // });
 
-    delete user.password;
-    delete user.createdAt;
-    delete user.updatedAt;
+    const userData = user.toJSON();
+
+    delete userData.password;
+    delete userData.createdAt;
+    delete userData.updatedAt;
 
     return res.status(200).json({
       success: true,
       message: 'Login successful',
       accessToken,
-      user
+      user: userData
     });
   } catch (error) {
     console.error('Login Error:', error);
@@ -169,13 +174,11 @@ export const forgotPassword = async (req, res) => {
       .status(200)
       .json({ success: true, message: 'Password reset link sent' });
   } catch (error) {
-    res
-      .status(500)
-      .json({
-        success: false,
-        message: 'Error processing forgot password',
-        error
-      });
+    res.status(500).json({
+      success: false,
+      message: 'Error processing forgot password',
+      error
+    });
   }
 };
 
@@ -201,7 +204,6 @@ export const resetPassword = async (req, res) => {
       .json({ success: false, message: 'Error resetting password', error });
   }
 };
-
 
 export const refreshToken = async (req, res) => {
   const token = req.cookies.refreshToken;

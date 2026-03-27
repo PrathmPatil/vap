@@ -106,6 +106,11 @@ class ScreenerService:
 
         time.sleep(1.5)
         res = requests.get(url, headers=headers, timeout=20)
+        # --- HANDLE 404 ---
+        if res.status_code == 404:
+            logger.warning(f"Screener page not found for {symbol}")
+            return None
+    
         res.raise_for_status()
 
         soup = BeautifulSoup(res.text, "html.parser")
@@ -155,7 +160,13 @@ class ScreenerService:
         cursor = None
 
         try:
+            if "-RE" in symbol:
+                logger.warning(f"Skipping rights issue symbol {symbol}")
+                return
             data = self.get_screener_data(symbol, statement_type)
+            if not data:
+                logger.warning(f"Skipping {symbol}, no Screener data")
+                return
 
             conn = db_manager.get_connection(config.DB_SCREENER)
             cursor = conn.cursor(pymysql.cursors.DictCursor)
@@ -177,7 +188,8 @@ class ScreenerService:
 
         except Exception as e:
             logger.error(f"❌ Screener error for {symbol}: {e}", exc_info=True)
-            raise HTTPException(status_code=500, detail=str(e))
+            # raise HTTPException(status_code=500, detail=str(e))
+            return
 
         finally:
             if cursor:

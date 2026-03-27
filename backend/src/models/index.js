@@ -219,6 +219,7 @@ const RallyAttemptDayModel = RallyAttemptDay(sequelizeFormula, DataTypes);
 const FollowThroughDayModel = FollowThroughDay(sequelizeFormula, DataTypes);
 const BuyDayModel = BuyDay(sequelizeFormula, DataTypes);
 const StrongBullishCandleModel = StrongBullishCandle(sequelizeFormula, DataTypes);
+const VolumeBreakoutModel = VolumeBreakout(sequelizeFormula, DataTypes);
 
 
 /* ---------------------------------------------
@@ -261,7 +262,7 @@ export {
   AnnouncementsModel,
   nseModel,
 
-  RallyAttemptDayModel, FollowThroughDayModel, BuyDayModel, StrongBullishCandleModel
+  RallyAttemptDayModel, FollowThroughDayModel, BuyDayModel, StrongBullishCandleModel, VolumeBreakoutModel
 };
 
 /* Mapping for dynamic routes */

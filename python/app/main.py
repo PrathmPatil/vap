@@ -61,16 +61,15 @@ logger = logging.getLogger("UnifiedStockAPI")
 # ---------------------------------------------------------
 app = FastAPI(
     title="Unified Stock Data API",
-    description=(
-        "Combined API for NSE Bhavcopy, Listed Companies, "
-        "Screener Data, YFinance Data, Government News & IPO Data"
-    ),
-    version="2.1"
+    description="Combined API for NSE Bhavcopy, Listed Companies, Screener Data, YFinance Data, Government News & IPO Data",
+    version="2.1",
+    root_path="/ml",
+    docs_url="/docs",
+    redoc_url="/redoc",
+    openapi_url="/openapi.json"
 )
 
-# ---------------------------------------------------------
-# Include Routers
-# ---------------------------------------------------------
+# Include routers AFTER creating app
 app.include_router(bhavcopy.router, prefix="/bhavcopy", tags=["Bhavcopy"])
 app.include_router(nse.router, prefix="/nse", tags=["NSE Data"])
 app.include_router(screener.router, prefix="/screener", tags=["Screener Data"])
@@ -83,6 +82,8 @@ app.include_router(cron.router, prefix="/cron", tags=["Cron Jobs"])
 app.include_router(nse_all_companies.router, prefix="/nse-all-companies", tags=["NSE All Companies"])
 app.include_router(company_profile.router, prefix="/company-profile", tags=["Company Profile"])
 app.include_router(finnhub_data.router, prefix="/finnhub", tags=["Finnhub Data"])
+
+
 # ---------------------------------------------------------
 # IST timezone
 # ---------------------------------------------------------

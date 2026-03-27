@@ -77,7 +77,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   ) => {
     // form.name, form.email, form.password, form.phoneNumber, form.whatsappNumber
     try {
-      const userData = { name, email, password, phoneNumber, whatsappNumber };
       const response = await registerUser(
         name,
         email,
@@ -85,11 +84,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         phoneNumber,
         whatsappNumber,
       );
-
+        const { user: userData, accessToken, success, message } = response;
       localStorage.setItem("stockUser", JSON.stringify(userData));
       setUser(userData);
 
-      document.cookie = `token=${response.accessToken}; path=/`;
+      document.cookie = `token=${accessToken}; path=/`;
       setIsAuthenticated(true);
       router.push("/");
     } catch (error) {
@@ -99,9 +98,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const logout = () => {
     localStorage.removeItem("stockUser");
-
     setUser(null);
-
     document.cookie = "token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
     setIsAuthenticated(false);
     router.push("/login");
@@ -113,7 +110,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         isAuthenticated,
         user,
         role: user?.role || "",
-        isSubscribed: user?.is_subscribed || false,
+        isSubscribed: user?.is_subscribed || true,
         login,
         register,
         logout,

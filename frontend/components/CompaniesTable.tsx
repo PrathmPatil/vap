@@ -170,7 +170,7 @@ export function CompaniesTable() {
         </CardHeader>
 
         <CardContent>
-          {loading || true ? (
+          {loading ? (
             <div className="space-y-4">
               {[...Array(limit)].map((_, i) => (
                 <div key={i} className="flex items-center space-x-4">

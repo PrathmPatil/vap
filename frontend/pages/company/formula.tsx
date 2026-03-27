@@ -14,6 +14,7 @@ import { useMarketSignalsData } from "@/hooks/use-market-formulas";
 export default function Home() {
   const {
     data,
+    columns,
     selectedFilters,
     setSelectedFilters,
     loading,
@@ -22,6 +23,13 @@ export default function Home() {
     setItemsPerPage,
     currentPage,
     setCurrentPage,
+    handleSearch,
+    searchTerm,
+    handleExport,
+    basePercent,
+    setBasePercent,
+    totalPages,
+    totalItems,
   } = useMarketSignalsData();
 
   // Loading UI
@@ -43,14 +51,29 @@ export default function Home() {
     );
   }
 
-  // Error UI
-  if (error) {
-    return (
-      <div className="min-h-screen flex items-center justify-center text-red-500">
-        Failed to load data
-      </div>
-    );
-  }
+  const renderCustomFilter = () => {
+    if (selectedFilters[0] === "buy_day") {
+      return <div className="mb-6 flex items-center justify-end gap-4"></div>;
+    } else if (selectedFilters[0] === "strong-bullish-candle") {
+      return (
+        <div className="mb-6 flex items-center justify-end gap-4">
+          <label htmlFor="basePercent" className="mr-2 font-medium">
+            Base Percent:
+          </label>
+          <input
+            type="number"
+            id="basePercent"
+            className="border border-gray-300 rounded-md px-2 py-1"
+            value={basePercent}
+            onChange={(e) => {
+              handleSearch(searchTerm, Number(e.target.value));
+              setBasePercent(Number(e.target.value));
+            }}
+          />
+        </div>
+      );
+    }
+  };
 
   return (
     <div
@@ -71,33 +94,46 @@ export default function Home() {
               <SelectTrigger className="w-[250px]">
                 <SelectValue placeholder="Select a formula" />
               </SelectTrigger>
-
               <SelectContent>
                 <SelectItem value="buy_day">Buy Day</SelectItem>
-                <SelectItem value="follow_through_day">
+                <SelectItem value="follow-through-day">
                   Follow Through Day
                 </SelectItem>
-                <SelectItem value="rally_attempt_day">
+                <SelectItem value="rally-attempt-day">
                   Rally Attempt Day
                 </SelectItem>
-                <SelectItem value="strong_bullish_candle">
+                <SelectItem value="strong-bullish-candle">
                   Strong Bullish Candle
                 </SelectItem>
+                <SelectItem value="run-formula-engine">
+                  Run Formula Engine
+                </SelectItem>
+                <SelectItem value="buy-day">Buy Day</SelectItem>
               </SelectContent>
             </Select>
           </div>
-
-          {/* Table */}
+          {renderCustomFilter()}
+          {error && (
+            <div className="mb-4 text-red-500">
+              Failed to load data. Please try again later.
+            </div>
+          )}
           <CommonTable
             data={data}
+            columns={columns}
             itemsPerPage={itemsPerPage}
-            setItemsPerPage={setItemsPerPage}
             currentPage={currentPage}
             setCurrentPage={setCurrentPage}
+            showSearch={true}
+            onSearch={(searchTerm) => handleSearch(searchTerm, basePercent)}
+            searchTerm={searchTerm}
+            showExport={true}
+            onExport={handleExport}
+            loading={loading}
+            onRowClick={(row) => console.log("Clicked:", row)}
+            totalPages={totalPages}
+            totalItems={totalItems}
           />
-
-          {/* Additional Market Signals */}
-          <MarketSignalsPage />
         </main>
       </div>
     </div>

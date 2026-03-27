@@ -10,141 +10,422 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
+import {
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
+  ArrowUpDown,
+  Search,
+  Download,
+  Eye,
+} from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
+
+interface ColumnConfig {
+  key: string;
+  label?: string;
+  sortable?: boolean;
+  searchable?: boolean;
+  format?: (value: any, row: any) => React.ReactNode;
+  className?: string;
+  hideOnMobile?: boolean;
+}
 
 interface CommonTableProps {
-  data?: any;
+  data?: any[];
+  columns?: ColumnConfig[];
   itemsPerPage?: number;
   setItemsPerPage?: (items: number) => void;
   currentPage: number;
   setCurrentPage: (page: number) => void;
+  totalItems?: number;
+  loading?: boolean;
+  onRowClick?: (row: any) => void;
+  onExport?: () => void;
+  showExport?: boolean;
+  showSearch?: boolean;
+  searchPlaceholder?: string;
+  onSearch?: (searchTerm: string) => void;
+  searchTerm?: string;
+  sortColumn?: string;
+  sortDirection?: 'asc' | 'desc';
+  onSort?: (column: string) => void;
+  emptyStateMessage?: string;
+  emptyStateIcon?: React.ReactNode;
+  className?: string;
+  totalPages: number;
 }
 
 export default function CommonTable({
-  data,
+  data = [],
+  columns: customColumns,
   itemsPerPage = 10,
   setItemsPerPage,
   currentPage = 1,
   setCurrentPage,
+  totalItems,
+  loading = false,
+  onRowClick,
+  onExport,
+  showExport = false,
+  showSearch = false,
+  searchPlaceholder = "Search...",
+  onSearch,
+  searchTerm = "",
+  sortColumn,
+  sortDirection = 'asc',
+  onSort,
+  emptyStateMessage = "No results found",
+  emptyStateIcon,
+  className = "",
+  totalPages,
 }: CommonTableProps) {
-
+  
   const safeData = Array.isArray(data) ? data : [];
+  const total = totalItems || safeData.length;
 
+  // Generate columns from data if not provided
   const columns = React.useMemo(() => {
+    if (customColumns && customColumns.length > 0) {
+      return customColumns;
+    }
+    
     if (!safeData.length) return [];
-    return Object.keys(safeData[0]);
-  }, [safeData]);
+    
+    return Object.keys(safeData[0]).map(key => ({
+      key,
+      label: key.replace(/_/g, ' '),
+      sortable: true,
+      searchable: true,
+    }));
+  }, [customColumns, safeData]);
 
-  const totalPages = Math.ceil(safeData.length / itemsPerPage);
+  const handleSort = (columnKey: string) => {
+    if (!onSort) return;
+    
+    const column = columns.find(col => col.key === columnKey);
+    if (column?.sortable) {
+      onSort(columnKey);
+    }
+  };
+
+  const getSortIcon = (columnKey: string) => {
+    if (sortColumn !== columnKey) return <ArrowUpDown className="ml-2 h-4 w-4 opacity-50" />;
+    return <ArrowUpDown className={`ml-2 h-4 w-4 ${sortDirection === 'asc' ? 'rotate-180' : ''}`} />;
+  };
 
   const paginatedData = React.useMemo(() => {
+    if (totalItems) return safeData;
     const start = (currentPage - 1) * itemsPerPage;
     return safeData.slice(start, start + itemsPerPage);
-  }, [safeData, currentPage, itemsPerPage]);
+  }, [safeData, currentPage, itemsPerPage, totalItems]);
+
+  const handlePageChange = (page: number) => {
+    if (page >= 1 && page <= totalPages) {
+      setCurrentPage(page);
+    }
+  };
+
+  const handleItemsPerPageChange = (value: string) => {
+    const newItemsPerPage = parseInt(value, 10);
+    if (setItemsPerPage) {
+      setItemsPerPage(newItemsPerPage);
+      setCurrentPage(1); // Reset to first page
+    }
+  };
+
+  const renderCellContent = (row: any, column: ColumnConfig) => {
+    const value = row[column.key];
+    
+    if (column.format) {
+      return column.format(value, row);
+    }
+    
+    if (value === null || value === undefined) {
+      return <span className="text-gray-400">—</span>;
+    }
+    
+    if (typeof value === 'boolean') {
+      return (
+        <Badge variant={value ? 'default' : 'secondary'}>
+          {value ? 'Yes' : 'No'}
+        </Badge>
+      );
+    }
+    
+    if (typeof value === 'number') {
+      return <span className="font-mono">{value.toLocaleString()}</span>;
+    }
+    
+    if (value instanceof Date || (typeof value === 'string' && !isNaN(Date.parse(value)))) {
+      const date = new Date(value);
+      return date.toLocaleDateString();
+    }
+    
+    return value;
+  };
+
+  // Loading skeleton
+  if (loading) {
+    return (
+      <div className={`rounded-lg border ${className}`}>
+        <div className="p-4 space-y-4">
+          <div className="flex justify-between items-center">
+            <Skeleton className="h-10 w-64" />
+            <Skeleton className="h-10 w-32" />
+          </div>
+          <div className="space-y-2">
+            {[...Array(5)].map((_, i) => (
+              <Skeleton key={i} className="h-12 w-full" />
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <>
-      <div className="rounded-lg border">
-        <div className="max-h-[500px] overflow-y-auto">
-          <Table>
+    <div className={`space-y-4 ${className}`}>
+      {/* Header Actions */}
+      {(showSearch || showExport) && (
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          {showSearch && onSearch && (
+            <div className="relative w-full sm:w-80">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <Input
+                placeholder={searchPlaceholder}
+                value={searchTerm}
+                onChange={(e) => onSearch(e.target.value)}
+                className="pl-9"
+              />
+            </div>
+          )}
+          
+          <div className="flex items-center gap-2 ml-auto">
+            {showExport && onExport && (
+              <Button variant="outline" size="sm" onClick={onExport}>
+                <Download className="h-4 w-4 mr-2" />
+                Export
+              </Button>
+            )}
+            
+            {setItemsPerPage && (
+              <Select
+                value={itemsPerPage.toString()}
+                onValueChange={handleItemsPerPageChange}
+              >
+                <SelectTrigger className="w-24">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {[5, 10, 20, 50, 100].map(size => (
+                    <SelectItem key={size} value={size.toString()}>
+                      {size} / page
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+          </div>
+        </div>
+      )}
 
-            <TableHeader className="sticky top-0 bg-white z-10 shadow-sm">
+      {/* Table */}
+      <div className="rounded-lg border overflow-hidden">
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader className="bg-gray-50 border-b">
               <TableRow>
-                {columns.map((col) => (
-                  <TableHead key={col} className="capitalize">
-                    {col.replaceAll('_', ' ')}
+                {columns.map((column) => (
+                  <TableHead
+                    key={column.key}
+                    className={`
+                      ${column.sortable ? 'cursor-pointer select-none' : ''}
+                      ${column.className || ''}
+                      ${column.hideOnMobile ? 'hidden sm:table-cell' : ''}
+                    `}
+                    onClick={() => column.sortable && handleSort(column.key)}
+                  >
+                    <div className="flex items-center">
+                      {column.label || column.key.replace(/_/g, ' ')}
+                      {column.sortable && getSortIcon(column.key)}
+                    </div>
                   </TableHead>
                 ))}
               </TableRow>
             </TableHeader>
-
+            
             <TableBody>
-
               {paginatedData.length > 0 ? (
                 paginatedData.map((row: any, index: number) => (
-                  <TableRow key={row?.id || index} className="hover:bg-slate-50">
-
-                    {columns.map((col) => (
-                      <TableCell key={col}>
-                        {typeof row[col] === 'number'
-                          ? row[col].toFixed(2)
-                          : row[col]}
+                  <TableRow
+                    key={row?.id || index}
+                    className={`
+                      hover:bg-gray-50 transition-colors
+                      ${onRowClick ? 'cursor-pointer' : ''}
+                    `}
+                    onClick={() => onRowClick && onRowClick(row)}
+                  >
+                    {columns.map((column) => (
+                      <TableCell
+                        key={column.key}
+                        className={`
+                          ${column.className || ''}
+                          ${column.hideOnMobile ? 'hidden sm:table-cell' : ''}
+                        `}
+                      >
+                        {renderCellContent(row, column)}
                       </TableCell>
                     ))}
-
                   </TableRow>
                 ))
               ) : (
                 <TableRow>
                   <TableCell
                     colSpan={columns.length || 1}
-                    className="text-center py-8 text-slate-500"
+                    className="text-center py-12"
                   >
-                    No results found
+                    <div className="flex flex-col items-center justify-center text-gray-500">
+                      {emptyStateIcon || (
+                        <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center mb-3">
+                          <Search className="h-6 w-6 text-gray-400" />
+                        </div>
+                      )}
+                      <p className="text-sm font-medium">{emptyStateMessage}</p>
+                      {searchTerm && (
+                        <p className="text-xs mt-1">
+                          Try adjusting your search or filter
+                        </p>
+                      )}
+                    </div>
                   </TableCell>
                 </TableRow>
               )}
-
             </TableBody>
-
           </Table>
         </div>
       </div>
+      {console.log("Total Pages:", totalPages, "Total Items:", totalItems, "Items Per Page:", itemsPerPage)}
 
+      {/* Pagination */}
       {totalPages > 1 && (
-<div className="flex items-center gap-1">
-
-  {getPaginationPages(currentPage, totalPages).map((page, index) => {
-
-    if (page === "...") {
-      return (
-        <span key={index} className="px-2 text-gray-500">
-          ...
-        </span>
-      );
-    }
-
-    return (
-      <Button
-        key={page}
-        size="sm"
-        variant={page === currentPage ? "default" : "outline"}
-        onClick={() => setCurrentPage(Number(page))}
-        className="w-8 h-8 p-0"
-      >
-        {page}
-      </Button>
-    );
-  })}
-
-</div>
+        <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
+          <div className="text-sm text-gray-500 order-2 sm:order-1">
+            Showing {((currentPage - 1) * itemsPerPage) + 1} to{' '}
+            {Math.min(currentPage * itemsPerPage, total)} of {total} results
+          </div>
+          
+          <div className="flex items-center gap-1 order-1 sm:order-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handlePageChange(1)}
+              disabled={currentPage === 1}
+              className="h-8 w-8 p-0"
+            >
+              <ChevronsLeft className="h-4 w-4" />
+            </Button>
+            
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handlePageChange(currentPage - 1)}
+              disabled={currentPage === 1}
+              className="h-8 w-8 p-0"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            
+            <div className="flex items-center gap-1">
+              {getPaginationPages(currentPage, totalPages).map((page, index) => {
+                if (page === "...") {
+                  return (
+                    <span key={index} className="px-2 text-gray-400">
+                      ...
+                    </span>
+                  );
+                }
+                
+                return (
+                  <Button
+                    key={`${page}-${index}`}
+                    size="sm"
+                    variant={page === currentPage ? "default" : "outline"}
+                    onClick={() => handlePageChange(Number(page))}
+                    className="h-8 w-8 p-0"
+                  >
+                    {page}
+                  </Button>
+                );
+              })}
+            </div>
+            
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handlePageChange(currentPage + 1)}
+              disabled={currentPage === totalPages}
+              className="h-8 w-8 p-0"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+            
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handlePageChange(totalPages)}
+              disabled={currentPage === totalPages}
+              className="h-8 w-8 p-0"
+            >
+              <ChevronsRight className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
       )}
-    </>
+    </div>
   );
 }
 
 const getPaginationPages = (currentPage: number, totalPages: number) => {
   const pages: (number | string)[] = [];
-  const maxVisible = 5;
+  const delta = 1; // pages around current
 
-  if (totalPages <= maxVisible + 2) {
-    for (let i = 1; i <= totalPages; i++) pages.push(i);
-    return pages;
-  }
+  const left = currentPage - delta;
+  const right = currentPage + delta;
 
   pages.push(1);
 
-  let start = Math.max(2, currentPage - 1);
-  let end = Math.min(totalPages - 1, currentPage + 1);
+  if (left > 2) {
+    pages.push("...");
+  }
 
-  if (start > 2) pages.push("...");
-
-  for (let i = start; i <= end; i++) {
+  for (let i = Math.max(2, left); i <= Math.min(totalPages - 1, right); i++) {
     pages.push(i);
   }
 
-  if (end < totalPages - 1) pages.push("...");
+  if (right < totalPages - 1) {
+    pages.push("...");
+  }
 
-  pages.push(totalPages);
+  if (totalPages > 1) {
+    pages.push(totalPages);
+  }
 
   return pages;
 };
