@@ -113,6 +113,8 @@ export default function CommonTable({
       label: key.replace(/_/g, ' '),
       sortable: true,
       searchable: true,
+      className: undefined,
+      hideOnMobile: undefined,
     }));
   }, [customColumns, safeData]);
 
@@ -202,7 +204,7 @@ export default function CommonTable({
 
   return (
     <div className={`space-y-4 ${className}`}>
-      {/* Header Actions */}
+
       {(showSearch || showExport) && (
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           {showSearch && onSearch && (
@@ -246,7 +248,6 @@ export default function CommonTable({
         </div>
       )}
 
-      {/* Table */}
       <div className="rounded-lg border overflow-hidden">
         <div className="overflow-x-auto">
           <Table>
@@ -321,9 +322,7 @@ export default function CommonTable({
           </Table>
         </div>
       </div>
-      {console.log("Total Pages:", totalPages, "Total Items:", totalItems, "Items Per Page:", itemsPerPage)}
 
-      {/* Pagination */}
       {totalPages > 1 && (
         <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
           <div className="text-sm text-gray-500 order-2 sm:order-1">
