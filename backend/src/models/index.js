@@ -164,7 +164,7 @@ import SmeDataModel from './ipo/SmeData.js';
 // Misc models
 import Announcements from './announcements_model.js';
 import NseDynamic from './ingestModel.js';
-import { BuyDay, FollowThroughDay, RallyAttemptDay, StrongBullishCandle } from './formulaModel.js';
+import { BuyDay, FollowThroughDay, RallyAttemptDay, StrongBullishCandle, VolumeBreakout } from './formulaModel.js';
 
 /* ---------------------------------------------
    INITIALIZE MODELS

@@ -20,4 +20,7 @@ router.post("/follow-through-day", runFollowThroughDay);
 
 router.post("/buy-day", runBuyDay);
 
+// getVolumeBreakouts
+router.get("/volume-breakouts", getVolumeBreakouts);
+
 export default router;

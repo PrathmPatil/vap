@@ -95,7 +95,7 @@ export default function Home() {
                 <SelectValue placeholder="Select a formula" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="buy_day">Buy Day</SelectItem>
+                <SelectItem value="buy-day">Buy Day</SelectItem>
                 <SelectItem value="follow-through-day">
                   Follow Through Day
                 </SelectItem>
@@ -108,7 +108,7 @@ export default function Home() {
                 <SelectItem value="run-formula-engine">
                   Run Formula Engine
                 </SelectItem>
-                <SelectItem value="buy-day">Buy Day</SelectItem>
+                <SelectItem value="volume-breakouts">Volume Breakouts</SelectItem>
               </SelectContent>
             </Select>
           </div>
