@@ -5,7 +5,8 @@ import {
   generateStrongBullish,
   runRallyAttempt,
   runFollowThroughDay,
-  runBuyDay
+  runBuyDay,
+  getVolumeBreakouts
 } from "../controllers/formulaController.js";
 
 const router = express.Router();
