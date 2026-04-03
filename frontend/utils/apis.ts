@@ -8,6 +8,16 @@ export interface ApiOptions {
   headers?: Record<string, string>;
 }
 
+const getApiBaseUrl = () => {
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL?.trim();
+
+  if (!baseUrl) {
+    throw new Error('NEXT_PUBLIC_API_URL is not configured');
+  }
+
+  return baseUrl.replace(/\/+$/, '');
+};
+
 export async function callApi<T>({
   url,
   method,
@@ -16,7 +26,7 @@ export async function callApi<T>({
   headers = {},
 }: ApiOptions): Promise<T> {
   const config: AxiosRequestConfig = {
-    url:process.env.NEXT_PUBLIC_API_URL + url,
+    url: `${getApiBaseUrl()}/${url.replace(/^\/+/, '')}`,
     method,
     headers: {
       'Content-Type': 'application/json',
@@ -31,12 +41,14 @@ export async function callApi<T>({
     const response = await axios.request<T>(config);
     return response.data;
   } catch (error: any) {
-    // You can customize error handling/logging here
     if (error.response) {
-      throw new Error(
-        `API Error: ${error.response.status} ${error.response.statusText} - ${JSON.stringify(error.response.data)}`
-      );
+      throw error;
     }
-    throw new Error(`Network Error: ${error.message}`);
+
+    throw new Error(
+      error.message === 'Network Error'
+        ? 'Unable to connect to the backend server. Please check that the API is running.'
+        : error.message
+    );
   }
 }

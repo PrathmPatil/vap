@@ -84,7 +84,7 @@ export const registerUser = async (req, res) => {
 export const loginUser = async (req, res) => {
   try {
     const { email, password } = req.body;
-
+     await checkAndCreateUserTable();
     const user = await User.findOne({ where: { email } });
 
     if (!user) {
