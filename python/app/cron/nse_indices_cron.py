@@ -92,15 +92,15 @@ def start_nse_indices_scheduler():
         coalesce=True
     )
 
-    scheduler.add_job(
-        nse_quotes_cron,
-        trigger="interval",
-        hours=5,
-        id="nse_quotes_cron",
-        replace_existing=True,
-        max_instances=1,
-        coalesce=True
-    )
+    # scheduler.add_job(
+    #     nse_quotes_cron,
+    #     trigger="interval",
+    #     hours=5,
+    #     id="nse_quotes_cron",
+    #     replace_existing=True,
+    #     max_instances=1,
+    #     coalesce=True
+    # )
 
     scheduler.start()
     logger.info("🚀 NSE Indices + Quotes Scheduler started (every 5 hours)")

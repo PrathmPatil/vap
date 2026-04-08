@@ -25,6 +25,9 @@ class Config:
     # =====================================================
     ALPHA_VANTAGE_API_KEY = require_env("ALPHA_VANTAGE_API_KEY")
     FINANCIAL_MODELING_PREP_API_KEY = require_env("FMP_API_KEY")
+    
+    # Add these to your config
+    MAX_WORKERS = 3  # Reduced from default to avoid rate limiting
 
     # =====================================================
     # 🗄️ DATABASE CONNECTION

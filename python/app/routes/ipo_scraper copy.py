@@ -1,66 +1,72 @@
-from fastapi import APIRouter, Query, HTTPException
-import requests
-import logging
-from app.services.ipo_scraper_service import ipo_scraper_service
+from fastapi import APIRouter, Query
+from datetime import datetime
+from typing import Optional, List
+from app.services.indian_market_service import indian_market_service
 
 router = APIRouter()
-logger = logging.getLogger(__name__)
 
-@router.get("/fetch-data")
-async def fetch_ipo_data(
-    report_id: int = Query(21),
-    page: int = Query(1),
-    category_id: int = Query(10),
-    year: int = Query(2025),
-    financial_year: str = Query("2025-26"),
-    sector_id: int = Query(0),
-    sub_sector_id: int = Query(0),
-    company_id: int = Query(0),
-    search: str = Query(""),
-    v: str = Query("15-25")
+
+@router.get("/holidays", tags=["Indian Market"])
+async def get_holidays(
+    segment: Optional[str] = Query("CM", description="Market segment (CM, FO, CD, COM, etc.)"),
+    year: Optional[int] = Query(None, description="Year to filter"),
+    start_date: Optional[str] = Query(None, description="Start date (YYYY-MM-DD)"),
+    end_date: Optional[str] = Query(None, description="End date (YYYY-MM-DD)")
 ):
-    """Fetch and Save IPO Data from Chittorgarh dynamically into MySQL."""
-    url = (
-        f"https://webnodejs.chittorgarh.com/cloud/report/data-read/"
-        f"{report_id}/{page}/{category_id}/{year}/{financial_year}/"
-        f"{sector_id}/{sub_sector_id}/{company_id}?search={search}&v={v}"
+    """Get market holidays from database"""
+    holidays = indian_market_service.get_holidays_from_db(
+        segment=segment,
+        year=year,
+        start_date=start_date,
+        end_date=end_date
     )
-
-    headers = {
-        "accept": "application/json, text/plain, */*",
-        "accept-language": "en-IN,en;q=0.9",
-        "origin": "https://www.chittorgarh.com",
-        "referer": "https://www.chittorgarh.com/",
-        "user-agent": (
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-            "AppleWebKit/537.36 (KHTML, like Gecko) "
-            "Chrome/142.0.0.0 Safari/537.36"
-        ),
+    
+    return {
+        "status": "success",
+        "count": len(holidays),
+        "segment": segment,
+        "holidays": holidays
     }
 
-    try:
-        response = requests.get(url, headers=headers, timeout=20)
-        response.raise_for_status()
-        json_data = response.json()
 
-        if not isinstance(json_data, dict):
-            raise HTTPException(status_code=502, detail="Invalid data format from Chittorgarh")
-
-        if "reportTableData" not in json_data:
-            raise HTTPException(status_code=404, detail="No reportTableData found in response")
-
-        save_result = ipo_scraper_service.save_to_mysql(json_data)
-
-        return {
-            "status": "success",
-            "source": "chittorgarh",
-            "saved_to": save_result["table"],
-            "url": url,
-            "record_count": len(json_data.get("reportTableData", [])),
-        }
-
-    except requests.exceptions.RequestException as e:
-        logger.error(f"Request failed: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+@router.get("/upcoming-holidays", tags=["Indian Market"])
+async def get_upcoming_holidays(days: int = Query(30, description="Number of days to look ahead")):
+    """Get upcoming market holidays"""
+    upcoming = indian_market_service.get_upcoming_holidays(days)
+    
+    return {
+        "status": "success",
+        "days_ahead": days,
+        "count": len(upcoming),
+        "holidays": upcoming
+    }
 
 
+@router.get("/market-status", tags=["Indian Market"])
+async def get_market_status(date: Optional[str] = Query(None, description="Date (YYYY-MM-DD), default today")):
+    """Get market status for a specific date"""
+    if date:
+        target_date = datetime.strptime(date, "%Y-%m-%d")
+    else:
+        target_date = None
+    
+    status = indian_market_service.get_market_status_for_date(target_date)
+    
+    return {
+        "status": "success",
+        "market_info": status
+    }
+
+
+@router.post("/sync-holidays", tags=["Indian Market"])
+async def sync_holidays(segment: Optional[str] = Query("CM", description="Segment to sync")):
+    """Manually trigger holiday sync from NSE API"""
+    result = indian_market_service.fetch_and_save_holidays(segment)
+    
+    return {
+        "status": "success",
+        "message": f"Synced holidays for {segment} segment",
+        "inserted": result['inserted'],
+        "duplicates": result['duplicates'],
+        "errors": result['errors']
+    }

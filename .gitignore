@@ -38,6 +38,7 @@ python/cron/__pycache__/
 python/database/__pycache__/
 python/models/__pycache__/
 python/routes/__pycache__/
+python/routes/__pycache__/cron
 python/services/__pycache__/
 python/utils/__pycache__/
 python/*.pyc

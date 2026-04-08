@@ -1,25 +1,11 @@
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.interval import IntervalTrigger
 from app.services.company_profile_service import company_service
-from app.services.finnhub_data_service import MarketService
 import logging
 import pytz
 
 logger = logging.getLogger(__name__)
 scheduler = BackgroundScheduler(timezone=pytz.timezone("Asia/Kolkata"))
-
-market_service = MarketService()
-
-
-def fetch_and_save_market_data():
-    try:
-        logger.info("📈 Fetching market data...")
-        data = market_service.fetch_market_data()
-        market_service.save_market_data(data)
-        logger.info("✅ Market data saved successfully")
-    except Exception as e:
-        logger.error(f"❌ Market data cron failed: {e}")
-
 
 def start_company_profile_cron():
 

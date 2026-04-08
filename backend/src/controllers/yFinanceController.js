@@ -1,4 +1,4 @@
-import { YCompanies } from "../models/index.js";
+import { PR, YCompanies } from "../models/index.js";
 import { getUniqueSectorsService, getYFinanceDataService, getYFinancePaginatedData } from "../services/yFinanceService.js";
 
 export const getYFinanceData = async (req, res) => {
@@ -15,7 +15,7 @@ export const getYFinanceData = async (req, res) => {
 // getAllYFinanceData
 export const getAllYFinanceData = async (req, res) => {
   try {
-    const result = await getYFinancePaginatedData(YCompanies, req.query);
+    const result = await getYFinancePaginatedData(PR, req.query);
     res.status(200).json({ success: true, ...result });
   } catch (err) {
     console.error("❌ Error in controller:", err);

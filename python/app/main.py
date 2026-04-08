@@ -1,4 +1,4 @@
-# main.py
+# main.py - FIXED IMPORT (remove 'python.' prefix)
 from fastapi import FastAPI
 from datetime import datetime, timezone, timedelta
 from typing import Dict
@@ -17,8 +17,7 @@ from app.routes import (
     nse_master_ingest,
     cron,
     nse_all_companies,
-    company_profile, finnhub_data
-)
+    company_profile)
 
 from app.config import config
 from app.services.ipo_cron_service import ipo_cron_service
@@ -28,8 +27,10 @@ from app.cron.nse_indices_cron import start_nse_indices_scheduler
 from app.cron.yfinance_cron import start_yfinance_cron
 from app.cron.gov_news_cron import start_gov_news_cron
 from app.cron.company_profile_cron import start_company_profile_cron
-from app.cron.bhavcopy import fetch_today_bhavcopy_cron  
+# ✅ FIXED: Removed 'python.' prefix
+from app.cron.bhavcopy_cron import fetch_today_bhavcopy_cron  
 from app.cron.bse_announcements_news import start_bse_announcements_scheduler
+from app.cron.indian_market_cron import start_indian_market_cron
 
 from app.database.init_databases import init_databases
 from app.database.startup import ensure_databases
@@ -81,7 +82,6 @@ app.include_router(nse_master_ingest.router, prefix="/ingest", tags=["NSE Master
 app.include_router(cron.router, prefix="/cron", tags=["Cron Jobs"])
 app.include_router(nse_all_companies.router, prefix="/nse-all-companies", tags=["NSE All Companies"])
 app.include_router(company_profile.router, prefix="/company-profile", tags=["Company Profile"])
-app.include_router(finnhub_data.router, prefix="/finnhub", tags=["Finnhub Data"])
 
 
 # ---------------------------------------------------------
@@ -123,14 +123,15 @@ def initialize_cron_jobs():
 
     cron_services = [
         ("IPO cron service", ipo_cron_service.start),
-        ("Listed companies cron", listed_companies_cron_service.start),
-        ("Screener scheduler", screener_scheduler.start),
+        # ("Listed companies cron", listed_companies_cron_service.start),
+        # ("Screener scheduler", screener_scheduler.start),
         ("NSE indices scheduler", start_nse_indices_scheduler),
-        ("YFinance cron", start_yfinance_cron),
+        # ("YFinance cron", start_yfinance_cron),
         ("Government News cron", start_gov_news_cron),
         ("NSE All Companies cron", start_company_profile_cron),
         ("Today's Bhavcopy cron", fetch_today_bhavcopy_cron),
-        ("BSE Announcements cron", start_bse_announcements_scheduler)
+        ("BSE Announcements cron", start_bse_announcements_scheduler),
+        ("Indian Market Holidays cron", start_indian_market_cron)
     ]
     
 
@@ -150,10 +151,10 @@ async def startup_event():
     logger.info("🚀 Starting Unified Stock Data API...")
     
     # Initialize databases
-    # init_databases()
+    init_databases()
     
     # ensure_databases()
-    # ensure_databases()
+    ensure_databases()
     
     # ✅ SAFE init
     get_yfinance_service().__init__()
