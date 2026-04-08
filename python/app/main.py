@@ -151,10 +151,10 @@ async def startup_event():
     logger.info("🚀 Starting Unified Stock Data API...")
     
     # Initialize databases
-    init_databases()
+    # init_databases()
     
     # ensure_databases()
-    ensure_databases()
+    # ensure_databases()
     
     # ✅ SAFE init
     get_yfinance_service().__init__()
