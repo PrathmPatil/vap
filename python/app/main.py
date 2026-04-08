@@ -32,6 +32,7 @@ from app.cron.bhavcopy_cron import fetch_today_bhavcopy_cron
 from app.cron.bse_announcements_news import start_bse_announcements_scheduler
 from app.cron.indian_market_cron import start_indian_market_cron
 
+
 from app.database.init_databases import init_databases
 from app.database.startup import ensure_databases
 
@@ -151,10 +152,10 @@ async def startup_event():
     logger.info("🚀 Starting Unified Stock Data API...")
     
     # Initialize databases
-    # init_databases()
+    init_databases()
     
     # ensure_databases()
-    # ensure_databases()
+    ensure_databases()
     
     # ✅ SAFE init
     get_yfinance_service().__init__()

@@ -54,7 +54,7 @@ class NseFetchService:
 
     def fetch_all_symbols(self):
         return self.safe_get(
-            "https://www.nseindia.com/api/allSymbols"
+            "https://www.nseindia.com/api/market-data-pre-open?key=ALL"
         ).get("data", [])
 
     def fetch_live_quotes(self, limit=25):

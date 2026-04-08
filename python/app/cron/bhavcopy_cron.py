@@ -81,7 +81,7 @@ def fetch_today_bhavcopy_cron():
     # Run daily at 6:00 PM IST
     scheduler.add_job(
         bhavcopy_job,
-        CronTrigger(hour=18, minute=0),
+        CronTrigger(hour=20, minute=0),
         id="bhavcopy_daily_job",
         replace_existing=True,
     )
