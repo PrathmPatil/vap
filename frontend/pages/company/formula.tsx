@@ -105,10 +105,8 @@ export default function Home() {
                 <SelectItem value="strong-bullish-candle">
                   Strong Bullish Candle
                 </SelectItem>
-                <SelectItem value="run-formula-engine">
-                  Run Formula Engine
-                </SelectItem>
                 <SelectItem value="volume-breakouts">Volume Breakouts</SelectItem>
+                <SelectItem value="tweezer-bottoms">Tweezer Bottoms</SelectItem>
               </SelectContent>
             </Select>
           </div>

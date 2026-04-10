@@ -1,5 +1,7 @@
-import { getFinnhubData } from '@/utils';
-import React, { useState, useEffect } from 'react';
+import { getFinnhubData, getMarketHolidays } from "@/utils";
+import React, { useState, useEffect } from "react";
+import { Badge } from "./ui/badge";
+import CustomPagination from "./ui/custom-pagination";
 
 // ==================== TYPES ====================
 interface MarketStatus {
@@ -63,85 +65,133 @@ interface ApiResponse<T> {
   };
 }
 
-type TableType = 'market-status' | 'market-holiday' | 'ipo-calendar' | 'earnings-calendar';
+type TableType =
+  | "market-status"
+  | "market-holiday"
+  | "market-holiday-old"
+  | "market-earnings"
+  | "ipo-calendar"
+  | "earnings-calendar";
 
 // ==================== MAIN COMPONENT ====================
 const MarketDataDashboard: React.FC = () => {
   // State for selected table
-  const [selectedTable, setSelectedTable] = useState<TableType>('market-status');
-  
+  const [selectedTable, setSelectedTable] =
+    useState<TableType>("market-status");
+
   // State for all data types
   const [marketStatusData, setMarketStatusData] = useState<MarketStatus[]>([]);
-  const [marketHolidayData, setMarketHolidayData] = useState<MarketHoliday[]>([]);
+  const [marketHolidayData, setMarketHolidayData] = useState<MarketHoliday[]>(
+    [],
+  );
   const [ipoData, setIpoData] = useState<IPOCalendar[]>([]);
   const [earningsData, setEarningsData] = useState<EarningsCalendar[]>([]);
-  
+
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [totalPages, setTotalPages] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
-  
+
+  const [pagination, setPagination] = useState({
+    total: 0,
+    page: 1,
+    limit: 10,
+    total_pages: 0,
+  });
+  const [marketHolidayPagination, setMarketHolidayPagination] = useState({
+    total: 0,
+    page: 1,
+    limit: 10,
+    total_pages: 0,
+  });
+  const [marketHoliday, setMarketHoliday] = useState<MarketHoliday[]>([]);
+
   // UI state
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // Fetch data based on selected table
   useEffect(() => {
-    fetchData();
+    // fetchData();
+    fetchHolidayData();
   }, [selectedTable, currentPage, itemsPerPage]);
+
+  const fetchHolidayData = async () => {
+    try {
+      const response = await getMarketHolidays(marketHolidayPagination.page, marketHolidayPagination.limit, '');
+      const { success, data, pagination, message } = response;
+      if (!success) {
+        throw new Error(`HTTP error! status: ${message || "Unknown error"}`);
+      }
+      setMarketHolidayPagination(pagination);
+      setMarketHoliday(data);
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "An error occurred while fetching market holiday data",
+      );
+      setMarketHoliday([]);
+      setPagination({ total: 0, page: 1, limit: 10, total_pages: 0 });
+    }
+  };
 
   const fetchData = async () => {
     setLoading(true);
     setError(null);
 
     try {
-      let endpoint = '';
+      let endpoint = "";
       switch (selectedTable) {
-        case 'market-status':
-          endpoint = 'market_status';
+        case "market-status":
+          endpoint = "market_status";
           break;
-        case 'market-holiday':
-          endpoint = 'market_holiday';
+        // case "market-holiday":
+        //   endpoint = "market_holiday";
+        //   break;
+        case "ipo-calendar":
+          endpoint = "ipo_calendar";
           break;
-        case 'ipo-calendar':
-          endpoint = 'ipo_calendar';
-          break;
-        case 'earnings-calendar':
-          endpoint = 'earnings_calendar';
+        case "earnings-calendar":
+          endpoint = "earnings_calendar";
           break;
       }
-      
 
-     const response = await getFinnhubData(endpoint, {page: currentPage, limit: itemsPerPage});
-      const {success, data, pagination, message} = response;
+      const response = await getFinnhubData(endpoint, {
+        page: currentPage,
+        limit: itemsPerPage,
+      });
+      const { success, data, pagination, message } = response;
       if (!success) {
-        throw new Error(`HTTP error! status: ${message || 'Unknown error'}`);
+        throw new Error(`HTTP error! status: ${message || "Unknown error"}`);
       }
-      
-      
+
       // Update the appropriate state based on selected table
       switch (selectedTable) {
-        case 'market-status':
-          setMarketStatusData(data as MarketStatus[] || []);
+        case "market-status":
+          setMarketStatusData((data as MarketStatus[]) || []);
           break;
-        case 'market-holiday':
-          setMarketHolidayData(data as MarketHoliday[] || []);
+        // case "market-holiday":
+        //   setMarketHolidayData((data as MarketHoliday[]) || []);
+        //   break;
+        case "ipo-calendar":
+          setIpoData((data as IPOCalendar[]) || []);
           break;
-        case 'ipo-calendar':
-          setIpoData(data as IPOCalendar[] || []);
-          break;
-        case 'earnings-calendar':
-          setEarningsData(data as EarningsCalendar[] || []);
+        case "earnings-calendar":
+          setEarningsData((data as EarningsCalendar[]) || []);
           break;
       }
-      
+
       // Update pagination info
       setTotalPages(pagination?.pages || 0);
       setTotalItems(pagination?.total || 0);
-      
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred while fetching data');
+      setError(
+        err instanceof Error
+          ? err.message
+          : "An error occurred while fetching data",
+      );
     } finally {
       setLoading(false);
     }
@@ -157,19 +207,19 @@ const MarketDataDashboard: React.FC = () => {
   };
 
   const formatCurrency = (value: number | string | null) => {
-    if (value === null || value === undefined) return '-';
-    const numValue = typeof value === 'string' ? parseFloat(value) : value;
+    if (value === null || value === undefined) return "-";
+    const numValue = typeof value === "string" ? parseFloat(value) : value;
     if (isNaN(numValue)) return value as string;
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: "USD",
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     }).format(numValue);
   };
 
   const formatNumber = (value: number | null) => {
-    if (value === null) return '-';
+    if (value === null) return "-";
     return value.toLocaleString();
   };
 
@@ -186,149 +236,296 @@ const MarketDataDashboard: React.FC = () => {
   // Get current data based on selected table
   const getCurrentData = () => {
     switch (selectedTable) {
-      case 'market-status':
+      case "market-status":
         return marketStatusData;
-      case 'market-holiday':
-        return marketHolidayData;
-      case 'ipo-calendar':
+      // case "market-holiday":
+      //   return marketHolidayData;
+      case "ipo-calendar":
         return ipoData;
-      case 'earnings-calendar':
+      case "earnings-calendar":
         return earningsData;
       default:
         return [];
     }
   };
 
+  //   {
+  //     "id": 160,
+  //     "holiday_date": "2026-12-25",
+  //     "day": "Friday",
+  //     "description": "Christmas",
+  //     "segment": "SLBS",
+  //     "sr_no": 20,
+  //     "morning_session": null,
+  //     "evening_session": null,
+  //     "source": "NSE API",
+  //     "is_active": 1,
+  //     "created_at": "2026-04-10T06:00:10.000Z",
+  //     "updated_at": "2026-04-10T06:00:10.000Z"
+  // }
   const currentData = getCurrentData();
 
   // ==================== RENDER FUNCTIONS FOR EACH TABLE ====================
 
-  const renderMarketStatusTable = () => (
-      <table className="min-w-full divide-y divide-gray-200">
-        <thead className="bg-gray-50">
-          <tr>
-            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
-            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Exchange</th>
-            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Holiday</th>
-            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Session</th>
-            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Timezone</th>
+  const renderMarketHolidayTable = () => (
+    <table className="min-w-full divide-y divide-gray-200">
+      <thead className="bg-gray-50">
+        <tr>
+          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+            ID
+          </th>
+          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+            Date
+          </th>
+          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+            Day
+          </th>
+          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+            Description
+          </th>
+          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+            Segment
+          </th>
+        </tr>
+      </thead>
+      <tbody className="bg-white divide-y divide-gray-200">
+        {(marketHoliday as MarketHoliday[]).map((item, index) => (
+          <tr key={item.id} className="hover:bg-gray-50">
+            <td className="px-4 py-3 text-sm text-gray-900">{index}</td>
+            <td className="px-4 py-3 text-sm text-gray-900">
+              {formatDate(item.holiday_date)}
+            </td>
+            <td className="px-4 py-3 text-sm text-gray-900">{item.day}</td>
+            <td className="px-4 py-3 text-sm font-medium text-gray-900">
+              {item.description}
+            </td>
+            <td className="px-4 py-3 flex gap-1 text-sm text-gray-900">{item.segments.length > 0 ? item.segments.map((segment) => <Badge key={segment}>{segment}</Badge>) : "-" }</td>
           </tr>
-        </thead>
-        <tbody className="bg-white divide-y divide-gray-200">
-          {(currentData as MarketStatus[]).map((item) => (
-            <tr key={item.id} className="hover:bg-gray-50">
-              <td className="px-4 py-3 text-sm text-gray-900">{item.id}</td>
-              <td className="px-4 py-3 text-sm text-gray-900">{item.exchange}</td>
-              <td className="px-4 py-3 text-sm text-gray-500">{item.holiday || '-'}</td>
-              <td className="px-4 py-3">
-                <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
-                  item.isOpen ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                }`}>
-                  {item.isOpen ? 'Open' : 'Closed'}
-                </span>
-              </td>
-              <td className="px-4 py-3 text-sm text-gray-500">{item.session || '-'}</td>
-              <td className="px-4 py-3 text-sm text-gray-500">{item.timezone || '-'}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+        ))}
+      </tbody>
+    </table>
   );
 
-  const renderMarketHolidayTable = () => (
-      <table className="min-w-full divide-y divide-gray-200">
-        <thead className="bg-gray-50">
-          <tr>
-            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
-            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Event Name</th>
-            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
-            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Trading Hours</th>
-            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Post Market</th>
+  const renderMarketStatusTable = () => (
+    <table className="min-w-full divide-y divide-gray-200">
+      <thead className="bg-gray-50">
+        <tr>
+          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+            ID
+          </th>
+          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+            Exchange
+          </th>
+          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+            Holiday
+          </th>
+          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+            Status
+          </th>
+          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+            Session
+          </th>
+          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+            Timezone
+          </th>
+        </tr>
+      </thead>
+      <tbody className="bg-white divide-y divide-gray-200">
+        {(currentData as MarketStatus[]).map((item) => (
+          <tr key={item.id} className="hover:bg-gray-50">
+            <td className="px-4 py-3 text-sm text-gray-900">{item.id}</td>
+            <td className="px-4 py-3 text-sm text-gray-900">{item.exchange}</td>
+            <td className="px-4 py-3 text-sm text-gray-500">
+              {item.holiday || "-"}
+            </td>
+            <td className="px-4 py-3">
+              <span
+                className={`px-2 py-1 text-xs font-semibold rounded-full ${
+                  item.isOpen
+                    ? "bg-green-100 text-green-800"
+                    : "bg-red-100 text-red-800"
+                }`}
+              >
+                {item.isOpen ? "Open" : "Closed"}
+              </span>
+            </td>
+            <td className="px-4 py-3 text-sm text-gray-500">
+              {item.session || "-"}
+            </td>
+            <td className="px-4 py-3 text-sm text-gray-500">
+              {item.timezone || "-"}
+            </td>
           </tr>
-        </thead>
-        <tbody className="bg-white divide-y divide-gray-200">
-          {(currentData as MarketHoliday[]).map((item) => (
-            <tr key={item.id} className="hover:bg-gray-50">
-              <td className="px-4 py-3 text-sm text-gray-900">{item.id}</td>
-              <td className="px-4 py-3 text-sm font-medium text-gray-900">{item.eventName}</td>
-              <td className="px-4 py-3 text-sm text-gray-900">{formatDate(item.atDate)}</td>
-              <td className="px-4 py-3 text-sm text-gray-500">{item.tradingHour || '-'}</td>
-              <td className="px-4 py-3 text-sm text-gray-500">{item.postMarket || '-'}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+        ))}
+      </tbody>
+    </table>
+  );
+
+  const renderMarketHolidayTableOld = () => (
+    <table className="min-w-full divide-y divide-gray-200">
+      <thead className="bg-gray-50">
+        <tr>
+          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+            ID
+          </th>
+          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+            Event Name
+          </th>
+          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+            Date
+          </th>
+          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+            Trading Hours
+          </th>
+          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+            Post Market
+          </th>
+        </tr>
+      </thead>
+      <tbody className="bg-white divide-y divide-gray-200">
+        {(currentData as MarketHoliday[]).map((item) => (
+          <tr key={item.id} className="hover:bg-gray-50">
+            <td className="px-4 py-3 text-sm text-gray-900">{item.id}</td>
+            <td className="px-4 py-3 text-sm font-medium text-gray-900">
+              {item.eventName}
+            </td>
+            <td className="px-4 py-3 text-sm text-gray-900">
+              {formatDate(item.atDate)}
+            </td>
+            <td className="px-4 py-3 text-sm text-gray-500">
+              {item.tradingHour || "-"}
+            </td>
+            <td className="px-4 py-3 text-sm text-gray-500">
+              {item.postMarket || "-"}
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
   );
 
   const renderIPOTable = () => (
-      <table className="min-w-full divide-y divide-gray-200">
-        <thead className="bg-gray-50">
-          <tr>
-            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
-            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
-            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Exchange</th>
-            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Company</th>
-            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Symbol</th>
-            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Shares</th>
-            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Price</th>
-            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+    <table className="min-w-full divide-y divide-gray-200">
+      <thead className="bg-gray-50">
+        <tr>
+          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+            ID
+          </th>
+          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+            Date
+          </th>
+          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+            Exchange
+          </th>
+          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+            Company
+          </th>
+          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+            Symbol
+          </th>
+          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+            Shares
+          </th>
+          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+            Price
+          </th>
+          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+            Status
+          </th>
+        </tr>
+      </thead>
+      <tbody className="bg-white divide-y divide-gray-200">
+        {(currentData as IPOCalendar[]).map((item) => (
+          <tr key={item.id} className="hover:bg-gray-50">
+            <td className="px-4 py-3 text-sm text-gray-900">{item.id}</td>
+            <td className="px-4 py-3 text-sm text-gray-900">
+              {formatDate(item.date)}
+            </td>
+            <td className="px-4 py-3 text-sm text-gray-900">{item.exchange}</td>
+            <td className="px-4 py-3 text-sm font-medium text-gray-900">
+              {item.name}
+            </td>
+            <td className="px-4 py-3 text-sm text-gray-900">{item.symbol}</td>
+            <td className="px-4 py-3 text-sm text-gray-500">
+              {formatNumber(item.numberOfShares)}
+            </td>
+            <td className="px-4 py-3 text-sm text-gray-500">
+              {item.price || "-"}
+            </td>
+            <td className="px-4 py-3">
+              <span
+                className={`px-2 py-1 text-xs font-semibold rounded-full ${
+                  item.status === "priced"
+                    ? "bg-green-100 text-green-800"
+                    : item.status === "upcoming"
+                      ? "bg-yellow-100 text-yellow-800"
+                      : "bg-gray-100 text-gray-800"
+                }`}
+              >
+                {item.status}
+              </span>
+            </td>
           </tr>
-        </thead>
-        <tbody className="bg-white divide-y divide-gray-200">
-          {(currentData as IPOCalendar[]).map((item) => (
-            <tr key={item.id} className="hover:bg-gray-50">
-              <td className="px-4 py-3 text-sm text-gray-900">{item.id}</td>
-              <td className="px-4 py-3 text-sm text-gray-900">{formatDate(item.date)}</td>
-              <td className="px-4 py-3 text-sm text-gray-900">{item.exchange}</td>
-              <td className="px-4 py-3 text-sm font-medium text-gray-900">{item.name}</td>
-              <td className="px-4 py-3 text-sm text-gray-900">{item.symbol}</td>
-              <td className="px-4 py-3 text-sm text-gray-500">{formatNumber(item.numberOfShares)}</td>
-              <td className="px-4 py-3 text-sm text-gray-500">{item.price || '-'}</td>
-              <td className="px-4 py-3">
-                <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
-                  item.status === 'priced' ? 'bg-green-100 text-green-800' :
-                  item.status === 'upcoming' ? 'bg-yellow-100 text-yellow-800' :
-                  'bg-gray-100 text-gray-800'
-                }`}>
-                  {item.status}
-                </span>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+        ))}
+      </tbody>
+    </table>
   );
 
   const renderEarningsTable = () => (
-      <table className="min-w-full divide-y divide-gray-200">
-        <thead className="bg-gray-50">
-          <tr>
-            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
-            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
-            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Symbol</th>
-            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Quarter</th>
-            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Year</th>
-            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">EPS Actual</th>
-            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">EPS Estimate</th>
-            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Revenue Actual</th>
+    <table className="min-w-full divide-y divide-gray-200">
+      <thead className="bg-gray-50">
+        <tr>
+          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+            ID
+          </th>
+          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+            Date
+          </th>
+          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+            Symbol
+          </th>
+          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+            Quarter
+          </th>
+          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+            Year
+          </th>
+          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+            EPS Actual
+          </th>
+          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+            EPS Estimate
+          </th>
+          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+            Revenue Actual
+          </th>
+        </tr>
+      </thead>
+      <tbody className="bg-white divide-y divide-gray-200">
+        {(currentData as EarningsCalendar[]).map((item) => (
+          <tr key={item.id} className="hover:bg-gray-50">
+            <td className="px-4 py-3 text-sm text-gray-900">{item.id}</td>
+            <td className="px-4 py-3 text-sm text-gray-900">
+              {formatDate(item.date)}
+            </td>
+            <td className="px-4 py-3 text-sm font-medium text-gray-900">
+              {item.symbol}
+            </td>
+            <td className="px-4 py-3 text-sm text-gray-900">Q{item.quarter}</td>
+            <td className="px-4 py-3 text-sm text-gray-900">{item.year}</td>
+            <td className="px-4 py-3 text-sm text-gray-900">
+              {formatCurrency(item.epsActual)}
+            </td>
+            <td className="px-4 py-3 text-sm text-gray-500">
+              {formatCurrency(item.epsEstimate)}
+            </td>
+            <td className="px-4 py-3 text-sm text-gray-900">
+              {formatCurrency(item.revenueActual)}
+            </td>
           </tr>
-        </thead>
-        <tbody className="bg-white divide-y divide-gray-200">
-          {(currentData as EarningsCalendar[]).map((item) => (
-            <tr key={item.id} className="hover:bg-gray-50">
-              <td className="px-4 py-3 text-sm text-gray-900">{item.id}</td>
-              <td className="px-4 py-3 text-sm text-gray-900">{formatDate(item.date)}</td>
-              <td className="px-4 py-3 text-sm font-medium text-gray-900">{item.symbol}</td>
-              <td className="px-4 py-3 text-sm text-gray-900">Q{item.quarter}</td>
-              <td className="px-4 py-3 text-sm text-gray-900">{item.year}</td>
-              <td className="px-4 py-3 text-sm text-gray-900">{formatCurrency(item.epsActual)}</td>
-              <td className="px-4 py-3 text-sm text-gray-500">{formatCurrency(item.epsEstimate)}</td>
-              <td className="px-4 py-3 text-sm text-gray-900">{formatCurrency(item.revenueActual)}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+        ))}
+      </tbody>
+    </table>
   );
 
   // Render the appropriate table based on selection
@@ -345,8 +542,16 @@ const MarketDataDashboard: React.FC = () => {
       return (
         <div className="bg-red-50 border border-red-200 rounded-lg p-4 my-4">
           <div className="flex items-center">
-            <svg className="h-5 w-5 text-red-400 mr-2" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+            <svg
+              className="h-5 w-5 text-red-400 mr-2"
+              fill="currentColor"
+              viewBox="0 0 20 20"
+            >
+              <path
+                fillRule="evenodd"
+                d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                clipRule="evenodd"
+              />
             </svg>
             <p className="text-red-700">{error}</p>
             <button
@@ -369,13 +574,15 @@ const MarketDataDashboard: React.FC = () => {
     }
 
     switch (selectedTable) {
-      case 'market-status':
+      case "market-status":
         return renderMarketStatusTable();
-      case 'market-holiday':
+      case "market-holiday-old":
+        return renderMarketHolidayTableOld();
+      case "market-holiday":
         return renderMarketHolidayTable();
-      case 'ipo-calendar':
+      case "ipo-calendar":
         return renderIPOTable();
-      case 'earnings-calendar':
+      case "earnings-calendar":
         return renderEarningsTable();
       default:
         return null;
@@ -409,22 +616,22 @@ const MarketDataDashboard: React.FC = () => {
             Next
           </button>
         </div>
-        
+
         <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
           <div>
             <p className="text-sm text-gray-700">
-              Showing{' '}
+              Showing{" "}
               <span className="font-medium">
                 {totalItems === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1}
-              </span>{' '}
-              to{' '}
+              </span>{" "}
+              to{" "}
               <span className="font-medium">
                 {Math.min(currentPage * itemsPerPage, totalItems)}
-              </span>{' '}
+              </span>{" "}
               of <span className="font-medium">{totalItems}</span> results
             </p>
           </div>
-          
+
           <div className="flex items-center space-x-4">
             <select
               value={itemsPerPage}
@@ -436,7 +643,7 @@ const MarketDataDashboard: React.FC = () => {
               <option value={25}>25 per page</option>
               <option value={50}>50 per page</option>
             </select>
-            
+
             <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">
               <button
                 onClick={() => goToPage(currentPage - 1)}
@@ -444,33 +651,51 @@ const MarketDataDashboard: React.FC = () => {
                 className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50"
               >
                 <span className="sr-only">Previous</span>
-                <svg className="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd" />
+                <svg
+                  className="h-5 w-5"
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z"
+                    clipRule="evenodd"
+                  />
                 </svg>
               </button>
-              
+
               {pageNumbers.map((number) => (
                 <button
                   key={number}
                   onClick={() => goToPage(number)}
                   className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
                     currentPage === number
-                      ? 'z-10 bg-blue-50 border-blue-500 text-blue-600'
-                      : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
+                      ? "z-10 bg-blue-50 border-blue-500 text-blue-600"
+                      : "bg-white border-gray-300 text-gray-500 hover:bg-gray-50"
                   }`}
                 >
                   {number}
                 </button>
               ))}
-              
+
               <button
                 onClick={() => goToPage(currentPage + 1)}
                 disabled={currentPage === totalPages}
                 className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50"
               >
                 <span className="sr-only">Next</span>
-                <svg className="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+                <svg
+                  className="h-5 w-5"
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
+                    clipRule="evenodd"
+                  />
                 </svg>
               </button>
             </nav>
@@ -482,44 +707,85 @@ const MarketDataDashboard: React.FC = () => {
 
   return (
     <div className="">
-        {/* Header */}
-        <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-          <h1 className="text-2xl font-bold text-gray-900 mb-4">Market Data Dashboard</h1>
-          
-          {/* Table Selector */}
-          <div className="flex flex-wrap gap-2">
-            {(['market-status', 'market-holiday', 'ipo-calendar', 'earnings-calendar'] as TableType[]).map((table) => (
-              <button
-                key={table}
-                onClick={() => {
-                  setSelectedTable(table);
-                  setCurrentPage(1);
-                }}
-                className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                  selectedTable === table
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
-              >
-                {table.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
-              </button>
-            ))}
-          </div>
-        </div>
+      {/* Header */}
+      <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
+        <h1 className="text-2xl font-bold text-gray-900 mb-4">
+          Market Data Dashboard
+        </h1>
 
-        {/* Table Container */}
-        <div className="bg-white rounded-lg shadow-sm overflow-hidden">
-          <div className="p-6">
-            <h2 className="text-xl font-semibold mb-4">
-              {selectedTable.split('-').map(word => 
-                word.charAt(0).toUpperCase() + word.slice(1)
-              ).join(' ')}
-            </h2>
-            
-            {renderTable()}
-            {renderPagination()}
-          </div>
+        {/* Table Selector */}
+        <div className="flex flex-wrap gap-2">
+          {(
+            [
+              "market-status",
+              "market-holiday",
+              "market-holiday-old",
+              "ipo-calendar",
+              "earnings-calendar",
+            ] as TableType[]
+          ).map((table) => (
+            <button
+              key={table}
+              onClick={() => {
+                setSelectedTable(table);
+                setCurrentPage(1);
+              }}
+              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                selectedTable === table
+                  ? "bg-blue-600 text-white"
+                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+              }`}
+            >
+              {table
+                .split("-")
+                .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+                .join(" ")}
+            </button>
+          ))}
         </div>
+      </div>
+
+      {/* Table Container */}
+      <div className="bg-white rounded-lg shadow-sm overflow-hidden">
+        <div className="p-6">
+          <h2 className="text-xl font-semibold mb-4">
+            {selectedTable
+              .split("-")
+              .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+              .join(" ")}
+          </h2>
+
+          {/* {renderTable()} */}
+          {renderMarketHolidayTable()}
+          {renderPagination()}
+          {/* {
+    "total": 20,
+    "page": 1,
+    "limit": 10,
+    "total_pages": 2
+} */}
+          <CustomPagination
+            page={selectedTable === "market-holiday" ? marketHolidayPagination.page : currentPage}
+            limit={selectedTable === "market-holiday" ? marketHolidayPagination.limit : itemsPerPage}
+            totalRecords={selectedTable === "market-holiday" ? marketHolidayPagination.total : totalItems}
+            total={selectedTable === "market-holiday" ? marketHolidayPagination.total_pages : totalPages}
+            onPageChange={(page: number) => {
+              if (selectedTable === "market-holiday") {
+                setMarketHolidayPagination(prev => ({ ...prev, page }));
+              } else {
+                goToPage(page);
+              }
+            }}
+            onLimitChange={(limit: number) => {
+              if (selectedTable === "market-holiday") {
+                setMarketHolidayPagination(prev => ({ ...prev, limit, page: 1 }));
+              } else {
+                changeItemsPerPage(limit);
+              }
+            }}
+          />
+        </div>
+      </div>
     </div>
   );
 };

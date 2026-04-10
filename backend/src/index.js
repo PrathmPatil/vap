@@ -28,6 +28,8 @@ import indicesRoute from './routes/ingestRoutes.js';
 import finnhubRoute from './routes/finnhubRoutes.js';
 import formulaRoutes from './routes/formulaRoutes.js';
 import userRoutes from './routes/userRoutes.js';
+import holidayRoutes from './routes/marketHolidayRoutes.js';
+import logRoutes from './routes/cronLogRoutes.js';
 
 import {
   sequelizeStockMarket,
@@ -130,6 +132,9 @@ app.use('/vap/indices', indicesRoute);
 app.use('/vap/finnhub', finnhubRoute);
 app.use("/vap/formula", formulaRoutes);
 app.use('/vap/user', userRoutes);
+app.use("/vap/holiday", holidayRoutes);
+app.use("/vap/logs", logRoutes);
+
 
 
 app.get('/vap/welcome', (req, res) => {

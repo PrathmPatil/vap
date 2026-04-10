@@ -6,7 +6,9 @@ import {
   runRallyAttempt,
   runFollowThroughDay,
   runBuyDay,
-  getVolumeBreakouts
+  getVolumeBreakouts,
+  getTweezerBottomPatterns,
+  getSavedTweezerBottomSignals
 } from "../controllers/formulaController.js";
 
 const router = express.Router();
@@ -22,6 +24,13 @@ router.post("/follow-through-day", runFollowThroughDay);
 router.post("/buy-day", runBuyDay);
 
 // getVolumeBreakouts
-router.get("/volume-breakouts", getVolumeBreakouts);
+router.post("/volume-breakouts", getVolumeBreakouts);
+
+// getTweezerBottoms
+router.post("/tweezer-bottoms", getTweezerBottomPatterns);
+
+// Get saved patterns from database
+router.post('/tweezer-bottom/signals', getSavedTweezerBottomSignals);
+
 
 export default router;

@@ -13,7 +13,8 @@ DATABASES = [
     config.DB_BSE,
     config.DB_NEWS,
     config.DB_BSE_INDICES,
-    config.DB_ANNOUNCEMENT_DB_NAME
+    config.DB_ANNOUNCEMENT_DB_NAME,
+    config.DB_FORMULA_DATA
 ]
 
 def init_databases():

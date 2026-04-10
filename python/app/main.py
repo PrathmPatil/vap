@@ -27,7 +27,6 @@ from app.cron.nse_indices_cron import start_nse_indices_scheduler
 from app.cron.yfinance_cron import start_yfinance_cron
 from app.cron.gov_news_cron import start_gov_news_cron
 from app.cron.company_profile_cron import start_company_profile_cron
-# ✅ FIXED: Removed 'python.' prefix
 from app.cron.bhavcopy_cron import fetch_today_bhavcopy_cron  
 from app.cron.bse_announcements_news import start_bse_announcements_scheduler
 from app.cron.indian_market_cron import start_indian_market_cron
@@ -244,7 +243,8 @@ async def api_info():
             "bse_indices_fastapi": config.DB_BSE_INDICES,
             "announcement_db": config.DB_ANNOUNCEMENT_DB_NAME,
             "screener_data_fastapi": config.DB_SCREENER,
-            "news_data_fastapi": config.DB_ANNOUNCEMENT_DB_NAME
+            "news_data_fastapi": config.DB_ANNOUNCEMENT_DB_NAME,
+            "formula_data_fastapi": config.DB_FORMULA_DATA
         }
     }
 

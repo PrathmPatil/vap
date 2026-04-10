@@ -1,10 +1,12 @@
+import { TweezerBottomModel } from "../models/index.js";
 import {
   runFormulaEngineService,
   generateStrongBullishService,
   generateFollowThroughDayService,
   generateBuyDayService,
   generateRallyAttemptService,
-  generateVolumeBreakoutService
+  generateVolumeBreakoutService,
+  detectTweezerBottomPatterns
 } from "../services/formulaService.js";
 
 
@@ -224,5 +226,76 @@ export const getVolumeBreakouts = async (req,res) => {
       error: error.message
     });
 
+  }
+};
+
+export const getTweezerBottomPatterns = async (req, res) => {
+  try {
+    const { targetDate, forceRefresh, saveToDb } = req.query;
+    
+    const result = await detectTweezerBottomPatterns({
+      targetDate: targetDate || null,      // YYYY-MM-DD format
+      forceRefresh: forceRefresh === 'true', // Force refresh even if exists
+      saveToDb: saveToDb !== 'false'        // Default true
+    });
+    
+    if (result.success) {
+      return res.status(200).json({
+        status: 'success',
+        data: result
+      });
+    } else {
+      return res.status(500).json({
+        status: 'error',
+        message: 'Failed to detect patterns',
+        error: result.error
+      });
+    }
+    
+  } catch (error) {
+    console.error('Error in getTweezerBottomPatterns:', error);
+    return res.status(500).json({
+      status: 'error',
+      message: error.message
+    });
+  }
+};
+
+// Get signals from database (already saved)
+export const getSavedTweezerBottomSignals = async (req, res) => {
+  try {
+    const { startDate, endDate, security, minStrength, limit, offset } = req.query;
+        await TweezerBottomModel.sync(); // Ensure model is synced before querying
+    if (!TweezerBottomModel) {
+      return res.status(500).json({
+        status: 'error',
+        message: 'Model not initialized'
+      });
+    }
+    
+    const where = {};
+    if (startDate && endDate) {
+      where.trade_date = { [Op.between]: [startDate, endDate] };
+    }
+    if (security) where.security = security;
+    
+    const signals = await TweezerBottomModel.findAndCountAll({
+      where,
+      order: [['trade_date', 'DESC'], ['signal_strength', 'DESC']],
+      limit: parseInt(limit) || 100,
+      offset: parseInt(offset) || 0
+    });
+    
+    return res.status(200).json({
+      status: 'success',
+      data: signals
+    });
+    
+  } catch (error) {
+    console.error('Error in getSavedTweezerBottomSignals:', error);
+    return res.status(500).json({
+      status: 'error',
+      message: error.message
+    });
   }
 };

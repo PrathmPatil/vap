@@ -164,7 +164,9 @@ import SmeDataModel from './ipo/SmeData.js';
 // Misc models
 import Announcements from './announcements_model.js';
 import NseDynamic from './ingestModel.js';
-import { BuyDay, FollowThroughDay, RallyAttemptDay, StrongBullishCandle, VolumeBreakout } from './formulaModel.js';
+import CronJobLog from './cronLog.js';
+import MarketHoliday from './marketHoliday.js';
+import { BuyDay, FollowThroughDay, RallyAttemptDay, StrongBullishCandle, TweezerBottom, VolumeBreakout } from './formulaModel.js';
 
 /* ---------------------------------------------
    INITIALIZE MODELS
@@ -220,7 +222,12 @@ const FollowThroughDayModel = FollowThroughDay(sequelizeFormula, DataTypes);
 const BuyDayModel = BuyDay(sequelizeFormula, DataTypes);
 const StrongBullishCandleModel = StrongBullishCandle(sequelizeFormula, DataTypes);
 const VolumeBreakoutModel = VolumeBreakout(sequelizeFormula, DataTypes);
+const TweezerBottomModel = TweezerBottom(sequelizeFormula, DataTypes);
 
+
+// logs
+const CronLogModel = CronJobLog(sequelizeStockMarket, DataTypes);
+const MarketHolidayModel = MarketHoliday(sequelizeStockMarket, DataTypes);
 
 /* ---------------------------------------------
    EXPORT EVERYTHING
@@ -262,7 +269,10 @@ export {
   AnnouncementsModel,
   nseModel,
 
-  RallyAttemptDayModel, FollowThroughDayModel, BuyDayModel, StrongBullishCandleModel, VolumeBreakoutModel
+  CronLogModel,
+  MarketHolidayModel,
+
+  RallyAttemptDayModel, FollowThroughDayModel, BuyDayModel, StrongBullishCandleModel, VolumeBreakoutModel, TweezerBottomModel
 };
 
 /* Mapping for dynamic routes */

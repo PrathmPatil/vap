@@ -5,7 +5,8 @@ import {
   BuyDayModel,
   StrongBullishCandleModel,
   ListedCompanies,
-  VolumeBreakoutModel
+  VolumeBreakoutModel,
+  TweezerBottomModel
 } from '../models/index.js';
 
 import { fn, col, where, Op } from 'sequelize';
@@ -18,6 +19,7 @@ export const generateRallyAttemptService = async ({ currentPage, itemsPerPage, s
   try {
 
     await RallyAttemptDayModel.sync();
+    await PR.sync();
 
     /* --------------------------------
        GET LATEST DATE
@@ -163,6 +165,8 @@ export const generateFollowThroughDayService = async ({
   try {
 
     await FollowThroughDayModel.sync();
+    await RallyAttemptDayModel.sync();
+    await PR.sync();
 
     /* --------------------------------
        GET RALLY ATTEMPT STOCKS
@@ -333,6 +337,7 @@ export const generateBuyDayService = async ({
     console.log("🚀 Buy Day Engine Started");
 
     await BuyDayModel.sync();
+    await PR.sync();
 
     /* --------------------------------
        GET FOLLOW THROUGH DAY STOCKS
@@ -499,6 +504,7 @@ export const runFormulaEngineService = async () => {
     await RallyAttemptDayModel.sync();
     await FollowThroughDayModel.sync();
     await BuyDayModel.sync();
+    await PR.sync();
 
     /* --------------------------------
        GET LISTED COMPANIES
@@ -597,6 +603,7 @@ export const generateStrongBullishService = async ({
     -------------------------------- */
 
     await StrongBullishCandleModel.sync();
+    await PR.sync();
 
     const latestDateRaw = await PR.max('source_date');
 
@@ -748,6 +755,7 @@ export const generateVolumeBreakoutService = async ({
 }) => {
 
   await VolumeBreakoutModel.sync();
+  await PR.sync();
 
   const latestDateRaw = await PR.max("source_date");
   const latestDate = latestDateRaw.toISOString().split("T")[0];
@@ -821,4 +829,236 @@ export const generateVolumeBreakoutService = async ({
     totalItems:count
   };
 
+};
+
+
+/* =========================================================
+  TWEEZER BOTTOM ENGINE
+========================================================= */
+export const detectTweezerBottomPatterns = async (options = {}) => {
+  const {
+    saveToDb = true,
+    targetDate = null,
+    forceRefresh = false
+  } = options;
+
+  await PR.sync();
+  await TweezerBottomModel.sync();
+  // Get the date to analyze
+  let analysisDate;
+  if (targetDate) {
+    analysisDate = new Date(targetDate);
+  } else {
+    const latestDateRaw = await PR.max("source_date");
+    analysisDate = latestDateRaw;
+  }
+
+  const analysisDateStr = analysisDate.toISOString().split("T")[0];
+
+  // Check if already processed for today
+  if (!forceRefresh && saveToDb && TweezerBottomModel) {
+    const existingForDate = await TweezerBottomModel.findOne({
+      where: {
+        trade_date: analysisDateStr
+      },
+      limit: 1
+    });
+
+    if (existingForDate) {
+      return {
+        success: true,
+        message: `Patterns already detected for ${analysisDateStr}`,
+        signals: [],
+        total_signals: 0,
+        already_processed: true,
+        analysis_date: analysisDateStr
+      };
+    }
+  }
+
+  // Fetch all stocks
+  const stocks = await PR.findAll({
+    where: {
+      source_date: { [Op.lte]: analysisDate }
+    },
+    attributes: ['SECURITY'],
+    group: ['SECURITY'],
+    raw: true
+  });
+
+  const signals = [];
+  const errors = [];
+
+  // Process each stock
+  for (const stock of stocks) {
+    try {
+      const history = await PR.findAll({
+        where: { SECURITY: stock.SECURITY },
+        order: [["source_date", "DESC"]],
+        limit: 22,
+        raw: true
+      });
+
+      if (history.length < 22) continue;
+
+      const today = history[0];
+      const prev = history[1];
+
+      // Skip if not the target date
+      const todayDateStr = new Date(today.source_date).toISOString().split("T")[0];
+      if (todayDateStr !== analysisDateStr) continue;
+
+      /* ---------------- Equal Low Detection ---------------- */
+      const lowDiff = Math.abs(prev.LOW_PRICE - today.LOW_PRICE) / prev.LOW_PRICE * 100;
+      const equalLows = lowDiff <= 0.5;
+
+      /* ---------------- Candle Direction ---------------- */
+      const bearishPrev = prev.CLOSE_PRICE < prev.OPEN_PRICE;
+      const bullishCurr = today.CLOSE_PRICE > today.OPEN_PRICE;
+
+      /* ---------------- Body Strength Calculation ---------------- */
+      const prevRange = prev.HIGH_PRICE - prev.LOW_PRICE;
+      const prevBody = Math.abs(prev.OPEN_PRICE - prev.CLOSE_PRICE);
+      const prevBodyPct = prevRange > 0 ? prevBody / prevRange : 0;
+      const strongBearBody = prevBodyPct >= 0.75;
+
+      const currRange = today.HIGH_PRICE - today.LOW_PRICE;
+      const currBody = Math.abs(today.CLOSE_PRICE - today.OPEN_PRICE);
+      const currBodyPct = currRange > 0 ? currBody / currRange : 0;
+      const strongBullBody = currBodyPct >= 0.75;
+
+      /* ---------------- Trend Analysis ---------------- */
+      const sma20 = history.slice(1, 21).reduce((s, r) => s + Number(r.CLOSE_PRICE), 0) / 20;
+      const downtrend = prev.CLOSE_PRICE < sma20;
+
+      /* ---------------- Volume Analysis ---------------- */
+      const volMA = history.slice(1, 21).reduce((s, r) => s + Number(r.NET_TRDQTY), 0) / 20;
+      const prevVolCond = prev.NET_TRDQTY >= volMA;
+      const currVolCond = today.NET_TRDQTY >= volMA;
+      const volumeRatioPrev = prev.NET_TRDQTY / volMA;
+      const volumeRatioCurr = today.NET_TRDQTY / volMA;
+
+      /* ---------------- Calculate Signal Strength ---------------- */
+      let signalStrength = 'Weak';
+      let strengthScore = 0;
+      
+      if (lowDiff <= 0.2) strengthScore += 2;
+      else if (lowDiff <= 0.5) strengthScore += 1;
+      
+      if (prevBodyPct >= 0.9) strengthScore += 2;
+      else if (prevBodyPct >= 0.75) strengthScore += 1;
+      
+      if (currBodyPct >= 0.9) strengthScore += 2;
+      else if (currBodyPct >= 0.75) strengthScore += 1;
+      
+      if (volumeRatioPrev >= 1.5) strengthScore += 1;
+      if (volumeRatioCurr >= 1.5) strengthScore += 1;
+      
+      if (strengthScore >= 6) signalStrength = 'Very Strong';
+      else if (strengthScore >= 4) signalStrength = 'Strong';
+      else if (strengthScore >= 2) signalStrength = 'Moderate';
+
+      /* ---------------- Final Pattern Detection ---------------- */
+      const isTweezerBottom = equalLows && bearishPrev && bullishCurr && 
+                              strongBearBody && strongBullBody && downtrend && 
+                              prevVolCond && currVolCond;
+
+      if (isTweezerBottom) {
+        const signalData = {
+          security: today.SECURITY,
+          trade_date: today.source_date,
+          close_price: today.CLOSE_PRICE,
+          pattern_name: "Tweezer Bottom",
+          low_diff_percentage: lowDiff,
+          prev_body_strength: prevBodyPct,
+          curr_body_strength: currBodyPct,
+          volume_ratio_prev: volumeRatioPrev,
+          volume_ratio_curr: volumeRatioCurr,
+          prev_close: prev.CLOSE_PRICE,
+          prev_open: prev.OPEN_PRICE,
+          prev_low: prev.LOW_PRICE,
+          curr_open: today.OPEN_PRICE,
+          curr_low: today.LOW_PRICE,
+          sma_20: sma20,
+          signal_strength: signalStrength,
+          status: 'Active'
+        };
+
+        signals.push(signalData);
+      }
+
+    } catch (error) {
+      errors.push({
+        security: stock.SECURITY,
+        error: error.message
+      });
+    }
+  }
+
+  // Save to database if requested
+  let savedResult = null;
+  if (saveToDb && signals.length > 0 && TweezerBottomModel) {
+    savedResult = await saveSignalsToDatabase(signals, TweezerBottomModel);
+  }
+
+  // Return comprehensive results
+  return {
+    success: true,
+    analysis_date: analysisDateStr,
+    total_stocks_analyzed: stocks.length,
+    total_signals: signals.length,
+    signals: signals,
+    errors: errors,
+    saved_to_db: saveToDb && savedResult ? savedResult : null,
+    summary: {
+      by_strength: {
+        'Very Strong': signals.filter(s => s.signal_strength === 'Very Strong').length,
+        'Strong': signals.filter(s => s.signal_strength === 'Strong').length,
+        'Moderate': signals.filter(s => s.signal_strength === 'Moderate').length,
+        'Weak': signals.filter(s => s.signal_strength === 'Weak').length
+      }
+    }
+  };
+};
+
+// Helper function to save signals to database
+export const saveSignalsToDatabase = async (signals) => {
+  const savedSignals = [];
+  const errors = [];
+  await TweezerBottomModel.sync();
+  await PR.sync();
+
+  for (const signal of signals) {
+    try {
+      // Check if already exists
+      const existing = await TweezerBottomModel.findOne({
+        where: {
+          security: signal.security,
+          trade_date: signal.trade_date
+        }
+      });
+
+      if (!existing) {
+        const saved = await TweezerBottomModel.create(signal);
+        savedSignals.push(saved);
+      } else {
+        // Update existing signal
+        await existing.update(signal);
+        savedSignals.push(existing);
+      }
+    } catch (error) {
+      errors.push({
+        security: signal.security,
+        date: signal.trade_date,
+        error: error.message
+      });
+    }
+  }
+
+  return {
+    success_count: savedSignals.length,
+    error_count: errors.length,
+    errors: errors,
+    total_signals: signals.length
+  };
 };

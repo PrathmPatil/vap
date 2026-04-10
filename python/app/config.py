@@ -49,6 +49,7 @@ class Config:
     DB_NEWS = require_env("DB_NEWS")
     DB_BSE_INDICES = require_env("DB_BSE_INDICES")
     DB_ANNOUNCEMENT_DB_NAME = require_env("DB_ANNOUNCEMENT_DB_NAME")
+    DB_FORMULA_DATA = require_env("DB_FORMULA_DATA")
 
     # =====================================================
     # 🌐 NSE / SCREENER CONFIG

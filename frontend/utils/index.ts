@@ -350,3 +350,20 @@ export const registerUser = async (name: string, email: string, password: string
     data: { name, email, password, phoneNumber, whatsappNumber }
   });
 }
+
+// http://localhost:8000/vap/holiday
+export const getMarketHolidays = async (page: number, limit: number, search?: string): Promise<any> => {
+  return callApi<any>({
+    url: 'holiday',
+    method: 'POST',
+    data: { page, limit, search }
+  });
+}
+// /logs
+export const getCronLogs = async (page: number, limit: number, job_name?: string, status?: string): Promise<any> => {
+  return callApi<any>({
+    url: 'logs',
+    method: 'GET',
+    params: { page, limit, job_name, status }
+  });
+}
