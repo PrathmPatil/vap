@@ -23,8 +23,8 @@ interface AuthContextType {
   user: User | null;
   role: string;
   isSubscribed: boolean; 
-  login: (email: string, password: string) => void;
-  register: (name: string, email: string, password: string, phoneNumber:string, whatsappNumber:string) => void;
+  login: (email: string, password: string) => Promise<{ message?: string }>;
+  register: (name: string, email: string, password: string, phoneNumber:string, whatsappNumber:string) => Promise<{ message?: string }>;
   logout: () => void;
 }
 
@@ -62,9 +62,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
         setUser(userData);
         localStorage.setItem("stockUser", JSON.stringify(userData));
+
+        return { message };
       }
+
+      throw new Error(message || "Login failed");
     } catch (error) {
       console.log("Login error:", error);
+      throw error;
     }
   };
 
@@ -84,15 +89,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         phoneNumber,
         whatsappNumber,
       );
-        const { user: userData, accessToken, success, message } = response;
+      const { user: userData, accessToken, success, message } = response;
+
+      if (!success) {
+        throw new Error(message || "Registration failed");
+      }
+
       localStorage.setItem("stockUser", JSON.stringify(userData));
       setUser(userData);
 
       document.cookie = `token=${accessToken}; path=/`;
       setIsAuthenticated(true);
       router.push("/");
+
+      return { message };
     } catch (error) {
       console.log(error);
+      throw error;
     }
   };
 
