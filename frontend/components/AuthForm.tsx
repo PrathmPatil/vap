@@ -118,11 +118,11 @@ export default function AuthForm() {
     
     const fieldErrors = allFields.map(f => getFieldError(f)).filter(Boolean);
     if (fieldErrors.length > 0) {
-      toast({
-        title: "Validation Error",
-        description: fieldErrors[0],
-        variant: "destructive",
-      });
+      // toast({
+      //   title: "Validation Error",
+      //   description: fieldErrors[0],
+      //   variant: "destructive",
+      // });
       return;
     }
     
@@ -140,7 +140,7 @@ export default function AuthForm() {
           form.isWhatsapp ? form.phoneNumber : form.whatsappNumber
         );
         toast({ title: "Account created! ✅", description: "You can now log in.", variant: "success" });
-        setIsLogin(true);
+        // setIsLogin(true);
         setForm({ name: "", email: "", password: "", phoneNumber: "", whatsappNumber: "", isWhatsapp: false });
         setTouched({});
       }

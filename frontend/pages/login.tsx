@@ -50,7 +50,7 @@ export default function LoginPage() {
           </div>
 
           {/* Right side – scrolls independently, no fixed height */}
-          <div className="flex flex-col items-center bg-white/90 backdrop-blur-sm overflow-y-auto p-6 sm:p-8 md:px-8">
+          <div className="flex flex-col items-center bg-white/90 backdrop-blur-sm overflow-y-auto px-6 py-2 sm:px-8 md:px-8">
             {/* Mobile company name */}
             <div className="md:hidden flex items-center justify-center gap-2 mb-6 pb-4 border-b border-gray-100 w-full">
               <TrendingUp className="w-6 h-6 text-indigo-600" />
@@ -62,7 +62,7 @@ export default function LoginPage() {
             <Button 
               variant="ghost" 
               onClick={() => window.location.replace("/dashboard")} 
-              className="mt-6 text-sm text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50 group transition-all"
+              className="mt-2 text-sm text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50 group transition-all"
             >
               Go to Dashboard
               <ArrowRight className="ml-1 w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />

@@ -45,12 +45,12 @@ function Navigation() {
               </Button>
             </Link>
 
-            <Link href="/screener">
+            {/* <Link href="/screener">
               <Button variant="ghost">
                 <BarChart3 className="h-4 w-4 mr-2" />
                 Screener
               </Button>
-            </Link>
+            </Link> */}
 
             {role === "admin" && (
               <Link href="/bhavcopy">
