@@ -3,7 +3,7 @@ import React, { useMemo } from "react";
 /**
  * Helper to generate page numbers with ellipses
  */
-const getPaginationWithDots = (currentPage, totalPages) => {
+const getPaginationWithDots = (currentPage: number, totalPages: number) => {
   const pages = [];
 
   if (totalPages <= 7) {
@@ -36,6 +36,15 @@ const getPaginationWithDots = (currentPage, totalPages) => {
   return pages;
 };
 
+interface CustomPaginationProps {
+  page?: number;
+  limit?: number;
+  totalRecords?: number;
+  totalPages?: number;
+  onPageChange?: (page: number) => void;
+  onLimitChange?: (limit: number) => void;
+}
+
 export default function CustomPagination({
   page = 1,
   limit = 10,
@@ -43,7 +52,7 @@ export default function CustomPagination({
   totalPages = 0, // Total number of pages
   onPageChange,
   onLimitChange,
-}) {
+}: CustomPaginationProps) {
   // Use the provided totalPages, or calculate it if only totalRecords is provided
   const finalTotalPages = totalPages || Math.ceil(totalRecords / limit) || 1;
 
@@ -52,7 +61,7 @@ export default function CustomPagination({
     [page, finalTotalPages],
   );
 
-  const buttonStyle = (isActive) => ({
+  const buttonStyle = (isActive: boolean): React.CSSProperties => ({
     padding: "6px 12px",
     borderRadius: "6px",
     border: "1px solid #ddd",
@@ -98,7 +107,7 @@ export default function CustomPagination({
           {/* Previous Button */}
           <button
             disabled={page <= 1}
-            onClick={() => onPageChange(page - 1)}
+            onClick={() => onPageChange?.(page - 1)}
             style={{ ...buttonStyle(false), opacity: page <= 1 ? 0.5 : 1 }}
             aria-label="Previous Page"
           >
@@ -117,7 +126,7 @@ export default function CustomPagination({
             ) : (
               <button
                 key={p}
-                onClick={() => onPageChange(p)}
+                onClick={() => typeof p === "number" && onPageChange?.(p)}
                 style={buttonStyle(p === page)}
                 aria-current={p === page ? "page" : undefined}
               >
@@ -129,7 +138,7 @@ export default function CustomPagination({
           {/* Next Button */}
           <button
             disabled={page >= finalTotalPages}
-            onClick={() => onPageChange(page + 1)}
+            onClick={() => onPageChange?.(page + 1)}
             style={{
               ...buttonStyle(false),
               opacity: page >= finalTotalPages ? 0.5 : 1,

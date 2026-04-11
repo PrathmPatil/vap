@@ -207,7 +207,7 @@ const MarketDataDashboard: React.FC = () => {
             totalRecords={totalRecords}
             totalPages={totalPages}
             onPageChange={setPage}
-            onLimitChange={(l) => {
+            onLimitChange={(l:any) => {
               setLimit(l);
               setPage(1);
             }}

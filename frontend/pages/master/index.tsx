@@ -19,14 +19,14 @@ const MasterIndex = () => {
 
   const fetchLogsData = async () => {
     try {
-      const response = await getMarketHolidays();
-      const { success, data, pagination, message } = response;
+      const response = await getMarketHolidays(pagination.page, pagination.limit, "");
+      const { success, data, pagination: paginationData, message } = response;
       console.log("Cron Logs API Response:", response);
         if (!success) {
           throw new Error(`HTTP error! status: ${message || 'Unknown error'}`);
         }
       setLogsData(data);
-      setPagination(pagination);
+      setPagination(paginationData);
     } catch (error) {
       setIsCronFailed(true);
       setLogsData([]);
@@ -47,11 +47,12 @@ const MasterIndex = () => {
     <div>
       <h1>Master Index</h1>
       <ul>
-        {logsData.map((log) => (
+        {/* {logsData.map((log) => (
           <li key={log.id}>
             {log.created_at} - {log.message}
           </li>
-        ))}
+        ))} */}
+        {logsData.length === 0 && <li>No logs available.</li>}
       </ul>
       {isCronFailed && <Button onClick={runManualApi}>Run Manual API</Button>}
     </div>
