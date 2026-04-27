@@ -52,3 +52,13 @@ export async function callApi<T>({
     );
   }
 }
+
+
+// http://localhost:8000/vap/logs
+export const getLogs = async (page: number, limit: number, search?: string, filters?: Record<string, unknown>): Promise<any> => {
+  return callApi<any>({
+    url: 'logs',
+    method: 'GET',
+    params: { page, limit, search, ...filters},
+  });
+}

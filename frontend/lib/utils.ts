@@ -26,3 +26,39 @@ export const formatCurrency = (value: number): string => {
   if (value === undefined || value === null) return "";
   return "₹" + value.toLocaleString("en-IN", { maximumFractionDigits: 2 });
 };
+
+// "2026-04-10T22:49:45.000Z" return dateand time both in "10 Apr 2026, 11:19 PM" format
+export const formatDate = (value: string): string => {
+  if (!value) return "";
+  const date = new Date(value);
+  return date.toLocaleString("en-IN", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: true,
+  });
+};
+
+// "2026-04-10T22:49:45.000Z" return date in "10 Apr 2026" format
+export const formatDateOnly = (value: string): string => {
+  if (!value) return "";
+  const date = new Date(value);
+  return date.toLocaleDateString("en-IN", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+};
+
+// "2026-04-10T22:49:45.000Z" return time in "11:19 PM" format
+export const formatTimeOnly = (value: string): string => {
+  if (!value) return "";
+  const date = new Date(value);
+  return date.toLocaleTimeString("en-IN", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: true,
+  });
+};

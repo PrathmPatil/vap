@@ -79,6 +79,13 @@ function Navigation() {
               </Link>
             )}
 
+            {<Link href="/master">
+                <Button variant="ghost">
+                  <Calculator className="h-4 w-4 mr-2" />
+                  Logs
+                </Button>
+              </Link>}
+
             {/* Auth Button */}
             {!isAuthenticated ? (
               <Link href="/login">

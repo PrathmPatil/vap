@@ -48,7 +48,7 @@ interface EarningsCalendar {
 type TableType = "market-status" | "market-holiday" | "market-holiday-old" | "ipo-calendar" | "earnings-calendar";
 
 const MarketDataDashboard: React.FC = () => {
-  const [selectedTable, setSelectedTable] = useState<TableType>("market-status");
+  const [selectedTable, setSelectedTable] = useState<TableType>("market-holiday");
   const [data, setData] = useState<any[]>([]);
   
   // Single Pagination Source of Truth
