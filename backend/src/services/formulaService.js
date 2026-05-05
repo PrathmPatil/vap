@@ -9,6 +9,8 @@ import {
   TweezerBottomModel
 } from '../models/index.js';
 
+import logger from '../config/logger.js';
+import { performance } from 'node:perf_hooks';
 import { fn, col, where, Op } from 'sequelize';
 
 /* =========================================================
@@ -501,6 +503,10 @@ export const generateBuyDayService = async ({
 export const runFormulaEngineService = async () => {
   try {
 
+    const startedAt = performance.now();
+
+    logger.info('Formula engine refresh started');
+
     await RallyAttemptDayModel.sync();
     await FollowThroughDayModel.sync();
     await BuyDayModel.sync();
@@ -575,13 +581,22 @@ export const runFormulaEngineService = async () => {
       processed.push(symbol);
     }
 
+    const durationMs = Math.round(performance.now() - startedAt);
+
+    logger.info(
+      `Formula engine refresh completed in ${durationMs} ms. Processed symbols: ${processed.length}`
+    );
+
 
     return {
       success: true,
-      processed_symbols: processed.length
+      processed_symbols: processed.length,
+      duration_ms: durationMs
     };
   } catch (error) {
-    console.error('❌ Formula Engine Error:', error);
+    logger.error(`❌ Formula Engine Error: ${error.message}`, {
+      stack: error.stack
+    });
     throw error;
   }
 };

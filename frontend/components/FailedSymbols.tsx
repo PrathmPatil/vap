@@ -21,6 +21,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { AlertTriangle, Clock, XCircle } from "lucide-react";
 import { getFailedSymbolsList } from "@/utils";
+import Pagination from "@/components/ui/custom-pagination";
 
 interface FailedSymbol {
   id: number;
@@ -233,36 +234,13 @@ export function FailedSymbols() {
               </div>
 
               {/* ✅ Pagination Controls */}
-              <div className="flex items-center justify-center space-x-2 pt-4">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handlePrevious}
-                  disabled={currentPage === 1}
-                >
-                  Previous
-                </Button>
-
-                {getVisiblePages().map((page) => (
-                  <Button
-                    key={page}
-                    size="sm"
-                    variant={currentPage === page ? "default" : "outline"}
-                    onClick={() => setCurrentPage(page)}
-                  >
-                    {page}
-                  </Button>
-                ))}
-
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleNext}
-                  disabled={currentPage === totalPages}
-                >
-                  Next
-                </Button>
-              </div>
+              <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={setCurrentPage}
+                pageSizeLabel={`${itemsPerPage} per page`}
+                className="pt-4"
+              />
             </div>
           )}
         </CardContent>

@@ -1,154 +1,168 @@
-import React, { useMemo } from "react";
+"use client";
 
-/**
- * Helper to generate page numbers with ellipses
- */
-const getPaginationWithDots = (currentPage: number, totalPages: number) => {
-  const pages = [];
+import { ChevronsLeft, ChevronsRight } from "lucide-react";
 
-  if (totalPages <= 7) {
-    for (let i = 1; i <= totalPages; i++) pages.push(i);
-  } else {
-    if (currentPage <= 4) {
-      pages.push(1, 2, 3, 4, 5, "...", totalPages);
-    } else if (currentPage >= totalPages - 3) {
-      pages.push(
-        1,
-        "...",
-        totalPages - 4,
-        totalPages - 3,
-        totalPages - 2,
-        totalPages - 1,
-        totalPages,
-      );
-    } else {
-      pages.push(
-        1,
-        "...",
-        currentPage - 1,
-        currentPage,
-        currentPage + 1,
-        "...",
-        totalPages,
-      );
-    }
-  }
-  return pages;
-};
+import { Badge } from "./badge";
+import { Button } from "./button";
 
-interface CustomPaginationProps {
-  page?: number;
-  limit?: number;
-  totalRecords?: number;
-  totalPages?: number;
-  onPageChange?: (page: number) => void;
-  onLimitChange?: (limit: number) => void;
+type PaginationItem = number | "ellipsis-left" | "ellipsis-right";
+
+export interface PaginationProps {
+  currentPage: number;
+  totalPages: number;
+  onPageChange: (page: number) => void;
+  pageSizeLabel?: string;
+  maxNumbers?: number;
+  className?: string;
 }
 
-export default function CustomPagination({
-  page = 1,
-  limit = 10,
-  totalRecords = 0, // Total number of items
-  totalPages = 0, // Total number of pages
+export function getPaginationItems(
+  currentPage: number,
+  totalPages: number,
+  maxNumbers = 5
+): PaginationItem[] {
+  if (totalPages <= maxNumbers + 2) {
+    return Array.from({ length: totalPages }, (_, index) => index + 1);
+  }
+
+  const items: PaginationItem[] = [1];
+  const sideCount = Math.floor(maxNumbers / 2);
+
+  let start = Math.max(2, currentPage - sideCount);
+  let end = Math.min(totalPages - 1, currentPage + sideCount);
+
+  const actualCount = end - start + 1;
+  if (actualCount < maxNumbers) {
+    if (start === 2) {
+      end = Math.min(totalPages - 1, end + (maxNumbers - actualCount));
+    } else if (end === totalPages - 1) {
+      start = Math.max(2, start - (maxNumbers - actualCount));
+    }
+  }
+
+  if (start > 2) {
+    items.push("ellipsis-left");
+  }
+
+  for (let page = start; page <= end; page += 1) {
+    items.push(page);
+  }
+
+  if (end < totalPages - 1) {
+    items.push("ellipsis-right");
+  }
+
+  items.push(totalPages);
+  return items;
+}
+
+export function Pagination({
+  currentPage,
+  totalPages,
   onPageChange,
-  onLimitChange,
-}: CustomPaginationProps) {
-  // Use the provided totalPages, or calculate it if only totalRecords is provided
-  const finalTotalPages = totalPages || Math.ceil(totalRecords / limit) || 1;
+  pageSizeLabel = "10 per page",
+  maxNumbers = 5,
+  className = "",
+}: PaginationProps) {
+  if (resolvedTotalPages <= 1) {
+    return null;
+  }
 
-  const pages = useMemo(
-    () => getPaginationWithDots(page, finalTotalPages),
-    [page, finalTotalPages],
-  );
-
-  const buttonStyle = (isActive: boolean): React.CSSProperties => ({
-    padding: "6px 12px",
-    borderRadius: "6px",
-    border: "1px solid #ddd",
-    cursor: isActive ? "default" : "pointer",
-    background: isActive ? "#007bff" : "#fff",
-    color: isActive ? "#fff" : "#333",
-    fontWeight: isActive ? "600" : "400",
-    transition: "all 0.2s ease",
-    minWidth: "40px",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    pointerEvents: isActive ? "none" : "auto",
-  });
+  const items = getPaginationItems(currentPage, totalPages, maxNumbers);
 
   return (
-    <div className="flex items-center justify-between" >
-      <div>
-          Showing page <b>{page}</b> of <b>{finalTotalPages}</b>
-          {totalRecords > 0 && ` (${totalRecords} items)`}
-        </div>
-      <div className="flex items-center justify-end gap-2">
-        {onLimitChange && (
-          <div className="flex items-center gap-2">
-            <label htmlFor="page-limit">Rows per page:</label>
-            <select
-              id="page-limit"
-              value={limit}
-              onChange={(e) => onLimitChange(Number(e.target.value))}
-              className="p-2 rounded border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              {[5, 10, 20, 50].map((l) => (
-                <option key={l} value={l}>
-                  {l}
-                </option>
-              ))}
-            </select>
-          </div>
-        )}
-        <div
-        className="flex gap-2 items-center flex-wrap justify-end"
+    <div className={`rounded-xl border bg-muted/20 p-3 ${className}`.trim()}>
+      <div className="mb-2 flex items-center justify-between gap-2">
+        <span className="text-xs text-muted-foreground">
+          Page {currentPage} of {totalPages}
+        </span>
+        {pageSizeLabel ? (
+          <Badge variant="outline" className="text-[10px]">
+            {pageSizeLabel}
+          </Badge>
+        ) : null}
+      </div>
+
+      <div className="flex flex-wrap items-center justify-center gap-1.5">
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="h-8 px-2"
+          onClick={() => onPageChange(1)}
+          disabled={currentPage <= 1}
+          aria-label="Go to first page"
         >
-          {/* Previous Button */}
-          <button
-            disabled={page <= 1}
-            onClick={() => onPageChange?.(page - 1)}
-            style={{ ...buttonStyle(false), opacity: page <= 1 ? 0.5 : 1 }}
-            aria-label="Previous Page"
-          >
-            &laquo;
-          </button>
+          <ChevronsLeft className="h-3.5 w-3.5" />
+        </Button>
 
-          {/* Page Numbers */}
-          {pages.map((p, index) =>
-            p === "..." ? (
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="h-8 px-3"
+          onClick={() => onPageChange(Math.max(1, currentPage - 1))}
+          disabled={currentPage <= 1}
+        >
+          Prev
+        </Button>
+
+        {items.map((item) => {
+          if (typeof item !== "number") {
+            return (
               <span
-                key={`dots-${index}`}
-                style={{ padding: "0 8px", color: "#666" }}
+                key={`${item}-${currentPage}-${totalPages}`}
+                className="px-1 text-xs text-muted-foreground"
               >
-                &hellip;
+                ...
               </span>
-            ) : (
-              <button
-                key={p}
-                onClick={() => typeof p === "number" && onPageChange?.(p)}
-                style={buttonStyle(p === page)}
-                aria-current={p === page ? "page" : undefined}
-              >
-                {p}
-              </button>
-            ),
-          )}
+            );
+          }
 
-          {/* Next Button */}
-          <button
-            disabled={page >= finalTotalPages}
-            onClick={() => onPageChange?.(page + 1)}
-            style={{
-              ...buttonStyle(false),
-              opacity: page >= finalTotalPages ? 0.5 : 1,
-            }}
-            aria-label="Next Page"
-          >
-            &raquo;
-          </button>
-        </div>
+          const isActive = item === currentPage;
+
+          return (
+            <Button
+              key={`page-${item}`}
+              type="button"
+              size="sm"
+              variant={isActive ? "default" : "outline"}
+              className={`h-8 min-w-8 px-2 font-semibold ${
+                isActive ? "shadow-sm" : "hover:bg-muted"
+              }`}
+              onClick={() => onPageChange(item)}
+              aria-current={isActive ? "page" : undefined}
+            >
+              {item}
+            </Button>
+          );
+        })}
+
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="h-8 px-3"
+          onClick={() => onPageChange(Math.min(totalPages, currentPage + 1))}
+          disabled={currentPage >= totalPages}
+        >
+          Next
+        </Button>
+
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="h-8 px-2"
+          onClick={() => onPageChange(totalPages)}
+          disabled={currentPage >= totalPages}
+          aria-label="Go to last page"
+        >
+          <ChevronsRight className="h-3.5 w-3.5" />
+        </Button>
       </div>
     </div>
   );
 }
+
+export default Pagination;

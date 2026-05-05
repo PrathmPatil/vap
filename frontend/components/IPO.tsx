@@ -5,6 +5,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getIpoData, getIpoReportsCount } from "@/utils";
 import { useEffect, useState } from "react";
+import Pagination from "@/components/ui/custom-pagination";
 
 // Types
 export interface IpoData {
@@ -292,36 +293,13 @@ const Ipo = () => {
                 onSort={handleSort}
               />
               {/* ✅ Pagination Controls */}
-              <div className="flex items-center justify-center space-x-2 pt-4">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handlePrevious}
-                  disabled={currentPage === 1}
-                >
-                  Previous
-                </Button>
-
-                {getVisiblePages().map((page) => (
-                  <Button
-                    key={page}
-                    size="sm"
-                    variant={currentPage === page ? "default" : "outline"}
-                    onClick={() => setCurrentPage(page)}
-                  >
-                    {page}
-                  </Button>
-                ))}
-
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleNext}
-                  disabled={currentPage === totalPages}
-                >
-                  Next
-                </Button>
-              </div>
+              <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={setCurrentPage}
+                pageSizeLabel={`${recordsPerPage} per page`}
+                className="pt-4"
+              />
             </TabsContent>
           ))}
         </Tabs>

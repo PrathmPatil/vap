@@ -26,8 +26,6 @@ import {
   TrendingDown,
   Target,
   Search,
-  ChevronLeft,
-  ChevronRight,
   Calendar,
   Activity,
   BarChart3,
@@ -37,6 +35,7 @@ import Link from "next/link";
 import Navigation from "./Navigation";
 import CalendarPicker from "./CalendarPicker";
 import { getAnalyzeCompaniesData } from "@/utils";
+import Pagination from "./ui/custom-pagination";
 
 export interface MarketSignal {
   symbol: string;
@@ -426,83 +425,13 @@ export default function MarketSignalsPage() {
                           </div>
 
                           {totalPages > 1 && (
-                            <div className="flex items-center justify-between">
-                              <div className="text-sm text-slate-600">
-                                Showing {(currentPage - 1) * itemsPerPage + 1}{" "}
-                                to{" "}
-                                {Math.min(
-                                  currentPage * itemsPerPage,
-                                  filteredData.length
-                                )}{" "}
-                                of {filteredData.length} results
-                              </div>
-                              <div className="flex items-center space-x-2">
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() =>
-                                    setCurrentPage(Math.max(1, currentPage - 1))
-                                  }
-                                  disabled={currentPage === 1}
-                                >
-                                  <ChevronLeft className="h-4 w-4" />
-                                  Previous
-                                </Button>
-
-                                <div className="flex items-center space-x-1">
-                                  {Array.from(
-                                    { length: Math.min(5, totalPages) },
-                                    (_, i) => {
-                                      let pageNum;
-                                      if (totalPages <= 5) {
-                                        pageNum = i + 1;
-                                      } else if (currentPage <= 3) {
-                                        pageNum = i + 1;
-                                      } else if (
-                                        currentPage >=
-                                        totalPages - 2
-                                      ) {
-                                        pageNum = totalPages - 4 + i;
-                                      } else {
-                                        pageNum = currentPage - 2 + i;
-                                      }
-
-                                      return (
-                                        <Button
-                                          key={pageNum}
-                                          variant={
-                                            currentPage === pageNum
-                                              ? "default"
-                                              : "outline"
-                                          }
-                                          size="sm"
-                                          onClick={() =>
-                                            setCurrentPage(pageNum)
-                                          }
-                                          className="w-8 h-8 p-0"
-                                        >
-                                          {pageNum}
-                                        </Button>
-                                      );
-                                    }
-                                  )}
-                                </div>
-
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() =>
-                                    setCurrentPage(
-                                      Math.min(totalPages, currentPage + 1)
-                                    )
-                                  }
-                                  disabled={currentPage === totalPages}
-                                >
-                                  Next
-                                  <ChevronRight className="h-4 w-4" />
-                                </Button>
-                              </div>
-                            </div>
+                            <Pagination
+                              currentPage={currentPage}
+                              totalPages={totalPages}
+                              onPageChange={setCurrentPage}
+                              pageSizeLabel={`${itemsPerPage} per page`}
+                              className="mt-4"
+                            />
                           )}
                         </>
                       )}

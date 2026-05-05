@@ -201,16 +201,36 @@ const MarketDataDashboard: React.FC = () => {
         
         {/* Pagination Footer */}
         <div className="border-t p-4 bg-gray-50">
+          <div className="mb-3 flex items-center justify-between gap-3 text-sm text-slate-600">
+            <span>
+              Showing page <strong>{page}</strong> of <strong>{totalPages || 1}</strong>
+              {totalRecords > 0 ? ` (${totalRecords} items)` : ""}
+            </span>
+            <div className="flex items-center gap-2">
+              <label htmlFor="market-data-limit">Rows per page:</label>
+              <select
+                id="market-data-limit"
+                value={limit}
+                onChange={(event) => {
+                  setLimit(Number(event.target.value));
+                  setPage(1);
+                }}
+                className="rounded border border-gray-300 bg-white px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                {[5, 10, 20, 50].map((option) => (
+                  <option key={option} value={option}>
+                    {option}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
           <CustomPagination
-            page={page}
-            limit={limit}
-            totalRecords={totalRecords}
-            totalPages={totalPages}
+            currentPage={page}
+            totalPages={totalPages || 1}
             onPageChange={setPage}
-            onLimitChange={(l:any) => {
-              setLimit(l);
-              setPage(1);
-            }}
+            pageSizeLabel={`${limit} per page`}
           />
         </div>
       </div>

@@ -34,6 +34,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+  import Pagination from '@/components/ui/custom-pagination';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -324,77 +325,17 @@ export default function CommonTable({
       </div>
 
       {totalPages > 1 && (
-        <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
-          <div className="text-sm text-gray-500 order-2 sm:order-1">
+        <div className="flex flex-col gap-3">
+          <div className="text-sm text-gray-500">
             Showing {((currentPage - 1) * itemsPerPage) + 1} to{' '}
             {Math.min(currentPage * itemsPerPage, total)} of {total} results
           </div>
-          
-          <div className="flex items-center gap-1 order-1 sm:order-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => handlePageChange(1)}
-              disabled={currentPage === 1}
-              className="h-8 w-8 p-0"
-            >
-              <ChevronsLeft className="h-4 w-4" />
-            </Button>
-            
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => handlePageChange(currentPage - 1)}
-              disabled={currentPage === 1}
-              className="h-8 w-8 p-0"
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            
-            <div className="flex items-center gap-1">
-              {getPaginationPages(currentPage, totalPages).map((page, index) => {
-                if (page === "...") {
-                  return (
-                    <span key={index} className="px-2 text-gray-400">
-                      ...
-                    </span>
-                  );
-                }
-                
-                return (
-                  <Button
-                    key={`${page}-${index}`}
-                    size="sm"
-                    variant={page === currentPage ? "default" : "outline"}
-                    onClick={() => handlePageChange(Number(page))}
-                    className="h-8 w-8 p-0"
-                  >
-                    {page}
-                  </Button>
-                );
-              })}
-            </div>
-            
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => handlePageChange(currentPage + 1)}
-              disabled={currentPage === totalPages}
-              className="h-8 w-8 p-0"
-            >
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-            
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => handlePageChange(totalPages)}
-              disabled={currentPage === totalPages}
-              className="h-8 w-8 p-0"
-            >
-              <ChevronsRight className="h-4 w-4" />
-            </Button>
-          </div>
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={handlePageChange}
+            pageSizeLabel={`${itemsPerPage} per page`}
+          />
         </div>
       )}
     </div>

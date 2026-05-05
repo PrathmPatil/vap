@@ -30,6 +30,8 @@ import formulaRoutes from './routes/formulaRoutes.js';
 import userRoutes from './routes/userRoutes.js';
 import holidayRoutes from './routes/marketHolidayRoutes.js';
 import logRoutes from './routes/cronLogRoutes.js';
+import cronManagementRoutes from './routes/cronManagementRoutes.js';
+import { startFormulaCron } from './crons/formulaCron.js';
 
 import {
   sequelizeStockMarket,
@@ -38,7 +40,14 @@ import {
   sequelizeScreener,
   sequelizeIPO,
   sequelizeAnnouncement,
-  StrongBullishCandleModel
+  sequelizeFormula,
+  StrongBullishCandleModel,
+  RallyAttemptDayModel,
+  FollowThroughDayModel,
+  BuyDayModel,
+  VolumeBreakoutModel,
+  TweezerBottomModel,
+  CronLogModel
 } from './models/index.js';
 
 // Init app
@@ -101,8 +110,53 @@ app.use(morgan('combined', { stream: logStream }));
     // await sequelizeAnnouncement.sync();
     // logger.info('✅ bse_data database synced.');
 
-    // sequenilize formula tables.
-    await StrongBullishCandleModel.sync();
+    // ============================================================
+    // AUTHENTICATE & SYNC FORMULA DATABASE
+    // ============================================================
+    try {
+      await sequelizeFormula.authenticate();
+      logger.info('✅ Connected to formula_data_fastapi database.');
+      console.log('✅ Connected to formula_data_fastapi database.');
+      
+      await RallyAttemptDayModel.sync();
+      logger.info('✅ RallyAttemptDay table synced.');
+      console.log('✅ RallyAttemptDay table synced.');
+      
+      await FollowThroughDayModel.sync();
+      logger.info('✅ FollowThroughDay table synced.');
+      console.log('✅ FollowThroughDay table synced.');
+      
+      await BuyDayModel.sync();
+      logger.info('✅ BuyDay table synced.');
+      console.log('✅ BuyDay table synced.');
+      
+      await StrongBullishCandleModel.sync();
+      logger.info('✅ StrongBullishCandle table synced.');
+      console.log('✅ StrongBullishCandle table synced.');
+      
+      await VolumeBreakoutModel.sync();
+      logger.info('✅ VolumeBreakout table synced.');
+      console.log('✅ VolumeBreakout table synced.');
+      
+      await TweezerBottomModel.sync();
+      logger.info('✅ TweezerBottom table synced.');
+      console.log('✅ TweezerBottom table synced.');
+      
+      await CronLogModel.sync();
+      logger.info('✅ CronLog table synced.');
+      console.log('✅ CronLog table synced.');
+      
+      logger.info('✅ formula_data_fastapi database fully synced.');
+      console.log('✅ formula_data_fastapi database fully synced.');
+    } catch (formulaDbError) {
+      logger.error('⚠️  Formula database connection failed:', formulaDbError.message);
+      console.error('⚠️  Formula database connection failed:', formulaDbError.message);
+    }
+
+    // ============================================================
+    // START FORMULA CRON JOB
+    // ============================================================
+    startFormulaCron();
 
     const PORT = process.env.APP_PORT || 8000;
     const HOST = process.env.APP_HOST || 'localhost';
@@ -134,6 +188,7 @@ app.use("/vap/formula", formulaRoutes);
 app.use('/vap/user', userRoutes);
 app.use("/vap/holiday", holidayRoutes);
 app.use("/vap/logs", logRoutes);
+app.use("/vap/cron-management", cronManagementRoutes);
 
 
 

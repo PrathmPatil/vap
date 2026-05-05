@@ -30,6 +30,7 @@ import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
 import Link from "next/link";
 import { getListedCompaniesData } from "@/utils";
+import Pagination from "./ui/custom-pagination";
 
 interface Company {
   id: number;
@@ -264,32 +265,13 @@ export function CompaniesTable() {
               </div>
 
               {/* Pagination */}
-              <div className="flex items-center justify-between mt-4">
-                <div className="text-sm text-slate-600">
-                  Showing page {currentPage} of {totalPages} (
-                  {totalCompanies.toLocaleString()} total)
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-                    disabled={currentPage === 1 || loading}
-                  >
-                    <ChevronLeft className="h-4 w-4" /> Previous
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() =>
-                      setCurrentPage(Math.min(totalPages, currentPage + 1))
-                    }
-                    disabled={currentPage === totalPages || loading}
-                  >
-                    Next <ChevronRight className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
+              <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={setCurrentPage}
+                pageSizeLabel={`${limit} per page`}
+                className="mt-4"
+              />
             </>
           )}
         </CardContent>

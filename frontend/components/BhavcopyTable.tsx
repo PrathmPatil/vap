@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Search, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Search } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Input } from './ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
@@ -9,6 +9,7 @@ import { Button } from './ui/button';
 import { formatCellValue } from '@/lib/utils';
 import { Skeleton } from './ui/skeleton';
 import { getDynamicData } from '@/utils';
+import Pagination from './ui/custom-pagination';
 
 interface ApiResponse<T> {
   success: boolean;
@@ -136,29 +137,13 @@ export function BhavcopyTable({
               </div>
 
               {/* Pagination */}
-              <div className="flex items-center justify-between mt-4">
-                <div className="text-sm text-slate-600">
-                  Page {currentPage} of {totalPages} ({totalItems.toLocaleString()} total)
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-                    disabled={currentPage === 1 || loading}
-                  >
-                    <ChevronLeft className="h-4 w-4" /> Previous
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
-                    disabled={currentPage === totalPages || loading}
-                  >
-                    Next <ChevronRight className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
+              <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={setCurrentPage}
+                pageSizeLabel={`${limit} per page`}
+                className="mt-4"
+              />
             </>
           )}
         </CardContent>

@@ -26,8 +26,6 @@ import {
   TrendingDown,
   BarChart3,
   Target,
-  ChevronLeft,
-  ChevronRight,
   ArrowUpDown,
   Download,
   RefreshCw,
@@ -38,6 +36,7 @@ import { defaultFilters, FilterCriteria, StockData } from "@/lib/screener";
 import { CommonFilters } from "@/components/CommonFilters";
 import { getFiltersConfig } from "@/lib/common";
 import { getTableConfig } from "@/lib/tableConfig";
+import Pagination from "@/components/ui/custom-pagination";
 import { renderTable } from "@/components/RenderTable";
 import DynamicSelect from "@/components/ui/dynamic-select";
 
@@ -500,79 +499,16 @@ export default function ScreenerPage() {
 
                     {/* Pagination */}
                     {totalPages > 1 && (
-                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mt-6">
-                        <div className="text-sm text-slate-600">
-                          Page {currentPage} of {totalPages}
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => {
-                              const newPage = Math.max(1, currentPage - 1);
-                              setCurrentPage(newPage);
-                              fetchStocks();
-                            }}
-                            disabled={currentPage === 1}
-                          >
-                            <ChevronLeft className="h-4 w-4 mr-1" />
-                            Previous
-                          </Button>
-                          <div className="flex items-center space-x-1">
-                            {Array.from(
-                              { length: Math.min(5, totalPages) },
-                              (_, i) => {
-                                let pageNum;
-                                if (totalPages <= 5) {
-                                  pageNum = i + 1;
-                                } else if (currentPage <= 3) {
-                                  pageNum = i + 1;
-                                } else if (currentPage >= totalPages - 2) {
-                                  pageNum = totalPages - 4 + i;
-                                } else {
-                                  pageNum = currentPage - 2 + i;
-                                }
-
-                                return (
-                                  <Button
-                                    key={pageNum}
-                                    variant={
-                                      currentPage === pageNum
-                                        ? "default"
-                                        : "outline"
-                                    }
-                                    size="sm"
-                                    onClick={() => {
-                                      setCurrentPage(pageNum);
-                                      fetchStocks();
-                                    }}
-                                    disabled={currentPage === pageNum}
-                                    className="w-8 h-8 p-0"
-                                  >
-                                    {pageNum}
-                                  </Button>
-                                );
-                              },
-                            )}
-                          </div>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => {
-                              const newPage = Math.min(
-                                totalPages,
-                                currentPage + 1,
-                              );
-                              setCurrentPage(newPage);
-                              fetchStocks();
-                            }}
-                            disabled={currentPage === totalPages}
-                          >
-                            Next
-                            <ChevronRight className="h-4 w-4 ml-1" />
-                          </Button>
-                        </div>
-                      </div>
+                      <Pagination
+                        currentPage={currentPage}
+                        totalPages={totalPages}
+                        onPageChange={(page) => {
+                          setCurrentPage(page);
+                          fetchStocks();
+                        }}
+                        pageSizeLabel={`${itemsPerPage} per page`}
+                        className="mt-6"
+                      />
                     )}
                   </>
                 )}

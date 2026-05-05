@@ -5,6 +5,7 @@ from apscheduler.triggers.cron import CronTrigger
 from datetime import timezone, timedelta, datetime
 from typing import Optional, List, Dict
 from app.services.bhavcopy_service import bhavcopy_service
+from app.services.backend_formula_service import trigger_backend_formula_refresh
 from app.services.cron_logger_service import cron_logger
 from app.utils.cron_decorator import CronJobContext
 
@@ -13,12 +14,32 @@ IST = timezone(timedelta(hours=5, minutes=30))
 scheduler = BackgroundScheduler(timezone=IST)
 
 
+def refresh_formula_cache(trigger_source: str, context: Optional[CronJobContext] = None):
+    """Refresh the backend formula cache after bhavcopy ingestion completes."""
+    result = trigger_backend_formula_refresh(trigger_source)
+
+    if context is not None:
+        context.set_data(formula_refresh=result)
+
+    if result.get("success"):
+        logger.info(
+            f"✅ Formula cache refreshed from {trigger_source} in {result.get('duration_seconds')}s"
+        )
+    else:
+        logger.warning(
+            f"⚠ Formula cache refresh from {trigger_source} failed: {result.get('error') or result.get('response')}"
+        )
+
+    return result
+
+
 def bhavcopy_job():
     """Main job to fetch Bhavcopy data with logging"""
     with CronJobContext("bhavcopy_daily", "bhavcopy") as context:
         logger.info("🔥 Bhavcopy cron started")
         
         result = bhavcopy_service.fetch_today_bhavcopy(force_refresh=False)
+        context.set_data(fetch_duration_seconds=result.get("duration_seconds"))
         
         if result.get("status") == "SUCCESS":
             files_processed = result.get("files_processed", 0)
@@ -35,6 +56,9 @@ def bhavcopy_job():
                     end_date.strftime("%Y-%m-%d")
                 )
                 context.set_data(missing_dates=missing_result.get("missing_dates", 0))
+                context.set_data(missing_duration_seconds=missing_result.get("duration_seconds"))
+
+            refresh_formula_cache("bhavcopy_daily", context)
                 
         elif result.get("status") == "NOT_FOUND":
             logger.warning(f"⚠ Bhavcopy not yet available for today")
@@ -64,7 +88,14 @@ def fetch_missing_bhavcopy_job():
         processed = result.get("processed", 0)
         
         context.add_record(processed=processed)
-        context.set_data(missing_dates=missing, total_dates=result.get("total_dates", 0))
+        context.set_data(
+            missing_dates=missing,
+            total_dates=result.get("total_dates", 0),
+            fetch_duration_seconds=result.get("duration_seconds"),
+        )
+
+        if processed > 0:
+            refresh_formula_cache("bhavcopy_missing", context)
         
         logger.info(f"✅ Missing data check complete: {missing} missing, {processed} processed")
 

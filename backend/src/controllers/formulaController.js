@@ -22,6 +22,7 @@ export const runFormulaEngine = async (req, res) => {
     return res.status(200).json({
       success: true,
       processed_symbols: result.processed_symbols,
+      duration_ms: result.duration_ms,
       message: "Formula engine executed successfully"
     });
 
