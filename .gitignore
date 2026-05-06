@@ -8,6 +8,8 @@ node_modules/
 logs/
 tmp/
 temp/
+*.tmp
+*.cache
 
 # ========================
 # Frontend
@@ -18,12 +20,14 @@ frontend/dist/
 frontend/build/
 frontend/.env
 frontend/.env.*
+frontend/out/
 
 # ========================
-# Backend
+# Backend (Node)
 # ========================
 backend/node_modules/
 backend/dist/
+backend/build/
 backend/logs/
 backend/.env
 backend/.env.*
@@ -33,24 +37,47 @@ backend/.env.*
 # ========================
 python/venv/
 python/.venv/
-python/__pycache__/
-python/cron/__pycache__/
-python/database/__pycache__/
-python/models/__pycache__/
-python/routes/__pycache__/
-python/routes/__pycache__/cron
-python/services/__pycache__/
-python/utils/__pycache__/
-python/*.pyc
+venv/
+.venv/
+
+# Bytecode
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Deep folders (important)
+python/**/__pycache__/
+python/**/*.pyc
+
+# Env
 python/.env
 python/.env.*
 
+# Jupyter
+.ipynb_checkpoints/
+
+# ========================
+# ML / OCR / Temp files
+# ========================
+*.pt
+*.pth
+*.onnx
+*.h5
+*.pickle
+*.pkl
+
+# PDF processing temp
+*.jpg
+*.png
+*.jpeg
 
 # ========================
 # Docker
 # ========================
 docker-data/
 .docker/
+*.pid
 
 # ========================
 # OS / Editors
@@ -59,15 +86,27 @@ docker-data/
 Thumbs.db
 .vscode/
 .idea/
+*.swp
+*.swo
 
 # ========================
 # Database backups (IMPORTANT)
 # ========================
 *.sql
 *.sqlite
+*.sqlite3
 *.db
 
 # ========================
-# Git (never commit)
+# Build / Cache
 # ========================
-.git/
+.cache/
+dist/
+build/
+coverage/
+
+# ========================
+# Git (⚠️ REMOVE THIS)
+# ========================
+# ❌ NEVER ignore .git folder
+# .git/
