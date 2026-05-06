@@ -1,7 +1,61 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException, Query
+from typing import Dict, List
+
+from app.config import config
+from app.database.connection import db_manager
 from app.services.gov_news_service import gov_news_service
 
 router = APIRouter()
+
+
+NEWS_TABLES = ["news_on_air", "pib_news", "pib_ministry", "dd_news"]
+
+
+def _fetch_table_rows(table_name: str, sort_order: str):
+    """Read saved rows for a single government news table."""
+
+    order_clause = "DESC" if str(sort_order).upper() != "ASC" else "ASC"
+
+    conn = db_manager.get_connection(config.DB_NEWS, dict_cursor=True)
+    try:
+        with conn.cursor() as cursor:
+            cursor.execute("SHOW TABLES LIKE %s", (table_name,))
+            if not cursor.fetchone():
+                return 0, []
+
+            cursor.execute(
+                f"SELECT COUNT(*) AS total FROM `{table_name}`"
+            )
+            total_row = cursor.fetchone() or {}
+            total = int(total_row.get("total", 0))
+
+            cursor.execute(
+                f"SELECT * FROM `{table_name}` ORDER BY created_at {order_clause}, id {order_clause}"
+            )
+            rows = cursor.fetchall() or []
+
+        return total, rows
+    finally:
+        conn.close()
+
+
+def _read_all_government_news(page: int, limit: int, sort_order: str):
+    data: Dict[str, List[dict]] = {}
+    total_records: Dict[str, int] = {}
+
+    for table_name in NEWS_TABLES:
+        total, rows = _fetch_table_rows(table_name, sort_order)
+        total_records[table_name] = total
+        data[table_name] = rows
+
+    return {
+        "status": "success",
+        "message": "Government news fetched successfully from database",
+        "total_records": total_records,
+        "data": data,
+        "page": page,
+        "limit": limit,
+    }
 
 # ---------------------------------------
 # INDIVIDUAL ROUTES
@@ -18,6 +72,25 @@ def news_on_air_api(pageNumber: int = 1, pageSize: int = 100):
             "pageSize": pageSize
         }
     )
+
+
+@router.get("/all")
+def get_all_gov_news(
+    search: str = Query("", description="Search term for future filtering"),
+    page: int = Query(1, ge=1),
+    limit: int = Query(20, ge=1, le=500),
+    sortField: str = Query("created_at", description="Sort field (reserved for compatibility)"),
+    sortOrder: str = Query("DESC", description="Sort order: ASC or DESC"),
+):
+    """Return all saved government news rows for the frontend."""
+
+    try:
+        # The frontend currently requests DT_TM, but the stored gov-news tables
+        # are normalized and do not share the same columns. Return DB rows in a
+        # consistent format and keep the API compatible with the existing client.
+        return _read_all_government_news(page=page, limit=limit, sort_order=sortOrder)
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
 
 
 # 2️⃣ PIB Ministry

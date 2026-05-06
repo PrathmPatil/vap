@@ -7,6 +7,7 @@ import {
   LogOut,
   LogIn,
   Calculator,
+  Building2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
@@ -42,6 +43,13 @@ function Navigation() {
               <Button variant="ghost">
                 <BarChart3 className="h-4 w-4 mr-2" />
                 News
+              </Button>
+            </Link>
+
+            <Link href="/listed-companies">
+              <Button variant="ghost">
+                <Building2 className="h-4 w-4 mr-2" />
+                Listed Companies
               </Button>
             </Link>
 

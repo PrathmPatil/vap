@@ -64,7 +64,7 @@ export function Pagination({
   maxNumbers = 5,
   className = "",
 }: PaginationProps) {
-  if (resolvedTotalPages <= 1) {
+  if (totalPages <= 1) {
     return null;
   }
 

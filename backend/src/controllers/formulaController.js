@@ -1,4 +1,4 @@
-import { TweezerBottomModel } from "../models/index.js";
+import { Op } from "sequelize";
 import {
   runFormulaEngineService,
   generateStrongBullishService,
@@ -6,7 +6,13 @@ import {
   generateBuyDayService,
   generateRallyAttemptService,
   generateVolumeBreakoutService,
-  detectTweezerBottomPatterns
+  detectTweezerBottomPatterns,
+  getRallyAttemptRecordsService,
+  getFollowThroughDayRecordsService,
+  getBuyDayRecordsService,
+  getStrongBullishRecordsService,
+  getVolumeBreakoutRecordsService,
+  getTweezerBottomRecordsService
 } from "../services/formulaService.js";
 
 
@@ -48,20 +54,20 @@ export const runFormulaEngine = async (req, res) => {
 export const generateStrongBullish = async (req, res) => {
 
   try {
-  const { currentPage=1, itemsPerPage=10, searchTerm="", base_percent=2 } = req.body;
+  const { currentPage=1, itemsPerPage=10, searchTerm="", base_percent, basePercent } = req.body;
+  const selectedBasePercent = basePercent ?? base_percent ?? 2;
 
-    const result = await generateStrongBullishService({
+    const result = await getStrongBullishRecordsService({
       currentPage,
       itemsPerPage,
       searchTerm,
-      base_percent
+      basePercent: selectedBasePercent
     });
 
     return res.status(200).json({
-      success: true,
+      success: result.success,
       data: result.data,
       latest_date: result.latest_date,
-      inserted_rows: result.inserted_rows,
       currentPage: result.currentPage,
       itemsPerPage: result.itemsPerPage,
       totalItems: result.totalItems,
@@ -94,13 +100,12 @@ export const runRallyAttempt = async (req, res) => {
 
     const { currentPage=1, itemsPerPage=10, searchTerm="",} = req.body;
 
-    const result = await generateRallyAttemptService({ currentPage, itemsPerPage, searchTerm });
+    const result = await getRallyAttemptRecordsService({ currentPage, itemsPerPage, searchTerm });
 
     return res.status(200).json({
-            success: true,
+      success: result.success,
       data: result.data,
       latest_date: result.latest_date,
-      inserted_rows: result.inserted_rows,
       currentPage: result.currentPage,
       itemsPerPage: result.itemsPerPage,
       totalItems: result.totalItems,
@@ -133,13 +138,12 @@ export const runFollowThroughDay = async (req, res) => {
 
     const { currentPage=1, itemsPerPage=10, searchTerm="",} = req.body;
 
-    const result = await generateFollowThroughDayService({ currentPage, itemsPerPage, searchTerm });
+    const result = await getFollowThroughDayRecordsService({ currentPage, itemsPerPage, searchTerm });
 
     return res.status(200).json({
-      success: true,
+      success: result.success,
       data: result.data,
       latest_date: result.latest_date,
-      inserted_rows: result.inserted_rows,
       currentPage: result.currentPage,
       itemsPerPage: result.itemsPerPage,
       totalItems: result.totalItems,
@@ -172,13 +176,12 @@ export const runBuyDay = async (req, res) => {
 
     const {currentPage=1, itemsPerPage=10, searchTerm="",} = req.body;
 
-    const result = await generateBuyDayService(currentPage, itemsPerPage, searchTerm);
+    const result = await getBuyDayRecordsService({ currentPage, itemsPerPage, searchTerm });
 
     return res.status(200).json({
-      success: true,
+      success: result.success,
       data: result.data,
       latest_date: result.latest_date,
-      inserted_rows: result.inserted_rows,
       currentPage: result.currentPage,
       itemsPerPage: result.itemsPerPage,
       totalItems: result.totalItems,
@@ -203,17 +206,16 @@ export const getVolumeBreakouts = async (req,res) => {
 
   try {
     const { currentPage=1, itemsPerPage=10, searchTerm="", base_percent=2 } = req.body;
-    const data = await generateVolumeBreakoutService({ currentPage, itemsPerPage, searchTerm, base_percent });
+    const result = await getVolumeBreakoutRecordsService({ currentPage, itemsPerPage, searchTerm });
 
     return res.status(200).json({
-      success: true,
-      data: data,
-      latest_date: data.latest_date,
-      inserted_rows: data.inserted_rows,
-      currentPage: data.currentPage,
-      itemsPerPage: data.itemsPerPage,
-      totalItems: data.totalItems,
-      totalPages: data.totalPages,
+      success: result.success,
+      data: result.data,
+      latest_date: result.latest_date,
+      currentPage: result.currentPage,
+      itemsPerPage: result.itemsPerPage,
+      totalItems: result.totalItems,
+      totalPages: result.totalPages,
       message: "Volume breakout detection completed"
     });
 
@@ -232,26 +234,24 @@ export const getVolumeBreakouts = async (req,res) => {
 
 export const getTweezerBottomPatterns = async (req, res) => {
   try {
-    const { targetDate, forceRefresh, saveToDb } = req.query;
-    
-    const result = await detectTweezerBottomPatterns({
-      targetDate: targetDate || null,      // YYYY-MM-DD format
-      forceRefresh: forceRefresh === 'true', // Force refresh even if exists
-      saveToDb: saveToDb !== 'false'        // Default true
+    const { currentPage = 1, itemsPerPage = 10, searchTerm = '' } = req.body;
+
+    const result = await getTweezerBottomRecordsService({
+      currentPage,
+      itemsPerPage,
+      searchTerm
     });
-    
-    if (result.success) {
-      return res.status(200).json({
-        status: 'success',
-        data: result
-      });
-    } else {
-      return res.status(500).json({
-        status: 'error',
-        message: 'Failed to detect patterns',
-        error: result.error
-      });
-    }
+
+    return res.status(200).json({
+      status: 'success',
+      success: result.success,
+      data: result.data,
+      currentPage: result.currentPage,
+      itemsPerPage: result.itemsPerPage,
+      totalItems: result.totalItems,
+      totalPages: result.totalPages,
+      latest_date: result.latest_date
+    });
     
   } catch (error) {
     console.error('Error in getTweezerBottomPatterns:', error);
@@ -266,20 +266,16 @@ export const getTweezerBottomPatterns = async (req, res) => {
 export const getSavedTweezerBottomSignals = async (req, res) => {
   try {
     const { startDate, endDate, security, minStrength, limit, offset } = req.query;
-        await TweezerBottomModel.sync(); // Ensure model is synced before querying
-    if (!TweezerBottomModel) {
-      return res.status(500).json({
-        status: 'error',
-        message: 'Model not initialized'
-      });
-    }
-    
     const where = {};
     if (startDate && endDate) {
       where.trade_date = { [Op.between]: [startDate, endDate] };
     }
     if (security) where.security = security;
+    if (minStrength) where.signal_strength = minStrength;
     
+    const { TweezerBottomModel } = await import("../models/index.js");
+    await TweezerBottomModel.sync(); // Ensure model is synced before querying
+
     const signals = await TweezerBottomModel.findAndCountAll({
       where,
       order: [['trade_date', 'DESC'], ['signal_strength', 'DESC']],

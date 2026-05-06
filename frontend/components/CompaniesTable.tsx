@@ -72,6 +72,7 @@ export function CompaniesTable() {
   const [limit, setLimit] = useState(10); // ✅ dynamic records per page
   const [totalPages, setTotalPages] = useState(1);
   const [totalCompanies, setTotalCompanies] = useState(0);
+  const formatSymbol = (symbol?: string) => symbol?.replace(/\.NS$/i, '') || '-';
 
   useEffect(() => {
     const fetchCompanies = async () => {
@@ -219,8 +220,8 @@ export function CompaniesTable() {
                           className="hover:bg-slate-50 transition-colors"
                         >
                           <TableCell className="font-semibold text-blue-600">
-                            <Link href={`/company/${company?.symbol}`}>
-                              {company?.symbol}
+                            <Link href={`/company/${formatSymbol(company?.symbol)}`}>
+                              {formatSymbol(company?.symbol)}
                             </Link>
                           </TableCell>
 

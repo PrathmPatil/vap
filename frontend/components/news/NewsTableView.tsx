@@ -72,11 +72,34 @@ interface Tab {
 }
 
 const NewsTableView: React.FC<NewsTableViewProps> = ({ data }) => {
-  console.log(data);
-  const [activeTab, setActiveTab] = useState<TabKey>('news_on_air');
+  const tabs: Tab[] = [
+    {
+      key: 'news_on_air',
+      label: 'News on Air',
+      count: data?.total_records?.news_on_air || 0
+    },
+    {
+      key: 'pib_news',
+      label: 'PIB News',
+      count: data?.total_records?.pib_news || 0
+    },
+    {
+      key: 'pib_ministry',
+      label: 'PIB Ministry',
+      count: data?.total_records?.pib_ministry || 0
+    },
+    {
+      key: 'dd_news',
+      label: 'DD News',
+      count: data?.total_records?.dd_news || 0
+    },
+  ];
+
+  const firstAvailableTab = tabs.find((tab) => tab.count > 0)?.key || 'news_on_air';
+  const [activeTab, setActiveTab] = useState<TabKey>(firstAvailableTab);
   const [expandedRows, setExpandedRows] = useState<ExpandedRows>({});
 
-  console.log('NewsTableView data:', data);
+  
   // Toggle row expansion
   const toggleRowExpansion = (section: TabKey, id: number) => {
     setExpandedRows(prev => ({
@@ -106,30 +129,6 @@ const NewsTableView: React.FC<NewsTableViewProps> = ({ data }) => {
     if (!text) return 'No content available';
     return text.length > length ? text.substring(0, length) + '...' : text;
   };
-
-  // Tab configuration
-  const tabs: Tab[] = [
-    { 
-      key: 'news_on_air', 
-      label: 'News on Air', 
-      count: data?.total_records?.news_on_air || 0 
-    },
-    { 
-      key: 'pib_news', 
-      label: 'PIB News', 
-      count: data?.total_records?.pib_news || 0 
-    },
-    { 
-      key: 'pib_ministry', 
-      label: 'PIB Ministry', 
-      count: data?.total_records?.pib_ministry || 0 
-    },
-    { 
-      key: 'dd_news', 
-      label: 'DD News', 
-      count: data?.total_records?.dd_news || 0 
-    },
-  ];
 
   // Safe data access
   const getSectionData = (): any[] => {
@@ -372,7 +371,6 @@ const NewsTableView: React.FC<NewsTableViewProps> = ({ data }) => {
     }
   };
 
-  // Check if data is available
   if (!data || !data.total_records || !data.data) {
     return (
       <div className="max-w-7xl mx-auto p-6">
@@ -386,7 +384,6 @@ const NewsTableView: React.FC<NewsTableViewProps> = ({ data }) => {
   }
 
   const sectionData = getSectionData();
-  const hasData = sectionData.length > 0;
 
   return (
     <div className="max-w-7xl mx-auto p-6">
@@ -437,17 +434,19 @@ const NewsTableView: React.FC<NewsTableViewProps> = ({ data }) => {
       </div>
 
       {/* Table */}
-      {hasData ? (
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-          {renderTable()}
-        </div>
-      ) : (
-        <div className="text-center py-12">
-          <div className="text-gray-400 text-6xl mb-4">📰</div>
-          <h3 className="text-lg font-medium text-gray-900 mb-2">No news available</h3>
-          <p className="text-gray-500">There are no news items in this category.</p>
-        </div>
-      )}
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+        {sectionData.length > 0 ? (
+          renderTable()
+        ) : (
+          <div className="text-center py-12">
+            <div className="text-gray-400 text-6xl mb-4">📰</div>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">No news available</h3>
+            <p className="text-gray-500">
+              There are no items in {tabs.find((tab) => tab.key === activeTab)?.label || 'this section'}.
+            </p>
+          </div>
+        )}
+      </div>
     </div>
   );
 };

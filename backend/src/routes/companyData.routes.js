@@ -7,6 +7,9 @@ import {
 } from '../models/index.js';
 import {Op, fn, col, where } from 'sequelize';
 import { getAnalyzeCompaniesData } from '../controllers/companiesController.js';
+import { getListedDaily } from '../controllers/companyDailyController.js';
+import { addToWatchlist, removeFromWatchlist, getUserWatchlist } from '../controllers/watchlistController.js';
+import { authenticate } from '../middlewares/auth.middleware.js';
 
 const router = express.Router();
 const asyncHandler = fn => (req, res, next) =>
@@ -122,12 +125,21 @@ router.get('/failed-symbols', (req, res) =>
 router.get('/listed-companies', (req, res) =>
   getPaginatedData(ListedCompanies, req, res)
 ); 
+
+// New endpoints: daily combined bhavcopy/pr + all companies data
+router.get('/listed-daily', getListedDaily);
+
+// Watchlist endpoints (require authentication)
+router.post('/watchlist', authenticate, addToWatchlist);
+router.get('/watchlist', authenticate, getUserWatchlist);
+router.delete('/watchlist/:symbol', authenticate, removeFromWatchlist);
+
+router.get("/formula/all-companies", getAnalyzeCompaniesData);
+
 // get data based on company name(symbol) 
 router.get('/:symbol', (req, res) => {
   getPaginatedDataBySymbol(AllCompaniesData, req, res);
 });
-
-router.get("/formula/all-companies", getAnalyzeCompaniesData);
 
 
 export default router;
