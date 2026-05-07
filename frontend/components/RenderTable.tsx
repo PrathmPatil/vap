@@ -9,6 +9,8 @@ export const renderTable = (
   tableConfig: any[],
   resetFilters: () => void
 ) => {
+  const formatSymbol = (symbol?: string) => symbol?.replace(/\.NS$/i, '') || '';
+
   if (stocks.length === 0) {
     return (
       <TableRow>
@@ -44,10 +46,10 @@ export const renderTable = (
         >
           {col.key === "symbol" ? (
             <Link
-              href={`/screener/${(stock.symbol).split('.NS')[0]}`}
+              href={`/screener/${formatSymbol(stock.symbol)}`}
               className="hover:underline"
             >
-              {stock.symbol}
+              {formatSymbol(stock.symbol)}
             </Link>
           ) : col.key === "changePercent" ? (
             <div

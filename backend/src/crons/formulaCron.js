@@ -1,28 +1,18 @@
 import cron from 'node-cron';
 import logger from '../config/logger.js';
 import { CronLogModel } from '../models/index.js';
-import {
-  runFormulaEngineService,
-  generateStrongBullishService,
-  generateFollowThroughDayService,
-  generateBuyDayService,
-  generateRallyAttemptService,
-  generateVolumeBreakoutService,
-  detectTweezerBottomPatterns
-} from '../services/formulaService.js';
+import { runFormulaEngineService } from '../services/formulaService.js';
 
 /**
  * ============================================================
  * FORMULA CRON JOB - RUNS AT 11 PM EVERY DAY
  * ============================================================
- * This cron job executes all formula calculations and stores
- * the results in the database instead of running them
- * synchronously when the frontend calls the APIs.
+ * This cron job executes the formula engine once per day and
+ * stores the results in the formula database for the UI to read.
  */
 
 export const startFormulaCron = () => {
-  // Cron expression: "0 23 * * *" means at 23:00 (11 PM) every day
-  const cronExpression = '0 23 * * *';
+  const cronExpression = '5 * * * *'; // Every hour at minute 5 (for testing)
 
   const job = cron.schedule(cronExpression, async () => {
     console.log('\n🚀 ============================================');
@@ -36,7 +26,6 @@ export const startFormulaCron = () => {
     const executedFormulas = [];
 
     try {
-      // Log cron start
       const cronLogEntry = await CronLogModel.create({
         job_name: 'formula_calculation_job',
         status: cronStatus,
@@ -46,12 +35,10 @@ export const startFormulaCron = () => {
 
       const cronLogId = cronLogEntry.id;
 
-      // ============================================================
-      // 1. RUN FORMULA ENGINE (Main Engine)
-      // ============================================================
       try {
         console.log('⏳ Running Complete Formula Engine...');
         const engineResult = await runFormulaEngineService();
+
         executedFormulas.push({
           formula: 'Formula Engine',
           status: 'success',
@@ -59,10 +46,11 @@ export const startFormulaCron = () => {
           duration_ms: engineResult.duration_ms
         });
         totalProcessed += engineResult.processed_symbols || 0;
+
         console.log(
           '✅ Formula Engine completed:',
           engineResult.processed_symbols,
-          'symbols processed'
+          'rows processed'
         );
       } catch (error) {
         console.error('❌ Formula Engine Error:', error.message);
@@ -74,196 +62,6 @@ export const startFormulaCron = () => {
         totalErrors++;
       }
 
-      // ============================================================
-      // 2. GENERATE RALLY ATTEMPT DAY
-      // ============================================================
-      try {
-        console.log('⏳ Generating Rally Attempt Day patterns...');
-        const rallyResult = await generateRallyAttemptService({
-          currentPage: 1,
-          itemsPerPage: 10000,
-          searchTerm: ''
-        });
-        if (rallyResult.success) {
-          executedFormulas.push({
-            formula: 'Rally Attempt Day',
-            status: 'success',
-            count: rallyResult.count || 0
-          });
-          totalProcessed += rallyResult.count || 0;
-          console.log('✅ Rally Attempt Day completed:', rallyResult.count, 'records');
-        } else {
-          throw new Error(rallyResult.message);
-        }
-      } catch (error) {
-        console.error('❌ Rally Attempt Error:', error.message);
-        executedFormulas.push({
-          formula: 'Rally Attempt Day',
-          status: 'failed',
-          error: error.message
-        });
-        totalErrors++;
-      }
-
-      // ============================================================
-      // 3. GENERATE FOLLOW THROUGH DAY
-      // ============================================================
-      try {
-        console.log('⏳ Generating Follow Through Day patterns...');
-        const ftdResult = await generateFollowThroughDayService({
-          currentPage: 1,
-          itemsPerPage: 10000,
-          searchTerm: ''
-        });
-        if (ftdResult.success) {
-          executedFormulas.push({
-            formula: 'Follow Through Day',
-            status: 'success',
-            count: ftdResult.totalItems || 0
-          });
-          totalProcessed += ftdResult.totalItems || 0;
-          console.log('✅ Follow Through Day completed:', ftdResult.totalItems, 'records');
-        } else {
-          throw new Error(ftdResult.message);
-        }
-      } catch (error) {
-        console.error('❌ Follow Through Day Error:', error.message);
-        executedFormulas.push({
-          formula: 'Follow Through Day',
-          status: 'failed',
-          error: error.message
-        });
-        totalErrors++;
-      }
-
-      // ============================================================
-      // 4. GENERATE BUY DAY
-      // ============================================================
-      try {
-        console.log('⏳ Generating Buy Day patterns...');
-        const buyDayResult = await generateBuyDayService({
-          currentPage: 1,
-          itemsPerPage: 10000,
-          searchTerm: ''
-        });
-        if (buyDayResult.success) {
-          executedFormulas.push({
-            formula: 'Buy Day',
-            status: 'success',
-            count: buyDayResult.totalItems || 0
-          });
-          totalProcessed += buyDayResult.totalItems || 0;
-          console.log('✅ Buy Day completed:', buyDayResult.totalItems, 'records');
-        } else {
-          throw new Error(buyDayResult.message);
-        }
-      } catch (error) {
-        console.error('❌ Buy Day Error:', error.message);
-        executedFormulas.push({
-          formula: 'Buy Day',
-          status: 'failed',
-          error: error.message
-        });
-        totalErrors++;
-      }
-
-      // ============================================================
-      // 5. GENERATE STRONG BULLISH CANDLES
-      // ============================================================
-      try {
-        console.log('⏳ Generating Strong Bullish Candles...');
-        const bullishResult = await generateStrongBullishService({
-          currentPage: 1,
-          itemsPerPage: 10000,
-          searchTerm: '',
-          base_percent: 2
-        });
-        if (bullishResult.success) {
-          executedFormulas.push({
-            formula: 'Strong Bullish Candles',
-            status: 'success',
-            count: bullishResult.inserted_rows || 0
-          });
-          totalProcessed += bullishResult.inserted_rows || 0;
-          console.log('✅ Strong Bullish Candles completed:', bullishResult.inserted_rows, 'records');
-        } else {
-          throw new Error(bullishResult.message);
-        }
-      } catch (error) {
-        console.error('❌ Strong Bullish Error:', error.message);
-        executedFormulas.push({
-          formula: 'Strong Bullish Candles',
-          status: 'failed',
-          error: error.message
-        });
-        totalErrors++;
-      }
-
-      // ============================================================
-      // 6. GENERATE VOLUME BREAKOUTS
-      // ============================================================
-      try {
-        console.log('⏳ Generating Volume Breakouts...');
-        const volumeResult = await generateVolumeBreakoutService({
-          currentPage: 1,
-          itemsPerPage: 10000,
-          searchTerm: ''
-        });
-        if (volumeResult.success) {
-          executedFormulas.push({
-            formula: 'Volume Breakouts',
-            status: 'success',
-            count: volumeResult.totalItems || 0
-          });
-          totalProcessed += volumeResult.totalItems || 0;
-          console.log('✅ Volume Breakouts completed:', volumeResult.totalItems, 'records');
-        } else {
-          throw new Error(volumeResult.message);
-        }
-      } catch (error) {
-        console.error('❌ Volume Breakouts Error:', error.message);
-        executedFormulas.push({
-          formula: 'Volume Breakouts',
-          status: 'failed',
-          error: error.message
-        });
-        totalErrors++;
-      }
-
-      // ============================================================
-      // 7. DETECT TWEEZER BOTTOM PATTERNS
-      // ============================================================
-      try {
-        console.log('⏳ Detecting Tweezer Bottom Patterns...');
-        const tweezerResult = await detectTweezerBottomPatterns({
-          currentPage: 1,
-          itemsPerPage: 10000,
-          searchTerm: ''
-        });
-        if (tweezerResult.success) {
-          executedFormulas.push({
-            formula: 'Tweezer Bottom Patterns',
-            status: 'success',
-            count: tweezerResult.totalItems || 0
-          });
-          totalProcessed += tweezerResult.totalItems || 0;
-          console.log('✅ Tweezer Bottom Patterns completed:', tweezerResult.totalItems, 'records');
-        } else {
-          throw new Error(tweezerResult.message);
-        }
-      } catch (error) {
-        console.error('❌ Tweezer Bottom Error:', error.message);
-        executedFormulas.push({
-          formula: 'Tweezer Bottom Patterns',
-          status: 'failed',
-          error: error.message
-        });
-        totalErrors++;
-      }
-
-      // ============================================================
-      // UPDATE CRON LOG WITH SUCCESS
-      // ============================================================
       const endTime = new Date();
       const duration = endTime - startTime;
 
@@ -292,7 +90,6 @@ export const startFormulaCron = () => {
       console.error('❌ Error:', error.message);
       console.error('❌ ============================================\n');
 
-      // Log the error
       try {
         await CronLogModel.create({
           job_name: 'formula_calculation_job',
@@ -309,7 +106,7 @@ export const startFormulaCron = () => {
     }
   });
 
-  console.log('✨ Formula Cron Job scheduled at 11 PM every day (0 23 * * *)');
+  console.log('✨ Formula Cron Job scheduled at 11 PM every day (5 * * * *)');
 
   return job;
 };
@@ -320,3 +117,4 @@ export const startFormulaCron = () => {
 // - '0 * * * *' = every hour
 // - '0 23 * * *' = 11 PM every day (PRODUCTION)
 // - '0 9 * * MON' = 9 AM every Monday
+// - '0 23 * * *' = 11 PM every day

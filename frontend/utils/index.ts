@@ -262,6 +262,54 @@ export const getListedCompaniesData = async (
   });
 };
 
+// New: get combined daily listing (bhavcopy PR + all companies data)
+export const getListedDailyData = async (
+  date = '',
+  page = 1,
+  limit = 50,
+  search = ''
+): Promise<any> => {
+  return callApi<any>({
+    url: 'company-data/listed-daily',
+    method: 'GET',
+    params: { date, page, limit, search }
+  });
+};
+
+// Watchlist APIs
+export const addToWatchlist = async (symbol: string): Promise<any> => {
+  try {
+    return await callApi<any>({ url: 'company-data/watchlist', method: 'POST', data: { symbol } });
+  } catch (error: any) {
+    if (error?.response?.status === 401) {
+      return { success: false, unauthorized: true, message: 'Please login to add stocks to watchlist.' };
+    }
+    throw error;
+  }
+};
+
+export const removeFromWatchlist = async (symbol: string): Promise<any> => {
+  try {
+    return await callApi<any>({ url: `company-data/watchlist/${symbol}`, method: 'DELETE' });
+  } catch (error: any) {
+    if (error?.response?.status === 401) {
+      return { success: false, unauthorized: true, message: 'Please login to manage your watchlist.' };
+    }
+    throw error;
+  }
+};
+
+export const getUserWatchlist = async (): Promise<any> => {
+  try {
+    return await callApi<any>({ url: 'company-data/watchlist', method: 'GET' });
+  } catch (error: any) {
+    if (error?.response?.status === 401) {
+      return { success: false, unauthorized: true, data: [] };
+    }
+    throw error;
+  }
+};
+
 // Add this interface to your types file or in the utils file
 export interface ListedCompaniesApiResponse {
   success: boolean;

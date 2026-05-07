@@ -167,6 +167,8 @@ import NseDynamic from './ingestModel.js';
 import CronJobLog from './cronLog.js';
 import MarketHoliday from './marketHoliday.js';
 import { BuyDay, FollowThroughDay, RallyAttemptDay, StrongBullishCandle, TweezerBottom, VolumeBreakout } from './formulaModel.js';
+// Watchlist
+import WatchlistModel from './watchlist.js';
 
 /* ---------------------------------------------
    INITIALIZE MODELS
@@ -229,6 +231,9 @@ const TweezerBottomModel = TweezerBottom(sequelizeFormula, DataTypes);
 const CronLogModel = CronJobLog(sequelizeStockMarket, DataTypes);
 const MarketHolidayModel = MarketHoliday(sequelizeStockMarket, DataTypes);
 
+// Watchlist (user-specific saved symbols)
+const Watchlist = WatchlistModel(sequelizeStockMarket, DataTypes);
+
 /* ---------------------------------------------
    EXPORT EVERYTHING
 --------------------------------------------- */
@@ -273,6 +278,7 @@ export {
   MarketHolidayModel,
 
   RallyAttemptDayModel, FollowThroughDayModel, BuyDayModel, StrongBullishCandleModel, VolumeBreakoutModel, TweezerBottomModel
+  , Watchlist
 };
 
 /* Mapping for dynamic routes */

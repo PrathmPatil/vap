@@ -1,7 +1,7 @@
 "use client";
 import { debounce } from "@/hooks/common";
-import { getBseAnnouncements, getGovNews } from "@/utils";
-import React, { useState, useEffect, useCallback, useRef, use } from "react";
+import { getBseAnnouncements } from "@/utils";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 
 export interface BseNewsItem {
   SCRIP_CD: string;
@@ -24,15 +24,12 @@ export interface BseNewsResponse {
 
 const NewsComponent = () => {
   const [newsData, setNewsData] = useState<BseNewsItem[]>([]);
-  const [govNewsData, setGovNewsData] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const [searchTerm, setSearchTerm] = useState("");
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const [totalRecords, setTotalRecords] = useState({ news_on_air: 0, pib_news: 0, pib_ministry: 0, dd_news: 0 });
-
   const observerRef = useRef<HTMLDivElement | null>(null);
 
   // ------------------------------
@@ -81,39 +78,9 @@ const NewsComponent = () => {
     }
   }, [searchTerm, page]);
 
-  const fetchGovNewsData = useCallback(async () => {
-    try {
-      const response = await getGovNews(
-        searchTerm,
-        page,
-        20,
-        "DT_TM",
-        "DESC"
-      );
-
-      if (response.status === "success") {
-        if (page === 1) {
-          setGovNewsData(response.data);
-          setTotalRecords(response.total_records);
-        } else {
-          setGovNewsData((prev) => [...prev, ...response.data]);
-          setTotalRecords(response.total_records);
-        }
-
-        setTotalPages(response.pages);
-        setError(null); 
-      } else {
-        setError("Failed to fetch government news data");
-      }
-    } catch (err: any) {
-      setError("Error fetching government news data: " + err.message);
-    }
-  }, [searchTerm, page]);
-
   useEffect(() => {
     fetchNewsData();
-    fetchGovNewsData();
-  }, [fetchNewsData, fetchGovNewsData]);
+  }, [fetchNewsData]);
 
   // ------------------------------
   // Infinite Scroll Observer

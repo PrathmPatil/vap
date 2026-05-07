@@ -18,6 +18,25 @@ const getApiBaseUrl = () => {
   return baseUrl.replace(/\/+$/, '');
 };
 
+const getAuthToken = () => {
+  if (typeof window === 'undefined') {
+    return '';
+  }
+
+  const storedToken = window.localStorage.getItem('token')?.trim();
+  if (storedToken) {
+    return storedToken;
+  }
+
+  const cookieToken = document.cookie
+    .split('; ')
+    .find((row) => row.startsWith('token='))
+    ?.split('=')?.[1]
+    ?.trim();
+
+  return cookieToken || '';
+};
+
 export async function callApi<T>({
   url,
   method,
@@ -25,11 +44,14 @@ export async function callApi<T>({
   params,
   headers = {},
 }: ApiOptions): Promise<T> {
+  const token = getAuthToken();
+
   const config: AxiosRequestConfig = {
     url: `${getApiBaseUrl()}/${url.replace(/^\/+/, '')}`,
     method,
     headers: {
       'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...headers,
     },
     data,

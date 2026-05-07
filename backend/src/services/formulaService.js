@@ -507,90 +507,60 @@ export const runFormulaEngineService = async () => {
 
     logger.info('Formula engine refresh started');
 
-    await RallyAttemptDayModel.sync();
-    await FollowThroughDayModel.sync();
-    await BuyDayModel.sync();
-    await PR.sync();
-
-    /* --------------------------------
-       GET LISTED COMPANIES
-    -------------------------------- */
-
-    const listedCompanies = await ListedCompanies.findAll({
-      attributes: ['name'],
-      where: { series: 'EQ' },
-      raw: true
-    });
-
-    const companyNames = listedCompanies.map((c) => c.name.trim());
-
-
-    /* --------------------------------
-       GET MATCHING PR SECURITIES
-    -------------------------------- */
-
-    const securities = await PR.findAll({
-      attributes: ['SECURITY'],
-      where: {
-        SECURITY: {
-          [Op.in]: companyNames
-        }
-      },
-      group: ['SECURITY'],
-      raw: true
-    });
-
-
     const processed = [];
 
-    /* --------------------------------
-       PROCESS STOCKS
-    -------------------------------- */
+    const rallyResult = await generateRallyAttemptService({
+      currentPage: 1,
+      itemsPerPage: 10000,
+      searchTerm: ''
+    });
+    processed.push(rallyResult.count || rallyResult.totalItems || 0);
 
-    for (const row of securities) {
-      const symbol = row.SECURITY;
+    const ftdResult = await generateFollowThroughDayService({
+      currentPage: 1,
+      itemsPerPage: 10000,
+      searchTerm: ''
+    });
+    processed.push(ftdResult.totalItems || 0);
 
-      const stockData = await PR.findAll({
-        where: { SECURITY: symbol },
-        order: [['source_date', 'ASC']],
-        raw: true
-      });
+    const buyDayResult = await generateBuyDayService({
+      currentPage: 1,
+      itemsPerPage: 10000,
+      searchTerm: ''
+    });
+    processed.push(buyDayResult.totalItems || 0);
 
-      if (stockData.length < 15) continue;
+    const bullishResult = await generateStrongBullishService({
+      currentPage: 1,
+      itemsPerPage: 10000,
+      searchTerm: '',
+      base_percent: 2
+    });
+    processed.push(bullishResult.totalItems || 0);
 
-      /* -------- RALLY -------- */
+    const volumeResult = await generateVolumeBreakoutService({
+      currentPage: 1,
+      itemsPerPage: 10000,
+      searchTerm: ''
+    });
+    processed.push(volumeResult.totalItems || 0);
 
-      const rallyIndex = await detectRallyAttempt(symbol, stockData);
-
-      if (rallyIndex === null) continue;
-
-      /* -------- FTD -------- */
-
-      const ftdIndex = await detectFollowThroughDay(
-        symbol,
-        stockData,
-        rallyIndex
-      );
-
-      if (ftdIndex === null) continue;
-
-      /* -------- BUY DAY -------- */
-
-      await detectBuyDay(symbol, stockData, rallyIndex, ftdIndex);
-
-      processed.push(symbol);
-    }
+    const tweezerResult = await detectTweezerBottomPatterns({
+      saveToDb: true,
+      forceRefresh: true
+    });
+    processed.push(tweezerResult.total_signals || 0);
 
     const durationMs = Math.round(performance.now() - startedAt);
 
     logger.info(
-      `Formula engine refresh completed in ${durationMs} ms. Processed symbols: ${processed.length}`
+      `Formula engine refresh completed in ${durationMs} ms. Processed rows: ${processed.reduce((sum, count) => sum + count, 0)}`
     );
 
 
     return {
       success: true,
-      processed_symbols: processed.length,
+      processed_symbols: processed.reduce((sum, count) => sum + count, 0),
       duration_ms: durationMs
     };
   } catch (error) {
@@ -1076,4 +1046,186 @@ export const saveSignalsToDatabase = async (signals) => {
     errors: errors,
     total_signals: signals.length
   };
+};
+
+const toDateString = (value) => {
+  if (!value) return null;
+
+  const dateValue = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(dateValue.getTime())) return null;
+
+  return dateValue.toISOString().split('T')[0];
+};
+
+const buildFormulaQuery = async ({
+  model,
+  dateField,
+  currentPage = 1,
+  itemsPerPage = 10,
+  searchTerm = '',
+  searchFields = ['symbol', 'security'],
+  extraWhere = {},
+  order = null,
+  latestDateWhere = {},
+  includeLatestDate = true
+}) => {
+  const latestDateRaw = includeLatestDate
+    ? await model.max(dateField, { where: latestDateWhere })
+    : null;
+
+  const latestDate = includeLatestDate ? toDateString(latestDateRaw) : null;
+
+  if (includeLatestDate && !latestDate) {
+    return {
+      success: true,
+      data: [],
+      totalItems: 0,
+      totalPages: 0,
+      currentPage,
+      itemsPerPage,
+      latest_date: null
+    };
+  }
+
+  const where = { ...extraWhere };
+
+  if (includeLatestDate) {
+    where[dateField] = latestDate;
+  }
+
+  if (searchTerm) {
+    where[Op.or] = searchFields.map((field) => ({
+      [field]: { [Op.like]: `%${searchTerm}%` }
+    }));
+  }
+
+  const finalOrder = order || [[dateField, 'DESC'], ['id', 'DESC']];
+  const offset = (currentPage - 1) * itemsPerPage;
+
+  const { count, rows } = await model.findAndCountAll({
+    where,
+    limit: itemsPerPage,
+    offset,
+    order: finalOrder,
+    raw: true
+  });
+
+  return {
+    success: true,
+    data: rows.map((row, index) => ({
+      id: offset + index + 1,
+      ...row
+    })),
+    totalItems: count,
+    totalPages: Math.ceil(count / itemsPerPage),
+    currentPage,
+    itemsPerPage,
+    latest_date: latestDate
+  };
+};
+
+export const getRallyAttemptRecordsService = async ({
+  currentPage = 1,
+  itemsPerPage = 10,
+  searchTerm = ''
+}) => {
+  await RallyAttemptDayModel.sync();
+
+  return buildFormulaQuery({
+    model: RallyAttemptDayModel,
+    dateField: 'rally_date',
+    currentPage,
+    itemsPerPage,
+    searchTerm,
+    searchFields: ['symbol', 'security']
+  });
+};
+
+export const getFollowThroughDayRecordsService = async ({
+  currentPage = 1,
+  itemsPerPage = 10,
+  searchTerm = ''
+}) => {
+  await FollowThroughDayModel.sync();
+
+  return buildFormulaQuery({
+    model: FollowThroughDayModel,
+    dateField: 'ftd_date',
+    currentPage,
+    itemsPerPage,
+    searchTerm,
+    searchFields: ['symbol']
+  });
+};
+
+export const getBuyDayRecordsService = async ({
+  currentPage = 1,
+  itemsPerPage = 10,
+  searchTerm = ''
+}) => {
+  await BuyDayModel.sync();
+
+  return buildFormulaQuery({
+    model: BuyDayModel,
+    dateField: 'buy_date',
+    currentPage,
+    itemsPerPage,
+    searchTerm,
+    searchFields: ['symbol']
+  });
+};
+
+export const getStrongBullishRecordsService = async ({
+  currentPage = 1,
+  itemsPerPage = 10,
+  searchTerm = '',
+  basePercent = 2
+}) => {
+  await StrongBullishCandleModel.sync();
+
+  return buildFormulaQuery({
+    model: StrongBullishCandleModel,
+    dateField: 'trade_date',
+    currentPage,
+    itemsPerPage,
+    searchTerm,
+    searchFields: ['security', 'symbol'],
+    extraWhere: { base_percent: basePercent },
+    latestDateWhere: { base_percent: basePercent }
+  });
+};
+
+export const getVolumeBreakoutRecordsService = async ({
+  currentPage = 1,
+  itemsPerPage = 10,
+  searchTerm = ''
+}) => {
+  await VolumeBreakoutModel.sync();
+
+  return buildFormulaQuery({
+    model: VolumeBreakoutModel,
+    dateField: 'trade_date',
+    currentPage,
+    itemsPerPage,
+    searchTerm,
+    searchFields: ['symbol', 'security']
+  });
+};
+
+export const getTweezerBottomRecordsService = async ({
+  currentPage = 1,
+  itemsPerPage = 10,
+  searchTerm = ''
+}) => {
+  await TweezerBottomModel.sync();
+
+  return buildFormulaQuery({
+    model: TweezerBottomModel,
+    dateField: 'trade_date',
+    currentPage,
+    itemsPerPage,
+    searchTerm,
+    searchFields: ['security', 'pattern_name'],
+    order: [['trade_date', 'DESC'], ['signal_strength', 'DESC'], ['id', 'DESC']]
+  });
 };
