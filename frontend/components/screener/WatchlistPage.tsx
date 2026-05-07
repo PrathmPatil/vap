@@ -57,7 +57,16 @@ const WatchlistPage = () => {
     setLoadingCompanies(true);
     try {
       const response = await getListedCompaniesData(1, 200, search);
-      setAvailableCompanies(Array.isArray(response?.data) ? response.data : []);
+      setAvailableCompanies(
+        Array.isArray(response?.data)
+          ? response.data.map((company) => ({
+              symbol: company.symbol,
+              name: company.company_name,
+              series: company.series,
+              date_of_listing: company.date_of_listing,
+            }))
+          : []
+      );
     } catch (error) {
       console.error('listed companies fetch failed', error);
       setAvailableCompanies([]);

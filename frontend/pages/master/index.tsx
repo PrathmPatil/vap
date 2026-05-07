@@ -189,9 +189,10 @@ const MasterIndex = () => {
         // Extract unique job names from response if available
         if (response.uniqueJobNames && response.uniqueJobNames.length > 0) {
           setUniqueJobNames(response.uniqueJobNames);
-        } else if (response.data && response.data.length > 0) {
+        } else if (response.data && Array.isArray(response.data) && response.data.length > 0) {
           // Fallback: extract from data
-          const names = [...new Set(response.data.map((log: LogEntry) => log.job_name))];
+          const logData = response.data as LogEntry[];
+          const names = [...new Set(logData.map((log) => log.job_name))];
           setUniqueJobNames(names);
         }
       } else {

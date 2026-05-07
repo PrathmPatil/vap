@@ -28,9 +28,23 @@ export const formatCurrency = (value: number): string => {
 };
 
 // "2026-04-10T22:49:45.000Z" return dateand time both in "10 Apr 2026, 11:19 PM" format
-export const formatDate = (value: string): string => {
+// or format to "yyyy-MM-dd" when a format string is provided.
+export const formatDate = (
+  value: string | Date | undefined,
+  formatString?: string
+): string => {
   if (!value) return "";
-  const date = new Date(value);
+
+  const date = typeof value === "string" ? new Date(value) : value;
+  if (Number.isNaN(date.getTime())) return "";
+
+  if (formatString === "yyyy-MM-dd") {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  }
+
   return date.toLocaleString("en-IN", {
     day: "2-digit",
     month: "short",
