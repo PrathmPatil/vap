@@ -13,13 +13,101 @@ import logger from '../config/logger.js';
 import { performance } from 'node:perf_hooks';
 import { fn, col, where, Op } from 'sequelize';
 
+export const processFormulaByDate = async ({
+  targetDate,
+  formulaModel,
+  formulaDateField,
+  prDateField = 'source_date',
+  generateFunction,
+  generatePayload = {},
+  existingWhere = {}
+}) => {
+  const formattedDate = new Date(targetDate).toISOString().split('T')[0];
+
+  /* =========================================================
+     STEP 1: CHECK EXISTING FORMULA DATA
+  ========================================================= */
+
+  const existingData = await formulaModel.findAll({
+    where: {
+      ...existingWhere,
+      [formulaDateField]: formattedDate
+    },
+    raw: true
+  });
+
+  if (existingData.length > 0) {
+    return {
+      success: true,
+      source: 'database',
+      calculated: false,
+      totalItems: existingData.length,
+      data: existingData
+    };
+  }
+
+  /* =========================================================
+     STEP 2: CHECK PR DATA EXISTS
+  ========================================================= */
+
+  const prCount = await PR.count({
+    where: {
+      [prDateField]: {
+        [Op.gte]: `${formattedDate} 00:00:00`,
+        [Op.lte]: `${formattedDate} 23:59:59`
+      }
+    }
+  });
+
+  if (!prCount) {
+    return {
+      success: false,
+      message: `No PR data found for ${formattedDate}`
+    };
+  }
+
+  /* =========================================================
+     STEP 3: GENERATE FORMULA
+  ========================================================= */
+
+  const generatedResult = await generateFunction({
+    ...generatePayload,
+    targetDate: formattedDate
+  });
+
+  /* =========================================================
+     STEP 4: RETURN GENERATED DATA
+  ========================================================= */
+
+  const insertedData = await formulaModel.findAll({
+    where: {
+      ...existingWhere,
+      [formulaDateField]: formattedDate
+    },
+    raw: true
+  });
+
+  return {
+    success: true,
+    source: 'fresh_calculation',
+    calculated: true,
+    totalItems: insertedData.length,
+    data: insertedData,
+    generatedResult
+  };
+};
+
 /* =========================================================
    RALLY ATTEMPT DETECTION
 ========================================================= */
 
-export const generateRallyAttemptService = async ({ currentPage, itemsPerPage, searchTerm }) => {
+export const generateRallyAttemptService = async ({
+  currentPage,
+  itemsPerPage,
+  searchTerm,
+  targetDate=null
+}) => {
   try {
-
     await RallyAttemptDayModel.sync();
     await PR.sync();
 
@@ -27,7 +115,9 @@ export const generateRallyAttemptService = async ({ currentPage, itemsPerPage, s
        GET LATEST DATE
     -------------------------------- */
 
-    const latestDateRaw = await PR.max('source_date');
+    const latestDateRaw = targetDate
+      ? new Date(targetDate)
+      : await PR.max('source_date');
 
     const latestDate = latestDateRaw
       ? latestDateRaw.toISOString().split('T')[0]
@@ -144,7 +234,6 @@ export const generateRallyAttemptService = async ({ currentPage, itemsPerPage, s
       totalPages: Math.ceil(rallyStocks.length / itemsPerPage),
       date: latestDate
     };
-
   } catch (error) {
     console.error('❌ Rally Attempt Engine Error:', error);
 
@@ -162,10 +251,10 @@ export const generateRallyAttemptService = async ({ currentPage, itemsPerPage, s
 export const generateFollowThroughDayService = async ({
   currentPage = 1,
   itemsPerPage = 10,
-  searchTerm = ''
+  searchTerm = '',
+  targetDate = null
 }) => {
   try {
-
     await FollowThroughDayModel.sync();
     await RallyAttemptDayModel.sync();
     await PR.sync();
@@ -175,7 +264,7 @@ export const generateFollowThroughDayService = async ({
     -------------------------------- */
 
     const rallyStocks = await RallyAttemptDayModel.findAll({
-      attributes: ["symbol", "rally_date"],
+      attributes: ['symbol', 'rally_date'],
       raw: true
     });
 
@@ -183,10 +272,9 @@ export const generateFollowThroughDayService = async ({
       return {
         success: false,
         data: [],
-        message: "No rally attempt stocks found"
+        message: 'No rally attempt stocks found'
       };
     }
-
 
     const insertedFTD = [];
 
@@ -195,7 +283,6 @@ export const generateFollowThroughDayService = async ({
     -------------------------------- */
 
     for (const rally of rallyStocks) {
-
       const symbol = rally.symbol;
       const rallyDate = rally.rally_date;
 
@@ -210,7 +297,7 @@ export const generateFollowThroughDayService = async ({
             [Op.gte]: rallyDate
           }
         },
-        order: [["source_date", "ASC"]],
+        order: [['source_date', 'ASC']],
         raw: true
       });
 
@@ -231,7 +318,6 @@ export const generateFollowThroughDayService = async ({
       -------------------------------- */
 
       for (let i = rallyIndex + 3; i <= rallyIndex + 6; i++) {
-
         if (!stockData[i]) continue;
 
         const today = Number(stockData[i].CLOSE_PRICE);
@@ -243,7 +329,6 @@ export const generateFollowThroughDayService = async ({
         const volumePrev = Number(stockData[i - 1].NET_TRDQTY);
 
         if (percent >= 1.5 && volumeToday > volumePrev) {
-
           const exists = await FollowThroughDayModel.count({
             where: {
               symbol,
@@ -252,14 +337,13 @@ export const generateFollowThroughDayService = async ({
           });
 
           if (!exists) {
-
             const record = {
               symbol,
               rally_date: rallyDate,
               ftd_date: stockData[i].source_date,
               change_percent: percent,
               volume: volumeToday,
-              status: "ftd_detected"
+              status: 'ftd_detected'
             };
 
             await FollowThroughDayModel.create(record);
@@ -288,7 +372,7 @@ export const generateFollowThroughDayService = async ({
       where: whereCondition,
       limit: itemsPerPage,
       offset: (currentPage - 1) * itemsPerPage,
-      order: [["ftd_date", "DESC"]],
+      order: [['ftd_date', 'DESC']],
       raw: true
     });
 
@@ -311,10 +395,8 @@ export const generateFollowThroughDayService = async ({
       itemsPerPage,
       totalPages: Math.ceil(count / itemsPerPage)
     };
-
   } catch (error) {
-
-    console.error("❌ Follow Through Engine Error:", error);
+    console.error('❌ Follow Through Engine Error:', error);
 
     return {
       success: false,
@@ -331,12 +413,11 @@ export const generateFollowThroughDayService = async ({
 export const generateBuyDayService = async ({
   currentPage = 1,
   itemsPerPage = 10,
-  searchTerm = ""
+  searchTerm = '',
+  targetDate = null
 }) => {
-
   try {
-
-    console.log("🚀 Buy Day Engine Started");
+    console.log('🚀 Buy Day Engine Started');
 
     await BuyDayModel.sync();
     await PR.sync();
@@ -346,7 +427,7 @@ export const generateBuyDayService = async ({
     -------------------------------- */
 
     const ftdStocks = await FollowThroughDayModel.findAll({
-      attributes: ["symbol", "rally_date", "ftd_date"],
+      attributes: ['symbol', 'rally_date', 'ftd_date'],
       raw: true
     });
 
@@ -354,11 +435,11 @@ export const generateBuyDayService = async ({
       return {
         success: false,
         data: [],
-        message: "No Follow Through Day stocks found"
+        message: 'No Follow Through Day stocks found'
       };
     }
 
-    console.log("📊 FTD Stocks:", ftdStocks.length);
+    console.log('📊 FTD Stocks:', ftdStocks.length);
 
     const insertedBuyDays = [];
 
@@ -367,7 +448,6 @@ export const generateBuyDayService = async ({
     -------------------------------- */
 
     for (const ftd of ftdStocks) {
-
       const symbol = ftd.symbol;
       const rallyDate = ftd.rally_date;
       const ftdDate = ftd.ftd_date;
@@ -380,7 +460,7 @@ export const generateBuyDayService = async ({
         where: {
           SECURITY: symbol
         },
-        order: [["source_date", "ASC"]],
+        order: [['source_date', 'ASC']],
         raw: true
       });
 
@@ -391,7 +471,7 @@ export const generateBuyDayService = async ({
       -------------------------------- */
 
       const ftdIndex = stockData.findIndex(
-        row => row.source_date === ftdDate
+        (row) => row.source_date === ftdDate
       );
 
       if (ftdIndex === -1) continue;
@@ -403,7 +483,6 @@ export const generateBuyDayService = async ({
       -------------------------------- */
 
       for (let i = ftdIndex + 1; i <= ftdIndex + 10; i++) {
-
         if (!stockData[i]) continue;
 
         const price = Number(stockData[i].CLOSE_PRICE);
@@ -411,7 +490,6 @@ export const generateBuyDayService = async ({
         const prevVolume = Number(stockData[i - 1].NET_TRDQTY);
 
         if (price > ftdHigh && volume > prevVolume) {
-
           const exists = await BuyDayModel.count({
             where: {
               symbol,
@@ -420,14 +498,13 @@ export const generateBuyDayService = async ({
           });
 
           if (!exists) {
-
             const record = {
               symbol,
               rally_date: rallyDate,
               ftd_date: ftdDate,
               buy_date: stockData[i].source_date,
               breakout_price: price,
-              status: "ready_to_buy"
+              status: 'ready_to_buy'
             };
 
             await BuyDayModel.create(record);
@@ -438,9 +515,7 @@ export const generateBuyDayService = async ({
           break;
         }
       }
-
     }
-
 
     /* --------------------------------
        PAGINATION
@@ -458,7 +533,7 @@ export const generateBuyDayService = async ({
       where: whereCondition,
       limit: itemsPerPage,
       offset: (currentPage - 1) * itemsPerPage,
-      order: [["buy_date", "DESC"]],
+      order: [['buy_date', 'DESC']],
       raw: true
     });
 
@@ -481,19 +556,15 @@ export const generateBuyDayService = async ({
       itemsPerPage,
       totalPages: Math.ceil(count / itemsPerPage)
     };
-
   } catch (error) {
-
-    console.error("❌ Buy Day Engine Error:", error);
+    console.error('❌ Buy Day Engine Error:', error);
 
     return {
       success: false,
       data: [],
       message: error.message
     };
-
   }
-
 };
 
 /* =========================================================
@@ -502,33 +573,28 @@ export const generateBuyDayService = async ({
 
 export const runFormulaEngineService = async () => {
   try {
+    const engineStartedAt = new Date();
 
     const startedAt = performance.now();
 
-    logger.info('Formula engine refresh started');
+    logger.info(
+      `🚀 Formula Engine Started At: ${engineStartedAt.toLocaleString()}`
+    );
+
+    console.log('\n=================================================');
+    console.log('🚀 FORMULA ENGINE STARTED');
+    console.log('🕒 Start Time:', engineStartedAt.toLocaleString());
+    console.log('=================================================\n');
 
     const processed = [];
 
-    const rallyResult = await generateRallyAttemptService({
-      currentPage: 1,
-      itemsPerPage: 10000,
-      searchTerm: ''
-    });
-    processed.push(rallyResult.count || rallyResult.totalItems || 0);
+    /* =========================================================
+       1. STRONG BULLISH CANDLE
+    ========================================================= */
 
-    const ftdResult = await generateFollowThroughDayService({
-      currentPage: 1,
-      itemsPerPage: 10000,
-      searchTerm: ''
-    });
-    processed.push(ftdResult.totalItems || 0);
+    const strongBullishStart = performance.now();
 
-    const buyDayResult = await generateBuyDayService({
-      currentPage: 1,
-      itemsPerPage: 10000,
-      searchTerm: ''
-    });
-    processed.push(buyDayResult.totalItems || 0);
+    console.log('\n🚀 [1/6] STRONG BULLISH CANDLE STARTED');
 
     const bullishResult = await generateStrongBullishService({
       currentPage: 1,
@@ -536,37 +602,181 @@ export const runFormulaEngineService = async () => {
       searchTerm: '',
       base_percent: 2
     });
+
+    const strongBullishDuration = (
+      (performance.now() - strongBullishStart) /
+      1000
+    ).toFixed(2);
+
     processed.push(bullishResult.totalItems || 0);
 
-    const volumeResult = await generateVolumeBreakoutService({
+    console.log(
+      `✅ STRONG BULLISH COMPLETED | Records: ${
+        bullishResult.totalItems || 0
+      } | Duration: ${strongBullishDuration}s`
+    );
+
+    /* =========================================================
+       2. RALLY ATTEMPT
+    ========================================================= */
+
+    const rallyStart = performance.now();
+
+    console.log('\n🚀 [2/6] RALLY ATTEMPT STARTED');
+
+    const rallyResult = await generateRallyAttemptService({
       currentPage: 1,
       itemsPerPage: 10000,
       searchTerm: ''
     });
+
+    const rallyDuration = ((performance.now() - rallyStart) / 1000).toFixed(2);
+
+    processed.push(rallyResult.count || rallyResult.totalItems || 0);
+
+    console.log(
+      `✅ RALLY ATTEMPT COMPLETED | Records: ${
+        rallyResult.count || rallyResult.totalItems || 0
+      } | Duration: ${rallyDuration}s`
+    );
+
+    /* =========================================================
+       3. FOLLOW THROUGH DAY
+    ========================================================= */
+
+    const ftdStart = performance.now();
+
+    console.log('\n🚀 [3/6] FOLLOW THROUGH DAY STARTED');
+
+    const ftdResult = await generateFollowThroughDayService({
+      currentPage: 1,
+      itemsPerPage: 10000,
+      searchTerm: ''
+    });
+
+    const ftdDuration = ((performance.now() - ftdStart) / 1000).toFixed(2);
+
+    processed.push(ftdResult.totalItems || 0);
+
+    console.log(
+      `✅ FOLLOW THROUGH COMPLETED | Records: ${
+        ftdResult.totalItems || 0
+      } | Duration: ${ftdDuration}s`
+    );
+
+    /* =========================================================
+       4. BUY DAY
+    ========================================================= */
+
+    const buyStart = performance.now();
+
+    console.log('\n🚀 [4/6] BUY DAY STARTED');
+
+    const buyDayResult = await generateBuyDayService({
+      currentPage: 1,
+      itemsPerPage: 10000,
+      searchTerm: ''
+    });
+
+    const buyDuration = ((performance.now() - buyStart) / 1000).toFixed(2);
+
+    processed.push(buyDayResult.totalItems || 0);
+
+    console.log(
+      `✅ BUY DAY COMPLETED | Records: ${
+        buyDayResult.totalItems || 0
+      } | Duration: ${buyDuration}s`
+    );
+
+    /* =========================================================
+       5. VOLUME BREAKOUT
+    ========================================================= */
+
+    const volumeStart = performance.now();
+
+    console.log('\n🚀 [5/6] VOLUME BREAKOUT STARTED');
+
+    const volumeResult = await generateVolumeBreakoutService({
+      currentPage: 1,
+      itemsPerPage: 10000,
+      searchTerm: '',
+      targetDate: null
+    });
+
+    const volumeDuration = ((performance.now() - volumeStart) / 1000).toFixed(
+      2
+    );
+
     processed.push(volumeResult.totalItems || 0);
+
+    console.log(
+      `✅ VOLUME BREAKOUT COMPLETED | Records: ${
+        volumeResult.totalItems || 0
+      } | Duration: ${volumeDuration}s`
+    );
+
+    /* =========================================================
+       6. TWEEZER BOTTOM
+    ========================================================= */
+
+    const tweezerStart = performance.now();
+
+    console.log('\n🚀 [6/6] TWEEZER BOTTOM STARTED');
 
     const tweezerResult = await detectTweezerBottomPatterns({
       saveToDb: true,
       forceRefresh: true
     });
+
+    const tweezerDuration = ((performance.now() - tweezerStart) / 1000).toFixed(
+      2
+    );
+
     processed.push(tweezerResult.total_signals || 0);
+
+    console.log(
+      `✅ TWEEZER BOTTOM COMPLETED | Records: ${
+        tweezerResult.total_signals || 0
+      } | Duration: ${tweezerDuration}s`
+    );
+
+    /* =========================================================
+       FINAL SUMMARY
+    ========================================================= */
+
+    const totalProcessed = processed.reduce((sum, count) => sum + count, 0);
 
     const durationMs = Math.round(performance.now() - startedAt);
 
-    logger.info(
-      `Formula engine refresh completed in ${durationMs} ms. Processed rows: ${processed.reduce((sum, count) => sum + count, 0)}`
-    );
+    const engineEndedAt = new Date();
 
+    console.log('\n=================================================');
+    console.log('✅ FORMULA ENGINE COMPLETED');
+    console.log('=================================================');
+    console.log('🕒 Start Time:', engineStartedAt.toLocaleString());
+    console.log('🕒 End Time:', engineEndedAt.toLocaleString());
+    console.log(
+      '⏱ Total Duration:',
+      `${(durationMs / 1000).toFixed(2)} seconds`
+    );
+    console.log('📊 Total Processed:', totalProcessed);
+    console.log('=================================================\n');
+
+    logger.info(`✅ Formula engine completed in ${durationMs} ms`);
 
     return {
       success: true,
-      processed_symbols: processed.reduce((sum, count) => sum + count, 0),
+      processed_symbols: totalProcessed,
       duration_ms: durationMs
     };
   } catch (error) {
     logger.error(`❌ Formula Engine Error: ${error.message}`, {
       stack: error.stack
     });
+
+    console.error('\n❌ FORMULA ENGINE FAILED');
+    console.error('ERROR:', error.message);
+
     throw error;
   }
 };
@@ -579,10 +789,10 @@ export const generateStrongBullishService = async ({
   currentPage = 1,
   itemsPerPage = 10,
   searchTerm = '',
-  base_percent = 2
+  base_percent = 2,
+  targetDate = null
 }) => {
   try {
-
     /* --------------------------------
        GET LATEST DATE
     -------------------------------- */
@@ -590,7 +800,9 @@ export const generateStrongBullishService = async ({
     await StrongBullishCandleModel.sync();
     await PR.sync();
 
-    const latestDateRaw = await PR.max('source_date');
+    const latestDateRaw = targetDate
+      ? new Date(targetDate)
+      : await PR.max('source_date');
 
     const latestDate = latestDateRaw
       ? latestDateRaw.toISOString().split('T')[0]
@@ -617,7 +829,6 @@ export const generateStrongBullishService = async ({
     -------------------------------- */
 
     if (existingCount === 0) {
-
       /* -------- GET LISTED COMPANIES -------- */
 
       const listedCompanies = await ListedCompanies.findAll({
@@ -706,7 +917,7 @@ export const generateStrongBullishService = async ({
       open_price: row.open_price,
       close_price: row.close_price,
       change_percent: row.change_percent,
-      trade_date: row.trade_date,
+      trade_date: row.trade_date
       // base_percent: row.base_percent
     }));
 
@@ -736,14 +947,16 @@ export const generateStrongBullishService = async ({
 export const generateVolumeBreakoutService = async ({
   currentPage = 1,
   itemsPerPage = 10,
-  searchTerm = ""
+  searchTerm = '',
+  targetDate = null
 }) => {
-
   await VolumeBreakoutModel.sync();
   await PR.sync();
 
-  const latestDateRaw = await PR.max("source_date");
-  const latestDate = latestDateRaw.toISOString().split("T")[0];
+  const latestDateRaw = targetDate
+    ? new Date(targetDate)
+    : await PR.max('source_date');
+  const latestDate = latestDateRaw.toISOString().split('T')[0];
 
   const stocks = await PR.findAll({
     where: {
@@ -751,17 +964,16 @@ export const generateVolumeBreakoutService = async ({
         [Op.lte]: latestDate
       }
     },
-    order: [["source_date","DESC"]],
+    order: [['source_date', 'DESC']],
     raw: true
   });
 
   const breakoutStocks = [];
 
   for (const stock of stocks) {
-
     const history = await PR.findAll({
       where: { SECURITY: stock.SECURITY },
-      order: [["source_date","DESC"]],
+      order: [['source_date', 'DESC']],
       limit: 11,
       raw: true
     });
@@ -773,12 +985,11 @@ export const generateVolumeBreakoutService = async ({
     const prev = history[1];
 
     const avgVolume =
-      history.slice(1).reduce((sum,r)=> sum + Number(r.NET_TRDQTY),0) / 10;
+      history.slice(1).reduce((sum, r) => sum + Number(r.NET_TRDQTY), 0) / 10;
 
     const todayVolume = Number(today.NET_TRDQTY);
 
     if (todayVolume >= avgVolume * 2 && today.CLOSE_PRICE > prev.CLOSE_PRICE) {
-
       breakoutStocks.push({
         security: today.SECURITY,
         trade_date: today.source_date,
@@ -787,9 +998,7 @@ export const generateVolumeBreakoutService = async ({
         avg_volume_10d: avgVolume,
         volume_ratio: todayVolume / avgVolume
       });
-
     }
-
   }
 
   if (breakoutStocks.length)
@@ -797,35 +1006,29 @@ export const generateVolumeBreakoutService = async ({
 
   const { count, rows } = await VolumeBreakoutModel.findAndCountAll({
     limit: itemsPerPage,
-    offset: (currentPage-1)*itemsPerPage,
-    raw:true
+    offset: (currentPage - 1) * itemsPerPage,
+    raw: true
   });
 
-  const offset = (currentPage-1)*itemsPerPage;
+  const offset = (currentPage - 1) * itemsPerPage;
 
-  const data = rows.map((r,i)=>({
-    id: offset+i+1,
+  const data = rows.map((r, i) => ({
+    id: offset + i + 1,
     ...r
   }));
 
   return {
-    success:true,
+    success: true,
     data,
-    totalItems:count
+    totalItems: count
   };
-
 };
-
 
 /* =========================================================
   TWEEZER BOTTOM ENGINE
 ========================================================= */
 export const detectTweezerBottomPatterns = async (options = {}) => {
-  const {
-    saveToDb = true,
-    targetDate = null,
-    forceRefresh = false
-  } = options;
+  const { saveToDb = true, targetDate = null, forceRefresh = false } = options;
 
   await PR.sync();
   await TweezerBottomModel.sync();
@@ -834,11 +1037,13 @@ export const detectTweezerBottomPatterns = async (options = {}) => {
   if (targetDate) {
     analysisDate = new Date(targetDate);
   } else {
-    const latestDateRaw = await PR.max("source_date");
+    const latestDateRaw = targetDate
+      ? new Date(targetDate)
+      : await PR.max('source_date');
     analysisDate = latestDateRaw;
   }
 
-  const analysisDateStr = analysisDate.toISOString().split("T")[0];
+  const analysisDateStr = analysisDate.toISOString().split('T')[0];
 
   // Check if already processed for today
   if (!forceRefresh && saveToDb && TweezerBottomModel) {
@@ -879,7 +1084,7 @@ export const detectTweezerBottomPatterns = async (options = {}) => {
     try {
       const history = await PR.findAll({
         where: { SECURITY: stock.SECURITY },
-        order: [["source_date", "DESC"]],
+        order: [['source_date', 'DESC']],
         limit: 22,
         raw: true
       });
@@ -890,11 +1095,14 @@ export const detectTweezerBottomPatterns = async (options = {}) => {
       const prev = history[1];
 
       // Skip if not the target date
-      const todayDateStr = new Date(today.source_date).toISOString().split("T")[0];
+      const todayDateStr = new Date(today.source_date)
+        .toISOString()
+        .split('T')[0];
       if (todayDateStr !== analysisDateStr) continue;
 
       /* ---------------- Equal Low Detection ---------------- */
-      const lowDiff = Math.abs(prev.LOW_PRICE - today.LOW_PRICE) / prev.LOW_PRICE * 100;
+      const lowDiff =
+        (Math.abs(prev.LOW_PRICE - today.LOW_PRICE) / prev.LOW_PRICE) * 100;
       const equalLows = lowDiff <= 0.5;
 
       /* ---------------- Candle Direction ---------------- */
@@ -913,11 +1121,14 @@ export const detectTweezerBottomPatterns = async (options = {}) => {
       const strongBullBody = currBodyPct >= 0.75;
 
       /* ---------------- Trend Analysis ---------------- */
-      const sma20 = history.slice(1, 21).reduce((s, r) => s + Number(r.CLOSE_PRICE), 0) / 20;
+      const sma20 =
+        history.slice(1, 21).reduce((s, r) => s + Number(r.CLOSE_PRICE), 0) /
+        20;
       const downtrend = prev.CLOSE_PRICE < sma20;
 
       /* ---------------- Volume Analysis ---------------- */
-      const volMA = history.slice(1, 21).reduce((s, r) => s + Number(r.NET_TRDQTY), 0) / 20;
+      const volMA =
+        history.slice(1, 21).reduce((s, r) => s + Number(r.NET_TRDQTY), 0) / 20;
       const prevVolCond = prev.NET_TRDQTY >= volMA;
       const currVolCond = today.NET_TRDQTY >= volMA;
       const volumeRatioPrev = prev.NET_TRDQTY / volMA;
@@ -926,34 +1137,40 @@ export const detectTweezerBottomPatterns = async (options = {}) => {
       /* ---------------- Calculate Signal Strength ---------------- */
       let signalStrength = 'Weak';
       let strengthScore = 0;
-      
+
       if (lowDiff <= 0.2) strengthScore += 2;
       else if (lowDiff <= 0.5) strengthScore += 1;
-      
+
       if (prevBodyPct >= 0.9) strengthScore += 2;
       else if (prevBodyPct >= 0.75) strengthScore += 1;
-      
+
       if (currBodyPct >= 0.9) strengthScore += 2;
       else if (currBodyPct >= 0.75) strengthScore += 1;
-      
+
       if (volumeRatioPrev >= 1.5) strengthScore += 1;
       if (volumeRatioCurr >= 1.5) strengthScore += 1;
-      
+
       if (strengthScore >= 6) signalStrength = 'Very Strong';
       else if (strengthScore >= 4) signalStrength = 'Strong';
       else if (strengthScore >= 2) signalStrength = 'Moderate';
 
       /* ---------------- Final Pattern Detection ---------------- */
-      const isTweezerBottom = equalLows && bearishPrev && bullishCurr && 
-                              strongBearBody && strongBullBody && downtrend && 
-                              prevVolCond && currVolCond;
+      const isTweezerBottom =
+        equalLows &&
+        bearishPrev &&
+        bullishCurr &&
+        strongBearBody &&
+        strongBullBody &&
+        downtrend &&
+        prevVolCond &&
+        currVolCond;
 
       if (isTweezerBottom) {
         const signalData = {
           security: today.SECURITY,
           trade_date: today.source_date,
           close_price: today.CLOSE_PRICE,
-          pattern_name: "Tweezer Bottom",
+          pattern_name: 'Tweezer Bottom',
           low_diff_percentage: lowDiff,
           prev_body_strength: prevBodyPct,
           curr_body_strength: currBodyPct,
@@ -971,7 +1188,6 @@ export const detectTweezerBottomPatterns = async (options = {}) => {
 
         signals.push(signalData);
       }
-
     } catch (error) {
       errors.push({
         security: stock.SECURITY,
@@ -997,10 +1213,13 @@ export const detectTweezerBottomPatterns = async (options = {}) => {
     saved_to_db: saveToDb && savedResult ? savedResult : null,
     summary: {
       by_strength: {
-        'Very Strong': signals.filter(s => s.signal_strength === 'Very Strong').length,
-        'Strong': signals.filter(s => s.signal_strength === 'Strong').length,
-        'Moderate': signals.filter(s => s.signal_strength === 'Moderate').length,
-        'Weak': signals.filter(s => s.signal_strength === 'Weak').length
+        'Very Strong': signals.filter(
+          (s) => s.signal_strength === 'Very Strong'
+        ).length,
+        Strong: signals.filter((s) => s.signal_strength === 'Strong').length,
+        Moderate: signals.filter((s) => s.signal_strength === 'Moderate')
+          .length,
+        Weak: signals.filter((s) => s.signal_strength === 'Weak').length
       }
     }
   };
@@ -1099,7 +1318,10 @@ const buildFormulaQuery = async ({
     }));
   }
 
-  const finalOrder = order || [[dateField, 'DESC'], ['id', 'DESC']];
+  const finalOrder = order || [
+    [dateField, 'DESC'],
+    ['id', 'DESC']
+  ];
   const offset = (currentPage - 1) * itemsPerPage;
 
   const { count, rows } = await model.findAndCountAll({
@@ -1226,6 +1448,10 @@ export const getTweezerBottomRecordsService = async ({
     itemsPerPage,
     searchTerm,
     searchFields: ['security', 'pattern_name'],
-    order: [['trade_date', 'DESC'], ['signal_strength', 'DESC'], ['id', 'DESC']]
+    order: [
+      ['trade_date', 'DESC'],
+      ['signal_strength', 'DESC'],
+      ['id', 'DESC']
+    ]
   });
 };

@@ -5,84 +5,143 @@ import { runFormulaEngineService } from '../services/formulaService.js';
 
 /**
  * ============================================================
- * FORMULA CRON JOB - RUNS AT 11 PM EVERY DAY
+ * FORMULA CRON JOB
  * ============================================================
- * This cron job executes the formula engine once per day and
- * stores the results in the formula database for the UI to read.
+ * Runs formula engine and stores execution logs.
  */
 
+const CRON_STATUS = {
+  RUNNING: 'RUNNING',
+  SUCCESS: 'SUCCESS',
+  FAILED: 'FAILED',
+  SKIPPED: 'SKIPPED'
+};
+
 export const startFormulaCron = () => {
-  const cronExpression = '5 * * * *'; // Every hour at minute 5 (for testing)
+  // Every hour at minute 5 (Testing)
+  // Production: '0 23 * * *' => 11 PM daily
+  const cronExpression = '0 23 * * *'; 
+  //  const cronExpression = '5 * * * *';
 
   const job = cron.schedule(cronExpression, async () => {
     console.log('\n🚀 ============================================');
-    console.log('🚀 FORMULA CRON JOB STARTED AT 11 PM');
+    console.log('🚀 FORMULA CRON JOB STARTED');
     console.log('🚀 ============================================\n');
 
     const startTime = new Date();
-    let cronStatus = 'in_progress';
+
     let totalProcessed = 0;
     let totalErrors = 0;
+    let cronLogId = null;
+
     const executedFormulas = [];
 
     try {
+      /**
+       * ============================================================
+       * CREATE INITIAL CRON LOG
+       * ============================================================
+       */
       const cronLogEntry = await CronLogModel.create({
         job_name: 'formula_calculation_job',
-        status: cronStatus,
+        job_group: 'FORMULA_ENGINE',
+
+        status: CRON_STATUS.RUNNING,
+
         start_time: startTime,
-        details: 'Started formula calculations at 11 PM'
+
+        records_processed: 0,
+        records_inserted: 0,
+        records_updated: 0,
+
+        additional_data: {
+          message: 'Formula cron job started'
+        }
       });
 
-      const cronLogId = cronLogEntry.id;
+      cronLogId = cronLogEntry.id;
 
+      /**
+       * ============================================================
+       * RUN FORMULA ENGINE
+       * ============================================================
+       */
       try {
-        console.log('⏳ Running Complete Formula Engine...');
+        console.log('⏳ Running Complete Formula Engine...\n');
+
         const engineResult = await runFormulaEngineService();
+
+        const processedCount = engineResult?.processed_symbols || 0;
 
         executedFormulas.push({
           formula: 'Formula Engine',
-          status: 'success',
-          processed: engineResult.processed_symbols || 0,
-          duration_ms: engineResult.duration_ms
+          status: CRON_STATUS.SUCCESS,
+          processed: processedCount,
+          duration_ms: engineResult?.duration_ms || 0
         });
-        totalProcessed += engineResult.processed_symbols || 0;
+
+        totalProcessed += processedCount;
 
         console.log(
-          '✅ Formula Engine completed:',
-          engineResult.processed_symbols,
-          'rows processed'
+          `✅ Formula Engine completed: ${processedCount} rows processed`
         );
       } catch (error) {
         console.error('❌ Formula Engine Error:', error.message);
+
         executedFormulas.push({
           formula: 'Formula Engine',
-          status: 'failed',
+          status: CRON_STATUS.FAILED,
           error: error.message
         });
+
         totalErrors++;
       }
 
+      /**
+       * ============================================================
+       * UPDATE CRON LOG AS SUCCESS
+       * ============================================================
+       */
       const endTime = new Date();
-      const duration = endTime - startTime;
+
+      const durationSeconds =
+        (endTime.getTime() - startTime.getTime()) / 1000;
 
       await CronLogModel.update(
         {
-          status: 'completed',
+          status: CRON_STATUS.SUCCESS,
+
           end_time: endTime,
-          details: `Successfully executed all formula calculations. Total records processed: ${totalProcessed}. Total errors: ${totalErrors}. Formulas executed: ${JSON.stringify(executedFormulas)}`
+
+          duration_seconds: durationSeconds,
+
+          records_processed: totalProcessed,
+
+          additional_data: {
+            total_processed: totalProcessed,
+            total_errors: totalErrors,
+            executed_formulas: executedFormulas
+          }
         },
-        { where: { id: cronLogId } }
+        {
+          where: {
+            id: cronLogId
+          }
+        }
       );
 
       console.log('\n✅ ============================================');
       console.log('✅ FORMULA CRON JOB COMPLETED');
       console.log('✅ Total Records Processed:', totalProcessed);
       console.log('✅ Total Errors:', totalErrors);
-      console.log('✅ Duration:', `${duration}ms (${(duration / 1000).toFixed(2)}s)`);
+      console.log(
+        '✅ Duration:',
+        `${durationSeconds.toFixed(2)} seconds`
+      );
       console.log('✅ ============================================\n');
 
       logger.info(
-        `Formula Cron Job completed. Processed: ${totalProcessed}, Errors: ${totalErrors}, Duration: ${duration}ms`
+        `Formula Cron Job completed successfully. Processed: ${totalProcessed}, Errors: ${totalErrors}, Duration: ${durationSeconds}s`
       );
     } catch (error) {
       console.error('\n❌ ============================================');
@@ -91,30 +150,82 @@ export const startFormulaCron = () => {
       console.error('❌ ============================================\n');
 
       try {
-        await CronLogModel.create({
-          job_name: 'formula_calculation_job',
-          status: 'failed',
-          start_time: startTime,
-          end_time: new Date(),
-          details: `Cron job failed with error: ${error.message}`
-        });
+        /**
+         * ============================================================
+         * UPDATE EXISTING LOG AS FAILED
+         * ============================================================
+         */
+        if (cronLogId) {
+          const endTime = new Date();
+
+          const durationSeconds =
+            (endTime.getTime() - startTime.getTime()) / 1000;
+
+          await CronLogModel.update(
+            {
+              status: CRON_STATUS.FAILED,
+
+              end_time: endTime,
+
+              duration_seconds: durationSeconds,
+
+              error_message: error.message,
+
+              error_traceback: error.stack,
+
+              additional_data: {
+                total_processed: totalProcessed,
+                total_errors: totalErrors,
+                executed_formulas: executedFormulas
+              }
+            },
+            {
+              where: {
+                id: cronLogId
+              }
+            }
+          );
+        } else {
+          /**
+           * ============================================================
+           * CREATE FAILED LOG IF INITIAL INSERT FAILED
+           * ============================================================
+           */
+          await CronLogModel.create({
+            job_name: 'formula_calculation_job',
+
+            job_group: 'FORMULA_ENGINE',
+
+            status: CRON_STATUS.FAILED,
+
+            start_time: startTime,
+
+            end_time: new Date(),
+
+            error_message: error.message,
+
+            error_traceback: error.stack,
+
+            additional_data: {
+              message: 'Cron job failed before initialization'
+            }
+          });
+        }
       } catch (logError) {
-        console.error('Failed to log error to database:', logError.message);
+        console.error(
+          '❌ Failed to save cron error log:',
+          logError.message
+        );
       }
 
       logger.error(`Formula Cron Job failed: ${error.message}`);
     }
   });
 
-  console.log('✨ Formula Cron Job scheduled at 11 PM every day (5 * * * *)');
+  console.log(
+    '✨ Formula Cron Job scheduled successfully:',
+    cronExpression
+  );
 
   return job;
 };
-
-// ALTERNATIVE CRON EXPRESSIONS FOR TESTING:
-// - '*/5 * * * *' = every 5 minutes
-// - '*/30 * * * *' = every 30 minutes
-// - '0 * * * *' = every hour
-// - '0 23 * * *' = 11 PM every day (PRODUCTION)
-// - '0 9 * * MON' = 9 AM every Monday
-// - '0 23 * * *' = 11 PM every day

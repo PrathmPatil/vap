@@ -1,4 +1,3 @@
-
 import dotenv from 'dotenv';
 dotenv.config();
 // import passport from "passport";
@@ -10,7 +9,11 @@ import helmet from 'helmet';
 import morgan from 'morgan';
 import logger, { logStream } from './config/logger.js';
 
-import { appErrorHandler, genericErrorHandler, notFound } from './middlewares/error.middleware.js';
+import {
+  appErrorHandler,
+  genericErrorHandler,
+  notFound
+} from './middlewares/error.middleware.js';
 
 import { errorHandler } from './middlewares/errorHandler.middleware.js';
 
@@ -63,7 +66,7 @@ app.use(
       'http://44.199.57.0:3000',
       'http://44.199.57.0',
       'http://trendtraders.in',
-      'https://trendtraders.in',
+      'https://trendtraders.in'
     ],
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
     credentials: true
@@ -117,42 +120,72 @@ app.use(morgan('combined', { stream: logStream }));
       await sequelizeFormula.authenticate();
       logger.info('✅ Connected to formula_data_fastapi database.');
       console.log('✅ Connected to formula_data_fastapi database.');
-      
+
       await RallyAttemptDayModel.sync();
       logger.info('✅ RallyAttemptDay table synced.');
       console.log('✅ RallyAttemptDay table synced.');
-      
+
       await FollowThroughDayModel.sync();
       logger.info('✅ FollowThroughDay table synced.');
       console.log('✅ FollowThroughDay table synced.');
-      
+
       await BuyDayModel.sync();
       logger.info('✅ BuyDay table synced.');
       console.log('✅ BuyDay table synced.');
-      
+
       await StrongBullishCandleModel.sync();
       logger.info('✅ StrongBullishCandle table synced.');
       console.log('✅ StrongBullishCandle table synced.');
-      
+
       await VolumeBreakoutModel.sync();
       logger.info('✅ VolumeBreakout table synced.');
       console.log('✅ VolumeBreakout table synced.');
-      
+
       await TweezerBottomModel.sync();
       logger.info('✅ TweezerBottom table synced.');
       console.log('✅ TweezerBottom table synced.');
-      
+
       await CronLogModel.sync();
       logger.info('✅ CronLog table synced.');
       console.log('✅ CronLog table synced.');
-      
+
       logger.info('✅ formula_data_fastapi database fully synced.');
       console.log('✅ formula_data_fastapi database fully synced.');
     } catch (formulaDbError) {
-      logger.error('⚠️  Formula database connection failed:', formulaDbError.message);
-      console.error('⚠️  Formula database connection failed:', formulaDbError.message);
-    }
+      logger.error('⚠️ Formula database connection failed', {
+        message: formulaDbError.message,
+        name: formulaDbError.name,
+        parent: formulaDbError.parent,
+        original: formulaDbError.original,
+        stack: formulaDbError.stack
+      });
 
+      console.error('\n❌ ====================================');
+      console.error('❌ FORMULA DB ERROR');
+      console.error('====================================');
+
+      console.error('NAME:', formulaDbError.name);
+
+      console.error('MESSAGE:', formulaDbError.message);
+
+      console.error('STACK:', formulaDbError.stack);
+
+      if (formulaDbError.errors) {
+        console.error(
+          'ERRORS:',
+          JSON.stringify(formulaDbError.errors, null, 2)
+        );
+      }
+
+      if (formulaDbError.parent) {
+        console.error('SQL ERROR:', formulaDbError.parent.sqlMessage);
+
+        console.error('SQL:', formulaDbError.parent.sql);
+      }
+
+      console.error('====================================\n');
+    }
+    
     // ============================================================
     // START FORMULA CRON JOB
     // ============================================================
@@ -184,13 +217,11 @@ app.use('/vap/bse-news', announcementsRoutes);
 app.use('/vap/gov-news', govNewsRouter);
 app.use('/vap/indices', indicesRoute);
 app.use('/vap/finnhub', finnhubRoute);
-app.use("/vap/formula", formulaRoutes);
+app.use('/vap/formula', formulaRoutes);
 app.use('/vap/user', userRoutes);
-app.use("/vap/holiday", holidayRoutes);
-app.use("/vap/logs", logRoutes);
-app.use("/vap/cron-management", cronManagementRoutes);
-
-
+app.use('/vap/holiday', holidayRoutes);
+app.use('/vap/logs', logRoutes);
+app.use('/vap/cron-management', cronManagementRoutes);
 
 app.get('/vap/welcome', (req, res) => {
   res.send('📂 Welcome to the Corporate Events Ingestion API.');
@@ -203,4 +234,3 @@ app.use(genericErrorHandler);
 app.use(notFound);
 
 export default app;
-

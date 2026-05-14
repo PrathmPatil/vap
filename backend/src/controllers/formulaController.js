@@ -12,8 +12,10 @@ import {
   getBuyDayRecordsService,
   getStrongBullishRecordsService,
   getVolumeBreakoutRecordsService,
-  getTweezerBottomRecordsService
+  getTweezerBottomRecordsService,
+  processFormulaByDate
 } from "../services/formulaService.js";
+import { StrongBullishCandleModel } from "../models/index.js";
 
 
 /* =========================================================
@@ -54,38 +56,51 @@ export const runFormulaEngine = async (req, res) => {
 export const generateStrongBullish = async (req, res) => {
 
   try {
-  const { currentPage=1, itemsPerPage=10, searchTerm="", base_percent, basePercent } = req.body;
-  const selectedBasePercent = basePercent ?? base_percent ?? 2;
 
-    const result = await getStrongBullishRecordsService({
-      currentPage,
-      itemsPerPage,
-      searchTerm,
-      basePercent: selectedBasePercent
+    const {
+      currentPage = 1,
+      itemsPerPage = 10,
+      searchTerm = "",
+      base_percent,
+      basePercent,
+      date
+    } = req.body;
+
+    const selectedBasePercent =
+      basePercent ?? base_percent ?? 2;
+
+    const result = await processFormulaByDate({
+      targetDate: date,
+
+      formulaModel: StrongBullishCandleModel,
+
+      formulaDateField: "trade_date",
+
+      existingWhere: {
+        base_percent: selectedBasePercent
+      },
+
+      generatePayload: {
+        currentPage,
+        itemsPerPage,
+        searchTerm,
+        base_percent: selectedBasePercent
+      },
+
+      generateFunction: generateStrongBullishService
     });
 
-    return res.status(200).json({
-      success: result.success,
-      data: result.data,
-      latest_date: result.latest_date,
-      currentPage: result.currentPage,
-      itemsPerPage: result.itemsPerPage,
-      totalItems: result.totalItems,
-      totalPages: result.totalPages,
-      message: "Strong bullish generated successfully"
-    });
+    return res.status(200).json(result);
 
   } catch (error) {
 
-    console.error("❌ Controller Error:", error);
-
     return res.status(500).json({
       success: false,
-      message: "Strong bullish generation failed",
-      error: error.message
+      message: error.message
     });
 
   }
+
 };
 
 
@@ -98,9 +113,9 @@ export const runRallyAttempt = async (req, res) => {
 
   try {
 
-    const { currentPage=1, itemsPerPage=10, searchTerm="",} = req.body;
+    const { currentPage=1, itemsPerPage=10, searchTerm="", targetDate = null } = req.body;
 
-    const result = await getRallyAttemptRecordsService({ currentPage, itemsPerPage, searchTerm });
+    const result = await getRallyAttemptRecordsService({ currentPage, itemsPerPage, searchTerm, targetDate });
 
     return res.status(200).json({
       success: result.success,
@@ -136,9 +151,9 @@ export const runFollowThroughDay = async (req, res) => {
 
   try {
 
-    const { currentPage=1, itemsPerPage=10, searchTerm="",} = req.body;
+    const { currentPage=1, itemsPerPage=10, searchTerm="", targetDate = null } = req.body;
 
-    const result = await getFollowThroughDayRecordsService({ currentPage, itemsPerPage, searchTerm });
+    const result = await getFollowThroughDayRecordsService({ currentPage, itemsPerPage, searchTerm, targetDate });
 
     return res.status(200).json({
       success: result.success,
@@ -174,9 +189,9 @@ export const runBuyDay = async (req, res) => {
 
   try {
 
-    const {currentPage=1, itemsPerPage=10, searchTerm="",} = req.body;
+    const {currentPage=1, itemsPerPage=10, searchTerm="", targetDate = null} = req.body;
 
-    const result = await getBuyDayRecordsService({ currentPage, itemsPerPage, searchTerm });
+    const result = await getBuyDayRecordsService({ currentPage, itemsPerPage, searchTerm, targetDate });
 
     return res.status(200).json({
       success: result.success,
@@ -205,8 +220,8 @@ export const runBuyDay = async (req, res) => {
 export const getVolumeBreakouts = async (req,res) => {
 
   try {
-    const { currentPage=1, itemsPerPage=10, searchTerm="", base_percent=2 } = req.body;
-    const result = await getVolumeBreakoutRecordsService({ currentPage, itemsPerPage, searchTerm });
+    const { currentPage=1, itemsPerPage=10, searchTerm="", base_percent=2, targetDate = null } = req.body;
+    const result = await getVolumeBreakoutRecordsService({ currentPage, itemsPerPage, searchTerm, targetDate });
 
     return res.status(200).json({
       success: result.success,
@@ -234,12 +249,13 @@ export const getVolumeBreakouts = async (req,res) => {
 
 export const getTweezerBottomPatterns = async (req, res) => {
   try {
-    const { currentPage = 1, itemsPerPage = 10, searchTerm = '' } = req.body;
+    const { currentPage = 1, itemsPerPage = 10, searchTerm = '', targetDate = null } = req.body;
 
     const result = await getTweezerBottomRecordsService({
       currentPage,
       itemsPerPage,
-      searchTerm
+      searchTerm,
+      targetDate
     });
 
     return res.status(200).json({
