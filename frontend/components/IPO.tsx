@@ -1,6 +1,5 @@
 import IpoTable from "@/components/IpoTables";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getIpoData, getIpoReportsCount } from "@/utils";
@@ -47,16 +46,16 @@ interface IpoResponse {
   page: number;
   pages: number;
   data: IpoData[];
+  message?: string;
 }
 
-// types/ipo.ts
 export interface IpoItem {
   name: string;
   symbol: string;
   issuePrice: number;
   lotSize: number;
   listingDate: string;
-  [key: string]: any; // for extra fields
+  [key: string]: any;
 }
 
 export interface IpoResponse2 {
@@ -66,34 +65,64 @@ export interface IpoResponse2 {
   message?: string;
 }
 
+type IpoType = "mainboard_data" | "sme_data";
+
 const Ipo = () => {
-  const [ipoType, setIpoType] = useState<"mainboard_data" | "sme_data">(
-    "mainboard_data",
-  );
+  const [ipoType, setIpoType] = useState<IpoType>("mainboard_data");
+
   const [ipoData, setIpoData] = useState<{
     mainboard_data: IpoResponse;
     sme_data: IpoResponse;
   }>({
-    mainboard_data: { success: false, total: 0, page: 1, pages: 0, data: [] },
-    sme_data: { success: false, total: 0, page: 1, pages: 0, data: [] },
+    mainboard_data: {
+      success: false,
+      total: 0,
+      page: 1,
+      pages: 1,
+      data: [],
+    },
+    sme_data: {
+      success: false,
+      total: 0,
+      page: 1,
+      pages: 1,
+      data: [],
+    },
   });
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Pagination
   const [currentPage, setCurrentPage] = useState(1);
   const [recordsPerPage, setRecordsPerPage] = useState(10);
+
   const [sortConfig, setSortConfig] = useState<SortConfig>({
     key: "Company_Name",
     direction: "asc",
   });
+
   const [reportCounts, setReportCounts] = useState<{
     mainboard_data: number;
     sme_data: number;
-  }>({ mainboard_data: 0, sme_data: 0 });
+  }>({
+    mainboard_data: 0,
+    sme_data: 0,
+  });
+
+  const currentData = ipoData[ipoType];
+
+  const totalRecords = currentData?.total || 0;
+
+  const totalPages =
+    currentData?.pages ||
+    Math.ceil(totalRecords / recordsPerPage) ||
+    1;
 
   // Fetch data for selected IPO type
-  const fetchIpoData = async (type: "mainboard_data" | "sme_data") => {
+  const fetchIpoData = async (type: IpoType) => {
     setLoading(true);
+    setError(null);
 
     try {
       const response = await getIpoData(type, currentPage, recordsPerPage);
@@ -101,30 +130,49 @@ const Ipo = () => {
       if (response.success) {
         setIpoData((prev) => ({
           ...prev,
-          [type]: response,
+          [type]: {
+            success: response.success,
+            total: response.total || 0,
+            page: response.page || currentPage,
+            pages:
+              response.pages ||
+              Math.ceil((response.total || 0) / recordsPerPage) ||
+              1,
+            data: response.data || [],
+            message: response.message,
+          },
         }));
-        // page
-        // :
-        // 1
-        // pages
-        // :
-        // 9
-        // reportType
-        // :
-        // "mainboard_data"
-        // success
-        // :
-        // true
-        // total
-        // :
-        // 82
 
         setError(null);
       } else {
+        setIpoData((prev) => ({
+          ...prev,
+          [type]: {
+            success: false,
+            total: 0,
+            page: 1,
+            pages: 1,
+            data: [],
+            message: response.message,
+          },
+        }));
+
         setError(response.message || "Failed to fetch data");
       }
     } catch (err) {
       console.error("Error fetching IPO data:", err);
+
+      setIpoData((prev) => ({
+        ...prev,
+        [type]: {
+          success: false,
+          total: 0,
+          page: 1,
+          pages: 1,
+          data: [],
+        },
+      }));
+
       setError("Failed to fetch data");
     } finally {
       setLoading(false);
@@ -141,15 +189,23 @@ const Ipo = () => {
       if (countResponse.success) {
         setReportCounts(countResponse.counts);
       } else {
-        setReportCounts({ mainboard_data: 0, sme_data: 0 });
+        setReportCounts({
+          mainboard_data: 0,
+          sme_data: 0,
+        });
+
         console.error("Failed to fetch report counts:", countResponse?.message);
       }
     } catch (err) {
       console.error("Error fetching report counts:", err);
+
+      setReportCounts({
+        mainboard_data: 0,
+        sme_data: 0,
+      });
     }
   };
 
-  // Fetch IPO data when tab, page, or records per page change
   useEffect(() => {
     fetchReportCounts();
   }, []);
@@ -166,46 +222,33 @@ const Ipo = () => {
     }));
   };
 
-  const handleNext = () => {
-    if (currentPage < totalPages) setCurrentPage((prev) => prev + 1);
+  const handleTabChange = (value: string) => {
+    setIpoType(value as IpoType);
+    setCurrentPage(1);
   };
 
-  const handlePrevious = () => {
-    if (currentPage > 1) setCurrentPage((prev) => prev - 1);
+  const handlePageChange = (page: number) => {
+    if (page < 1 || page > totalPages) return;
+
+    setCurrentPage(page);
   };
 
-  const getVisiblePages = () => {
-    const pages = [];
-    const maxVisible = 5;
-
-    let start = Math.max(1, currentPage - Math.floor(maxVisible / 2));
-    let end = start + maxVisible - 1;
-
-    if (end > totalPages) {
-      end = totalPages;
-      start = Math.max(1, end - maxVisible + 1);
-    }
-
-    for (let i = start; i <= end; i++) {
-      pages.push(i);
-    }
-
-    return pages;
+  const handleRecordsPerPageChange = (newLimit: number) => {
+    setRecordsPerPage(newLimit);
+    setCurrentPage(1);
   };
-
-  const currentData = ipoData[ipoType];
-  const totalPages = currentData.pages;
 
   // Render loading state
-  if (loading && currentPage === 1) {
+  if (loading && currentPage === 1 && currentData.data.length === 0) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
         <main className="container mx-auto px-4 py-8">
           <div className="space-y-8 text-center">
             <Skeleton className="h-10 w-64 mx-auto mb-2" />
             <Skeleton className="h-6 w-96 mx-auto" />
-            {[...Array(3)].map((_, i) => (
-              <Skeleton key={i} className="h-32" />
+
+            {[...Array(3)].map((_, index) => (
+              <Skeleton key={index} className="h-32" />
             ))}
           </div>
         </main>
@@ -214,7 +257,7 @@ const Ipo = () => {
   }
 
   // Render error state
-  if (error && currentPage === 1) {
+  if (error && currentPage === 1 && currentData.data.length === 0) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
         <main className="container mx-auto px-4 py-8">
@@ -230,78 +273,98 @@ const Ipo = () => {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
       <main className="container mx-auto px-4 py-8 space-y-6">
         {/* Header */}
-        <h2 className="text-2xl font-bold text-gray-900">
-          IPO Listing - {ipoType === "mainboard_data" ? "Mainboard" : "SME"}
-        </h2>
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h2 className="text-2xl font-bold text-gray-900">
+              IPO Listing - {ipoType === "mainboard_data" ? "Mainboard" : "SME"}
+            </h2>
+
+            <p className="text-sm text-gray-500">
+              Browse IPO subscription and listing data
+            </p>
+          </div>
+
+          <div className="text-sm text-gray-500">
+            Total Records:{" "}
+            <span className="font-semibold text-gray-900">
+              {totalRecords}
+            </span>
+          </div>
+        </div>
 
         {/* Tabs */}
-        <Tabs
-          value={ipoType}
-          onValueChange={(val) => {
-            setIpoType(val as "mainboard_data" | "sme_data");
-            setCurrentPage(1); // 🔥 Reset pagination on tab change
-          }}
-        >
+        <Tabs value={ipoType} onValueChange={handleTabChange}>
           <TabsList className="grid w-full grid-cols-2">
-            {["mainboard_data", "sme_data"].map((type) => (
+            {(["mainboard_data", "sme_data"] as IpoType[]).map((type) => (
               <TabsTrigger key={type} value={type}>
                 {type === "mainboard_data" ? "Mainboard" : "SME"}
+
                 <Badge className="ml-2">
-                  {reportCounts[type as "mainboard_data" | "sme_data"]}
+                  {reportCounts[type]}
                 </Badge>
               </TabsTrigger>
             ))}
           </TabsList>
-          {/* {
-    "id": 80,
-    "Company_Name": "Shadowfax Technologies Ltd.",
-    "Close_Date": "Jan 22, 2026",
-    "QIB_x_": "4",
-    "NII_x_": "0.88",
-    "Retail_x_": "2.43",
-    "Employee_x_": "2.17",
-    "Others_x_": "",
-    "Applications": "2,25,616",
-    "Total_x_": "2.86",
-    "_Highlight_Row": "",
-    "_Issue_Open_Date": "2026-01-20",
-    "_Issue_Close_Date": "2026-01-22",
-    "_id": "2526",
-    "_URLRewrite_Folder_Name": "shadowfax-technologies-ipo",
-    "Total_Issue_Amount_Incl_Firm_reservations_Rs_cr_": "1907.27",
-    "bNII_x_": "0.66",
-    "sNII_x_": "1.33",
-    "created_at": "2026-03-09T00:47:50.000Z"
-} */}
 
-          {["mainboard_data", "sme_data"].map((type) => (
-            <TabsContent key={type} value={type}>
-              <IpoTable
-                data={ipoData[type as "mainboard_data" | "sme_data"].data}
-                loading={loading}
-                // currentPage={currentPage}
-                // recordsPerPage={recordsPerPage}
-                // totalItems={
-                //   ipoData[type as "mainboard_data" | "sme_data"].total
-                // }
-                // totalPages={
-                //   ipoData[type as "mainboard_data" | "sme_data"].pages
-                // }
-                // onPageChange={handlePageChange}
-                // onRecordsPerPageChange={handleRecordsPerPageChange}
-                sortConfig={sortConfig}
-                onSort={handleSort}
-              />
-              {/* ✅ Pagination Controls */}
-              <Pagination
-                currentPage={currentPage}
-                totalPages={totalPages}
-                onPageChange={setCurrentPage}
-                pageSizeLabel={`${recordsPerPage} per page`}
-                className="pt-4"
-              />
-            </TabsContent>
-          ))}
+          {(["mainboard_data", "sme_data"] as IpoType[]).map((type) => {
+            const tabData = ipoData[type];
+
+            return (
+              <TabsContent key={type} value={type}>
+                <div className="space-y-4">
+                  {loading && tabData.data.length > 0 ? (
+                    <div className="rounded-lg border bg-white p-3 text-sm text-gray-500">
+                      Loading data...
+                    </div>
+                  ) : null}
+
+                  {error && tabData.data.length > 0 ? (
+                    <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-600">
+                      {error}
+                    </div>
+                  ) : null}
+
+                  <IpoTable
+                    data={tabData.data}
+                    loading={loading}
+                    sortConfig={sortConfig}
+                    onSort={handleSort}
+                  />
+
+                  <div className="rounded-xl border bg-white p-4">
+                    <div className="mb-3 flex flex-wrap items-center justify-between gap-2 text-xs text-gray-500">
+                      <span>
+                        Total Records:{" "}
+                        <span className="font-semibold text-gray-900">
+                          {tabData.total || 0}
+                        </span>
+                      </span>
+
+                      <span>
+                        Page{" "}
+                        <span className="font-semibold text-gray-900">
+                          {currentPage}
+                        </span>{" "}
+                        of{" "}
+                        <span className="font-semibold text-gray-900">
+                          {totalPages}
+                        </span>
+                      </span>
+                    </div>
+
+                    <Pagination
+                      currentPage={currentPage}
+                      totalPages={totalPages}
+                      onPageChange={handlePageChange}
+                      pageSize={recordsPerPage}
+                      onPageSizeChange={handleRecordsPerPageChange}
+                      pageSizeOptions={[10, 25, 50, 100]}
+                    />
+                  </div>
+                </div>
+              </TabsContent>
+            );
+          })}
         </Tabs>
       </main>
     </div>
