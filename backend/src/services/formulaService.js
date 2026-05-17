@@ -23,7 +23,6 @@ export const processFormulaByDate = async ({
   existingWhere = {}
 }) => {
   const formattedDate = new Date(targetDate).toISOString().split('T')[0];
-
   /* =========================================================
      STEP 1: CHECK EXISTING FORMULA DATA
   ========================================================= */

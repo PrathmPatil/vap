@@ -460,10 +460,10 @@ const MarketDataDashboard: React.FC = () => {
           {(
             [
               "market-holiday",
-              "market-status",
-              "market-holiday-old",
-              "ipo-calendar",
-              "earnings-calendar",
+              // "market-status",
+              // "market-holiday-old",
+              // "ipo-calendar",
+              // "earnings-calendar",
             ] as TableType[]
           ).map((table) => (
             <button

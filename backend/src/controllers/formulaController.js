@@ -69,8 +69,11 @@ export const generateStrongBullish = async (req, res) => {
     const selectedBasePercent =
       basePercent ?? base_percent ?? 2;
 
+    // Default to today's date if not provided
+    const targetDate ="2026-04-09" || date || new Date().toISOString().split('T')[0];
+
     const result = await processFormulaByDate({
-      targetDate: date,
+      targetDate,
 
       formulaModel: StrongBullishCandleModel,
 
