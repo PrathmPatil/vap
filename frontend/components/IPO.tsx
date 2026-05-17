@@ -128,17 +128,15 @@ const Ipo = () => {
       const response = await getIpoData(type, currentPage, recordsPerPage);
 
       if (response.success) {
+        const total = response.totalRecords || 0;
         setIpoData((prev) => ({
           ...prev,
           [type]: {
             success: response.success,
-            total: response.total || 0,
-            page: response.page || currentPage,
-            pages:
-              response.pages ||
-              Math.ceil((response.total || 0) / recordsPerPage) ||
-              1,
-            data: response.data || [],
+            total: total,
+            page: currentPage,
+            pages: Math.ceil(total / recordsPerPage) || 1,
+            data: (response.data || []) as unknown as IpoData[],
             message: response.message,
           },
         }));
