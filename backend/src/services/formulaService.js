@@ -1331,12 +1331,41 @@ const buildFormulaQuery = async ({
     raw: true
   });
 
+  // Fetch listed company name mappings
+  const { ListedCompanies } = await import('../models/index.js');
+  const companies = await ListedCompanies.findAll({
+    attributes: ['symbol', 'name'],
+    raw: true
+  });
+  
+  const companyMap = {};
+  companies.forEach(c => {
+    if (c.symbol && c.name) {
+      companyMap[c.symbol.toUpperCase()] = c.name;
+      companyMap[c.symbol.replace(/\.NS$/i, '').toUpperCase()] = c.name;
+    }
+  });
+
+  const formattedRows = rows.map((row, index) => {
+    const updatedRow = { ...row };
+    
+    // Replace symbol with company name if found in map
+    if (updatedRow.symbol) {
+      const symUpper = updatedRow.symbol.toUpperCase();
+      if (companyMap[symUpper]) {
+        updatedRow.symbol = companyMap[symUpper];
+      }
+    }
+    
+    return {
+      id: offset + index + 1,
+      ...updatedRow
+    };
+  });
+
   return {
     success: true,
-    data: rows.map((row, index) => ({
-      id: offset + index + 1,
-      ...row
-    })),
+    data: formattedRows,
     totalItems: count,
     totalPages: Math.ceil(count / itemsPerPage),
     currentPage,

@@ -195,16 +195,16 @@ export function CompaniesTable() {
                           key={company?.id}
                           className="transition-colors hover:bg-slate-50"
                         >
-                          <TableCell className="font-semibold text-blue-600">
+                          <TableCell className="font-semibold text-slate-900">
+                            {formatSymbol(company?.symbol)}
+                          </TableCell>
+
+                          <TableCell className="max-w-xs truncate font-semibold text-blue-600 hover:underline">
                             <Link
                               href={`/company/${formatSymbol(company?.symbol)}`}
                             >
-                              {formatSymbol(company?.symbol)}
+                              {company?.name || company?.company_name || "-"}
                             </Link>
-                          </TableCell>
-
-                          <TableCell className="max-w-xs truncate">
-                            {company?.name || company?.company_name || "-"}
                           </TableCell>
 
                           <TableCell>

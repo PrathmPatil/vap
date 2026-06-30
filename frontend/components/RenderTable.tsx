@@ -64,7 +64,7 @@ export const renderTable = (
               )}
               <span>
                 {stock[col.key] >= 0 ? "+" : ""}
-                {stock[col.key]?.toFixed(2)}%
+                {Number(stock[col.key])?.toFixed(2)}%
               </span>
             </div>
           ) : col.format ? (

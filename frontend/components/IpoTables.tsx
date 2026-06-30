@@ -49,6 +49,15 @@ const SortableHeader: React.FC<{
   );
 };
 
+const cleanCompanyName = (name?: string) => {
+  if (!name) return "—";
+  const match = name.match(/<a[^>]*>([^<]+)<\/a>/i);
+  if (match && match[1]) {
+    return match[1];
+  }
+  return name.replace(/<[^>]*>/g, "").trim();
+};
+
 const IpoTable: React.FC<Props> = ({ data, loading, sortConfig, onSort }) => {
   /* ---------------- SORT DATA ---------------- */
 
@@ -270,7 +279,7 @@ const IpoTable: React.FC<Props> = ({ data, loading, sortConfig, onSort }) => {
                 {/* <TableCell>
                   <Badge
                     variant={
-                      ipo.type === "mainboard_data" ? "default" : "secondary"
+                    ipo.type === "mainboard_data" ? "default" : "secondary"
                     }
                   >
                     {ipo.type === "mainboard_data" ? "Mainboard" : "SME"}
@@ -279,7 +288,7 @@ const IpoTable: React.FC<Props> = ({ data, loading, sortConfig, onSort }) => {
 
                 {ipo.Company_Name ? (
                   <TableCell className="font-medium">
-                    {ipo.Company_Name || "—"}
+                    {cleanCompanyName(ipo.Company_Name)}
                   </TableCell>
                 ) : (ipo._URLRewrite_Folder_Name ) ? (
                   <TableCell>

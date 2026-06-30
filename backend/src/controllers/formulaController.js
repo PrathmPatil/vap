@@ -15,7 +15,7 @@ import {
   getTweezerBottomRecordsService,
   processFormulaByDate
 } from "../services/formulaService.js";
-import { StrongBullishCandleModel } from "../models/index.js";
+import { StrongBullishCandleModel, PR } from "../models/index.js";
 
 
 /* =========================================================
@@ -69,8 +69,14 @@ export const generateStrongBullish = async (req, res) => {
     const selectedBasePercent =
       basePercent ?? base_percent ?? 2;
 
-    // Default to today's date if not provided
-    const targetDate ="2026-04-09" || date || new Date().toISOString().split('T')[0];
+    // Default to latest PR date if not provided
+    let targetDate = date;
+    if (!targetDate) {
+      const maxDateRaw = await PR.max('source_date');
+      targetDate = maxDateRaw 
+        ? new Date(maxDateRaw).toISOString().split('T')[0] 
+        : new Date().toISOString().split('T')[0];
+    }
 
     const result = await processFormulaByDate({
       targetDate,

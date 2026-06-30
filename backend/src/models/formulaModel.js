@@ -101,7 +101,7 @@ export const FollowThroughDay = (sequelize, DataTypes) => {
       }
     },
     {
-      tableName: 'follow_throught_day',
+      tableName: 'follow_through_day',
       timestamps: true,
       createdAt: 'created_at',
       updatedAt: 'updated_at',
@@ -213,7 +213,7 @@ export const VolumeBreakout = (sequelize, DataTypes) => {
       security: DataTypes.STRING,
       symbol: DataTypes.STRING,
 
-      trade_date: DataTypes.DATE,
+      trade_date: DataTypes.DATEONLY,
 
       close_price: DataTypes.FLOAT,
       volume: DataTypes.BIGINT,

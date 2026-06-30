@@ -46,8 +46,12 @@ export const useMarketSignalsData = () => {
             sortable: true,
             searchable: true,
             format: (value: any) => {
+              if (value === null || value === undefined) return "—";
               if (key.includes("price")) return `₹${value}`;
-              if (key.includes("percent")) return `${value.toFixed(2)}%`;
+              if (key.includes("percent")) {
+                const num = parseFloat(value);
+                return isNaN(num) ? value : `${num.toFixed(2)}%`;
+              }
               return value;
             },
           }));
