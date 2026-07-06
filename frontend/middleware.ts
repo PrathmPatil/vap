@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-const publicRoutes = ["/login", "/news", "/ipo", "/screener","/"];
+const publicRoutes = ["/login", "/news", "/ipo", "/screener", "/", "/dashboard"];
 
 export function middleware(request: NextRequest) {
   const token = request.cookies.get("token");
@@ -26,6 +26,7 @@ export const config = {
     "/watchlist",
     "/portfolio",
     "/dashboard",
+    "/master",
     "/company/:path*",
     "/company/formula",
   ],

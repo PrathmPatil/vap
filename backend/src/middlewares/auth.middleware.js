@@ -48,3 +48,16 @@ export const authenticate = (req, res, next) => {
   }
 };
 
+export const requireMaster = (req, res, next) => {
+  const role = req.user?.role;
+
+  if (role !== "master" && role !== "admin") {
+    return res.status(403).json({
+      success: false,
+      message: "Master access required",
+    });
+  }
+
+  next();
+};
+

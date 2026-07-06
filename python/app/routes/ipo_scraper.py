@@ -162,6 +162,14 @@ def db_summary():
 # ------------------------------------------------------------
 # ✅ Health Check
 # ------------------------------------------------------------
+@router.get("/fetch/nse")
+def fetch_nse_ipo_data():
+    """Fetch IPO data from NSE and store in mainboard/sme tables."""
+    from app.services.nse_ipo_service import nse_ipo_service
+
+    return nse_ipo_service.sync_to_database()
+
+
 @router.get("/health")
 def health_check():
     return {

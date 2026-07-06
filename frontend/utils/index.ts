@@ -88,14 +88,16 @@ export const getAnalyzeCompaniesData = async (date: string): Promise<MarketSigna
 export const getIpoData = async (
   type: string,
   currentPage: number,
-  recordsPerPage: number
+  recordsPerPage: number,
+  status: string = 'all'
 ): Promise<IpoResponse2> => {
   return callApi<IpoResponse2>({
     url: `ipo/${type}`,
     method: 'GET',
     params: { 
       page: currentPage, 
-      limit: recordsPerPage 
+      limit: recordsPerPage,
+      status,
     },
   });
 };
@@ -358,12 +360,12 @@ export const getDynamicData = async (
   });
 }
 
-// http://localhost:8000/vap/formula/generate-strong-bullish
+// http://localhost:8000/vap/formula/strong-bullish-candle
 export const generateStrongBullishData = async (date: string): Promise<any> => {
   return callApi<any>({
-    url: 'formula/strong-bullish',
-    method: 'GET',
-    params: { date }
+    url: 'formula/strong-bullish-candle',
+    method: 'POST',
+    data: { date }
   });
 }
 
@@ -373,13 +375,73 @@ export const generateStrongBullishData = async (date: string): Promise<any> => {
   // "/follow-through-day",
   // "/buy-day"
 
-export const getFormulaData = async (formulaType: string, currentPage: number, itemsPerPage: number, searchTerm?: string, basePercent?: number): Promise<any> => {
+export const getFormulaData = async (
+  formulaType: string,
+  currentPage: number,
+  itemsPerPage: number,
+  options?: {
+    searchTerm?: string;
+    basePercent?: number;
+    targetDate?: string | null;
+    symbol?: string | null;
+  }
+): Promise<any> => {
   return callApi<any>({
-    url: `formula/${formulaType}`,
+    url: 'formula/query',
     method: 'POST',
-    data: { currentPage, itemsPerPage, searchTerm, basePercent }
+    data: {
+      formulaType,
+      currentPage,
+      itemsPerPage,
+      searchTerm: options?.searchTerm || '',
+      basePercent: options?.basePercent,
+      base_percent: options?.basePercent,
+      date: options?.targetDate || undefined,
+      targetDate: options?.targetDate || undefined,
+      symbol: options?.symbol || undefined,
+    },
   });
-}
+};
+
+export const getFormulaAvailableDates = async (
+  formulaType: string,
+  basePercent = 2
+): Promise<{ success: boolean; dates: string[]; latest_date?: string | null }> => {
+  return callApi({
+    url: 'formula/meta',
+    method: 'GET',
+    params: {
+      formulaType,
+      resource: 'dates',
+      basePercent,
+    },
+  });
+};
+
+export const getFormulaCompanies = async (
+  formulaType: string,
+  options?: {
+    targetDate?: string | null;
+    searchTerm?: string;
+    basePercent?: number;
+  }
+): Promise<{
+  success: boolean;
+  companies: Array<{ symbol: string; security?: string; label?: string }>;
+  trade_date?: string | null;
+}> => {
+  return callApi({
+    url: 'formula/meta',
+    method: 'GET',
+    params: {
+      formulaType,
+      resource: 'companies',
+      date: options?.targetDate || undefined,
+      searchTerm: options?.searchTerm || undefined,
+      basePercent: options?.basePercent,
+    },
+  });
+};
 
 //  http://localhost:8000/vap/user/login
 export const loginUser = async (email: string, password: string): Promise<any> => {
@@ -395,7 +457,7 @@ export const registerUser = async (name: string, email: string, password: string
   return callApi<any>({
     url: 'user/register',
     method: 'POST',
-    data: { name, email, password, phoneNumber, whatsappNumber }
+    data: { username: name, email, password, phoneNumber, whatsappNumber }
   });
 }
 

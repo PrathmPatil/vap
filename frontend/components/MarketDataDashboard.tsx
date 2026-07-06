@@ -176,8 +176,13 @@ const MarketDataDashboard: React.FC = () => {
 
     if (data.length === 0) {
       return (
-        <div className="p-20 text-center text-gray-400">
-          No records found.
+        <div className="p-20 text-center text-gray-500">
+          <p className="text-base font-medium">No records found.</p>
+          <p className="mt-2 text-sm text-gray-400">
+            {selectedTable === "market-holiday"
+              ? "Market holiday data syncs from NSE on server startup. Try POST /vap/holiday/sync if empty."
+              : "No data available for the selected view."}
+          </p>
         </div>
       );
     }

@@ -1,6 +1,6 @@
 
 import express from 'express';
-import CompanyFinancials from '../models/screener/companyFinancials.js';
+import { CompanyFinancials } from '../models/index.js';
 import { screenerDataController } from '../controllers/screenerController.js';
 const router = express.Router();
 
@@ -18,7 +18,11 @@ router.get('/', async (req, res) => {
 router.post('/', async (req, res) => {
   try {
     const { company, revenue, profit } = req.body;
-    const newRecord = await CompanyFinancials.create({ company, revenue, profit });
+    const newRecord = await CompanyFinancials.create({
+      company,
+      revenue,
+      profit
+    });
     res.status(201).json(newRecord);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -26,7 +30,7 @@ router.post('/', async (req, res) => {
 });
 
 // screener_data
-router.get('/screener_data/:symbol',screenerDataController);
+router.get('/screener_data/:symbol', screenerDataController);
 // write welcome route
 router.get('/welcome', (req, res) => {
   res.send('📂 Welcome to the Screener Data API.');

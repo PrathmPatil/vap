@@ -1,8 +1,10 @@
 import axios from "axios";
 import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/router";
 import { Button } from "@/components/ui/button";
 import { getLogs } from "@/utils/apis";
 import { formatDate } from "@/lib/utils";
+import { useAuth } from "@/context/AuthContext";
 import {
   Dialog,
   DialogContent,
@@ -116,6 +118,16 @@ const DEFAULT_STATUS_COUNTS: StatusCounts = {
 };
 
 const MasterIndex = () => {
+  const router = useRouter();
+  const { isAuthenticated, role } = useAuth();
+  const isMaster = role === "master" || role === "admin";
+
+  useEffect(() => {
+    if (!isAuthenticated || !isMaster) {
+      router.replace("/login");
+    }
+  }, [isAuthenticated, isMaster, router]);
+
   const [logsData, setLogsData] = useState<LogEntry[]>([]);
   const [pagination, setPagination] =
     useState<LogsPagination>(DEFAULT_PAGINATION);
@@ -449,6 +461,10 @@ const MasterIndex = () => {
       searchTerm !== ""
     );
   };
+
+  if (!isAuthenticated || !isMaster) {
+    return null;
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">

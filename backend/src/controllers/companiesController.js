@@ -5,7 +5,8 @@ import { analyzeCompanies } from "../services/companiesService.js";
 // GET /formula/all-companies?date=YYYY-MM-DD
 export const getAnalyzeCompaniesData = async (req, res) => {
   try {
-    let { date } = req.query;
+    let { date } = req.body || {};
+    date = date || req.query.date;
 
     // ✅ If date not provided, use today's date
     if (!date) {

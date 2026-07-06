@@ -83,7 +83,7 @@ async def api_fetch_from_url(
     Fetch bhavcopy from a manual URL
     
     Example URL:
-    https://www.nseindia.com/api/archives/csv/BhavCopy_CM_070426_FTP.zip
+    https://nsearchives.nseindia.com/archives/equities/bhavcopy/pr/PR160626.zip
     """
     try:
         result = manual_fetch_from_url(url, date)

@@ -29,7 +29,7 @@ const SortableHeader: React.FC<{
 }> = ({ column, sortKey, sortConfig, onSort }) => {
   return (
     <TableHead
-      className="cursor-pointer hover:bg-gray-50 transition-colors"
+      className="cursor-pointer hover:bg-gray-50 transition-colors whitespace-nowrap"
       onClick={() => onSort(sortKey)}
     >
       <div className="flex items-center gap-1">
@@ -49,9 +49,40 @@ const SortableHeader: React.FC<{
   );
 };
 
-const IpoTable: React.FC<Props> = ({ data, loading, sortConfig, onSort }) => {
-  /* ---------------- SORT DATA ---------------- */
+const statusVariant = (status?: string) => {
+  switch ((status || "").toLowerCase()) {
+    case "active":
+      return "default";
+    case "forthcoming":
+      return "secondary";
+    case "listed":
+      return "outline";
+    default:
+      return "secondary";
+  }
+};
 
+const stripHtml = (value?: string) =>
+  value?.replace(/<[^>]*>/g, "").replace(/\s+/g, " ").trim() || "";
+
+const formatCompanyName = (ipo: IpoData) => {
+  const cleaned = stripHtml(ipo.Company_Name);
+  if (cleaned) return cleaned;
+
+  return (
+    ipo._URLRewrite_Folder_Name?.replace(/[-_]/g, " ")?.replace(/\b\w/g, (c) => c.toUpperCase()) ||
+    "—"
+  );
+};
+
+const formatShares = (value?: string) => {
+  if (!value) return "—";
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return value;
+  return numeric.toLocaleString("en-IN");
+};
+
+const IpoTable: React.FC<Props> = ({ data, loading, sortConfig, onSort }) => {
   const sortedData = useMemo(() => {
     if (!sortConfig.key) return data;
 
@@ -75,8 +106,6 @@ const IpoTable: React.FC<Props> = ({ data, loading, sortConfig, onSort }) => {
     });
   }, [data, sortConfig]);
 
-  /* ---------------- COLUMN VISIBILITY ---------------- */
-
   const visibleColumns = useMemo(() => {
     const checkColumn = (key: keyof IpoData) =>
       data.some(
@@ -84,8 +113,12 @@ const IpoTable: React.FC<Props> = ({ data, loading, sortConfig, onSort }) => {
       );
 
     return {
-      Company_Name: checkColumn("Company_Name"),
-      _URLRewrite_Folder_Name: checkColumn("_URLRewrite_Folder_Name"),
+      issue_status: checkColumn("issue_status"),
+      symbol: checkColumn("_id"),
+      price_band: checkColumn("price_band"),
+      lot_size: checkColumn("lot_size"),
+      issue_size_shares: checkColumn("issue_size_shares"),
+      listing_date: checkColumn("listing_date"),
       QIB_x_: checkColumn("QIB_x_"),
       NII_x_: checkColumn("NII_x_"),
       bNII_x_: checkColumn("bNII_x_"),
@@ -95,16 +128,13 @@ const IpoTable: React.FC<Props> = ({ data, loading, sortConfig, onSort }) => {
       Shareholder_x_: checkColumn("Shareholder_x_"),
       Others_x_: checkColumn("Others_x_"),
       Total_x_: checkColumn("Total_x_"),
-      Applications: checkColumn("Applications"),
-      IssueAmount: checkColumn(
+      issueAmount: checkColumn(
         "Total_Issue_Amount_Incl_Firm_reservations_Rs_cr_",
       ),
     };
   }, [data]);
 
-  /* ---------------- LOADING ---------------- */
-
-  if (loading) {
+  if (loading && data.length === 0) {
     return (
       <div className="space-y-2">
         {[...Array(6)].map((_, i) => (
@@ -117,27 +147,32 @@ const IpoTable: React.FC<Props> = ({ data, loading, sortConfig, onSort }) => {
   return (
     <div className="rounded-lg border border-gray-200 bg-white overflow-x-auto">
       <Table>
-        {/* ---------------- HEADER ---------------- */}
-
         <TableHeader>
           <TableRow>
-            {/* <TableHead>Type</TableHead> */}
+            <SortableHeader
+              column="Company"
+              sortKey="Company_Name"
+              sortConfig={sortConfig}
+              onSort={onSort}
+            />
 
-            {visibleColumns.Company_Name ? (
+            {visibleColumns.symbol && (
               <SortableHeader
-                column="Company"
-                sortKey="Company_Name"
+                column="Symbol"
+                sortKey="_id"
                 sortConfig={sortConfig}
                 onSort={onSort}
               />
-            ):visibleColumns._URLRewrite_Folder_Name ? (
+            )}
+
+            {visibleColumns.issue_status && (
               <SortableHeader
-                column="_URLRewrite_Folder_Name"
-                sortKey="_URLRewrite_Folder_Name"
+                column="Status"
+                sortKey="issue_status"
                 sortConfig={sortConfig}
                 onSort={onSort}
               />
-            ):null}
+            )}
 
             <SortableHeader
               column="Open Date"
@@ -153,32 +188,77 @@ const IpoTable: React.FC<Props> = ({ data, loading, sortConfig, onSort }) => {
               onSort={onSort}
             />
 
-            {visibleColumns.QIB_x_ ? (
+            {visibleColumns.listing_date && (
+              <SortableHeader
+                column="Listing Date"
+                sortKey="listing_date"
+                sortConfig={sortConfig}
+                onSort={onSort}
+              />
+            )}
+
+            {visibleColumns.price_band && (
+              <SortableHeader
+                column="Price Band"
+                sortKey="price_band"
+                sortConfig={sortConfig}
+                onSort={onSort}
+              />
+            )}
+
+            {visibleColumns.lot_size && (
+              <SortableHeader
+                column="Lot Size"
+                sortKey="lot_size"
+                sortConfig={sortConfig}
+                onSort={onSort}
+              />
+            )}
+
+            {visibleColumns.issue_size_shares && (
+              <SortableHeader
+                column="Issue Size (Shares)"
+                sortKey="issue_size_shares"
+                sortConfig={sortConfig}
+                onSort={onSort}
+              />
+            )}
+
+            {visibleColumns.issueAmount && (
+              <SortableHeader
+                column="Issue Size (Cr)"
+                sortKey="Total_Issue_Amount_Incl_Firm_reservations_Rs_cr_"
+                sortConfig={sortConfig}
+                onSort={onSort}
+              />
+            )}
+
+            {visibleColumns.QIB_x_ && (
               <SortableHeader
                 column="QIB"
                 sortKey="QIB_x_"
                 sortConfig={sortConfig}
                 onSort={onSort}
               />
-            ) : null}
+            )}
 
-            {visibleColumns.NII_x_ ? (
+            {visibleColumns.NII_x_ && (
               <SortableHeader
                 column="NII"
                 sortKey="NII_x_"
                 sortConfig={sortConfig}
                 onSort={onSort}
               />
-            ) : null }
+            )}
 
-            {visibleColumns.bNII_x_ ? (
+            {visibleColumns.bNII_x_ && (
               <SortableHeader
                 column="bNII"
                 sortKey="bNII_x_"
                 sortConfig={sortConfig}
                 onSort={onSort}
               />
-            ) : null}
+            )}
 
             {visibleColumns.sNII_x_ && (
               <SortableHeader
@@ -227,70 +307,63 @@ const IpoTable: React.FC<Props> = ({ data, loading, sortConfig, onSort }) => {
 
             {visibleColumns.Total_x_ && (
               <SortableHeader
-                column="Total"
+                column="Total Sub."
                 sortKey="Total_x_"
                 sortConfig={sortConfig}
                 onSort={onSort}
               />
             )}
-
-            {visibleColumns.Applications && (
-              <SortableHeader
-                column="Applications"
-                sortKey="Applications"
-                sortConfig={sortConfig}
-                onSort={onSort}
-              />
-            )}
-
-            {visibleColumns.IssueAmount && (
-              <SortableHeader
-                column="Issue Amount (Cr)"
-                sortKey="Total_Issue_Amount_Incl_Firm_reservations_Rs_cr_"
-                sortConfig={sortConfig}
-                onSort={onSort}
-              />
-            )}
-
-            <SortableHeader
-              column="Created At"
-              sortKey="created_at"
-              sortConfig={sortConfig}
-              onSort={onSort}
-            />
           </TableRow>
         </TableHeader>
-
-        {/* ---------------- BODY ---------------- */}
 
         <TableBody>
           {sortedData.length > 0 ? (
             sortedData.map((ipo, index) => (
-              <TableRow key={index} className="hover:bg-gray-50">
-                {/* <TableCell>
-                  <Badge
-                    variant={
-                      ipo.type === "mainboard_data" ? "default" : "secondary"
-                    }
-                  >
-                    {ipo.type === "mainboard_data" ? "Mainboard" : "SME"}
-                  </Badge>
-                </TableCell> */}
+              <TableRow key={`${ipo._id || ipo.Company_Name}-${index}`} className="hover:bg-gray-50">
+                <TableCell className="font-medium min-w-[220px]">
+                  {formatCompanyName(ipo)}
+                </TableCell>
 
-                {ipo.Company_Name ? (
-                  <TableCell className="font-medium">
-                    {ipo.Company_Name || "—"}
+                {visibleColumns.symbol && (
+                  <TableCell className="font-mono text-sm">
+                    {ipo._id || "—"}
                   </TableCell>
-                ) : (ipo._URLRewrite_Folder_Name ) ? (
+                )}
+
+                {visibleColumns.issue_status && (
                   <TableCell>
-                    {ipo._URLRewrite_Folder_Name
-                      ?.replace(/[-_]/g, " ")
-                      ?.replace(/\b\w/g, (char) => char.toUpperCase()) || "—"}
+                    <Badge variant={statusVariant(ipo.issue_status)}>
+                      {ipo.issue_status || "—"}
+                    </Badge>
                   </TableCell>
-                ) : null}
+                )}
 
                 <TableCell>{ipo._Issue_Open_Date || "—"}</TableCell>
                 <TableCell>{ipo._Issue_Close_Date || "—"}</TableCell>
+
+                {visibleColumns.listing_date && (
+                  <TableCell>{ipo.listing_date || "—"}</TableCell>
+                )}
+
+                {visibleColumns.price_band && (
+                  <TableCell>{ipo.price_band || "—"}</TableCell>
+                )}
+
+                {visibleColumns.lot_size && (
+                  <TableCell>{ipo.lot_size || "—"}</TableCell>
+                )}
+
+                {visibleColumns.issue_size_shares && (
+                  <TableCell>{formatShares(ipo.issue_size_shares)}</TableCell>
+                )}
+
+                {visibleColumns.issueAmount && (
+                  <TableCell>
+                    {ipo.Total_Issue_Amount_Incl_Firm_reservations_Rs_cr_
+                      ? `${ipo.Total_Issue_Amount_Incl_Firm_reservations_Rs_cr_}`
+                      : "—"}
+                  </TableCell>
+                )}
 
                 {visibleColumns.QIB_x_ && (
                   <TableCell>{ipo.QIB_x_ || "—"}</TableCell>
@@ -329,27 +402,12 @@ const IpoTable: React.FC<Props> = ({ data, loading, sortConfig, onSort }) => {
                     {ipo.Total_x_ || "—"}
                   </TableCell>
                 )}
-
-                {visibleColumns.Applications && (
-                  <TableCell>{ipo.Applications || "—"}</TableCell>
-                )}
-
-                {visibleColumns.IssueAmount && (
-                  <TableCell>
-                    {ipo.Total_Issue_Amount_Incl_Firm_reservations_Rs_cr_ ||
-                      "—"}
-                  </TableCell>
-                )}
-
-                <TableCell>
-                  {new Date(ipo.created_at).toLocaleDateString()}
-                </TableCell>
               </TableRow>
             ))
           ) : (
             <TableRow>
               <TableCell
-                colSpan={16}
+                colSpan={20}
                 className="text-center py-8 text-gray-500"
               >
                 No IPO data available

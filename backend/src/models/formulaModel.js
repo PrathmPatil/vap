@@ -399,3 +399,251 @@ export const TweezerBottom = (sequelize, DataTypes) => {
   );
 };
 
+/* =========================================================
+   Bearish Candle (mirror of Strong Bullish)
+========================================================= */
+export const BearishCandle = (sequelize, DataTypes) => {
+  return sequelize.define(
+    'BearishCandle',
+    {
+      id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
+      security: DataTypes.STRING(255),
+      symbol: DataTypes.STRING(50),
+      open_price: DataTypes.DOUBLE,
+      close_price: DataTypes.DOUBLE,
+      change_percent: DataTypes.DOUBLE,
+      trade_date: DataTypes.DATEONLY,
+      base_percent: DataTypes.DOUBLE
+    },
+    {
+      tableName: 'bearish_candle',
+      timestamps: true,
+      createdAt: 'created_at',
+      updatedAt: 'updated_at',
+      indexes: [{ fields: ['security', 'trade_date', 'base_percent'] }]
+    }
+  );
+};
+
+/* =========================================================
+   Gap Up / Gap Down
+========================================================= */
+export const GapUpDay = (sequelize, DataTypes) => {
+  return sequelize.define(
+    'GapUpDay',
+    {
+      id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
+      security: DataTypes.STRING(255),
+      symbol: DataTypes.STRING(50),
+      prev_close: DataTypes.DOUBLE,
+      open_price: DataTypes.DOUBLE,
+      gap_percent: DataTypes.DOUBLE,
+      trade_date: DataTypes.DATEONLY,
+      gap_threshold: DataTypes.DOUBLE
+    },
+    {
+      tableName: 'gap_up_day',
+      timestamps: true,
+      createdAt: 'created_at',
+      updatedAt: 'updated_at',
+      indexes: [{ fields: ['symbol', 'trade_date'] }]
+    }
+  );
+};
+
+export const GapDownDay = (sequelize, DataTypes) => {
+  return sequelize.define(
+    'GapDownDay',
+    {
+      id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
+      security: DataTypes.STRING(255),
+      symbol: DataTypes.STRING(50),
+      prev_close: DataTypes.DOUBLE,
+      open_price: DataTypes.DOUBLE,
+      gap_percent: DataTypes.DOUBLE,
+      trade_date: DataTypes.DATEONLY,
+      gap_threshold: DataTypes.DOUBLE
+    },
+    {
+      tableName: 'gap_down_day',
+      timestamps: true,
+      createdAt: 'created_at',
+      updatedAt: 'updated_at',
+      indexes: [{ fields: ['symbol', 'trade_date'] }]
+    }
+  );
+};
+
+/* =========================================================
+   52-Week High Breakout
+========================================================= */
+export const FiftyTwoWeekHigh = (sequelize, DataTypes) => {
+  return sequelize.define(
+    'FiftyTwoWeekHigh',
+    {
+      id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
+      security: DataTypes.STRING(255),
+      symbol: DataTypes.STRING(50),
+      close_price: DataTypes.DOUBLE,
+      hi_52_wk: DataTypes.DOUBLE,
+      distance_from_high_pct: DataTypes.DOUBLE,
+      trade_date: DataTypes.DATEONLY
+    },
+    {
+      tableName: 'fifty_two_week_high',
+      timestamps: true,
+      createdAt: 'created_at',
+      updatedAt: 'updated_at',
+      indexes: [{ fields: ['symbol', 'trade_date'] }]
+    }
+  );
+};
+
+/* =========================================================
+   Top Gainer (from GL bhavcopy)
+========================================================= */
+export const TopGainerDay = (sequelize, DataTypes) => {
+  return sequelize.define(
+    'TopGainerDay',
+    {
+      id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
+      security: DataTypes.STRING(255),
+      symbol: DataTypes.STRING(50),
+      close_price: DataTypes.DOUBLE,
+      prev_close: DataTypes.DOUBLE,
+      change_percent: DataTypes.DOUBLE,
+      trade_date: DataTypes.DATEONLY,
+      min_percent: DataTypes.DOUBLE
+    },
+    {
+      tableName: 'top_gainer_day',
+      timestamps: true,
+      createdAt: 'created_at',
+      updatedAt: 'updated_at',
+      indexes: [{ fields: ['security', 'trade_date'] }]
+    }
+  );
+};
+
+/* =========================================================
+   52W Band Hit (from BH bhavcopy)
+========================================================= */
+export const BandHit52w = (sequelize, DataTypes) => {
+  return sequelize.define(
+    'BandHit52w',
+    {
+      id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
+      symbol: DataTypes.STRING(50),
+      security: DataTypes.STRING(255),
+      band_type: DataTypes.STRING(10),
+      trade_date: DataTypes.DATEONLY
+    },
+    {
+      tableName: 'band_hit_52w',
+      timestamps: true,
+      createdAt: 'created_at',
+      updatedAt: 'updated_at',
+      indexes: [{ fields: ['symbol', 'trade_date', 'band_type'] }]
+    }
+  );
+};
+
+/* =========================================================
+   Top Loser (from GL bhavcopy)
+========================================================= */
+export const TopLoserDay = (sequelize, DataTypes) => {
+  return sequelize.define(
+    'TopLoserDay',
+    {
+      id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
+      security: DataTypes.STRING(255),
+      symbol: DataTypes.STRING(50),
+      close_price: DataTypes.DOUBLE,
+      prev_close: DataTypes.DOUBLE,
+      change_percent: DataTypes.DOUBLE,
+      trade_date: DataTypes.DATEONLY,
+      min_percent: DataTypes.DOUBLE
+    },
+    {
+      tableName: 'top_loser_day',
+      timestamps: true,
+      createdAt: 'created_at',
+      updatedAt: 'updated_at',
+      indexes: [{ fields: ['security', 'trade_date'] }]
+    }
+  );
+};
+
+/* =========================================================
+   52-Week Low Breakdown
+========================================================= */
+export const FiftyTwoWeekLow = (sequelize, DataTypes) => {
+  return sequelize.define(
+    'FiftyTwoWeekLow',
+    {
+      id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
+      security: DataTypes.STRING(255),
+      symbol: DataTypes.STRING(50),
+      close_price: DataTypes.DOUBLE,
+      lo_52_wk: DataTypes.DOUBLE,
+      distance_from_low_pct: DataTypes.DOUBLE,
+      trade_date: DataTypes.DATEONLY
+    },
+    {
+      tableName: 'fifty_two_week_low',
+      timestamps: true,
+      createdAt: 'created_at',
+      updatedAt: 'updated_at',
+      indexes: [{ fields: ['symbol', 'trade_date'] }]
+    }
+  );
+};
+
+/* =========================================================
+   Daily Mover Up / Down (close vs prev close)
+========================================================= */
+export const DailyMoverUp = (sequelize, DataTypes) => {
+  return sequelize.define(
+    'DailyMoverUp',
+    {
+      id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
+      security: DataTypes.STRING(255),
+      symbol: DataTypes.STRING(50),
+      close_price: DataTypes.DOUBLE,
+      prev_close: DataTypes.DOUBLE,
+      change_percent: DataTypes.DOUBLE,
+      trade_date: DataTypes.DATEONLY,
+      min_percent: DataTypes.DOUBLE
+    },
+    {
+      tableName: 'daily_mover_up',
+      timestamps: true,
+      createdAt: 'created_at',
+      updatedAt: 'updated_at',
+      indexes: [{ fields: ['symbol', 'trade_date'] }]
+    }
+  );
+};
+
+export const DailyMoverDown = (sequelize, DataTypes) => {
+  return sequelize.define(
+    'DailyMoverDown',
+    {
+      id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
+      security: DataTypes.STRING(255),
+      symbol: DataTypes.STRING(50),
+      close_price: DataTypes.DOUBLE,
+      prev_close: DataTypes.DOUBLE,
+      change_percent: DataTypes.DOUBLE,
+      trade_date: DataTypes.DATEONLY,
+      min_percent: DataTypes.DOUBLE
+    },
+    {
+      tableName: 'daily_mover_down',
+      timestamps: true,
+      createdAt: 'created_at',
+      updatedAt: 'updated_at',
+      indexes: [{ fields: ['symbol', 'trade_date'] }]
+    }
+  );
+};

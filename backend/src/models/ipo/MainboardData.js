@@ -24,6 +24,12 @@ const MainboardDataModel = (sequelize, DataTypes) => {
       Total_Issue_Amount_Incl_Firm_reservations_Rs_cr_: DataTypes.TEXT,
       bNII_x_: DataTypes.TEXT,
       sNII_x_: DataTypes.TEXT,
+      Shareholder_x_: DataTypes.TEXT,
+      issue_status: DataTypes.TEXT,
+      price_band: DataTypes.TEXT,
+      issue_size_shares: DataTypes.TEXT,
+      lot_size: DataTypes.TEXT,
+      listing_date: DataTypes.TEXT,
       created_at: {
         type: DataTypes.DATE,
         defaultValue: DataTypes.NOW

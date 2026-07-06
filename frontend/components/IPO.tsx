@@ -33,6 +33,11 @@ export interface IpoData {
 
   Applications?: string;
   Total_Issue_Amount_Incl_Firm_reservations_Rs_cr_?: string;
+  issue_status?: string;
+  price_band?: string;
+  issue_size_shares?: string;
+  lot_size?: string;
+  listing_date?: string;
 }
 
 export interface SortConfig {
@@ -61,6 +66,7 @@ export interface IpoItem {
 export interface IpoResponse2 {
   success: boolean;
   data: IpoItem[];
+  total?: number;
   totalRecords?: number;
   message?: string;
 }
@@ -128,7 +134,7 @@ const Ipo = () => {
       const response = await getIpoData(type, currentPage, recordsPerPage);
 
       if (response.success) {
-        const total = response.totalRecords || 0;
+        const total = response.totalRecords ?? response.total ?? 0;
         setIpoData((prev) => ({
           ...prev,
           [type]: {

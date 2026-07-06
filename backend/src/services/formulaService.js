@@ -6,8 +6,31 @@ import {
   StrongBullishCandleModel,
   ListedCompanies,
   VolumeBreakoutModel,
-  TweezerBottomModel
+  TweezerBottomModel,
+  BearishCandleModel,
+  GapUpDayModel,
+  GapDownDayModel,
+  FiftyTwoWeekHighModel,
+  TopGainerDayModel,
+  BandHit52wModel,
+  TopLoserDayModel,
+  FiftyTwoWeekLowModel,
+  DailyMoverUpModel,
+  DailyMoverDownModel
 } from '../models/index.js';
+
+import {
+  generateBearishCandleService,
+  generateGapUpService,
+  generateGapDownService,
+  generateFiftyTwoWeekHighService,
+  generateTopGainerService,
+  generateBandHit52wService,
+  generateTopLoserService,
+  generateFiftyTwoWeekLowService,
+  generateDailyMoverUpService,
+  generateDailyMoverDownService
+} from './formulaExtendedService.js';
 
 import logger from '../config/logger.js';
 import { performance } from 'node:perf_hooks';
@@ -22,7 +45,16 @@ export const processFormulaByDate = async ({
   generatePayload = {},
   existingWhere = {}
 }) => {
-  const formattedDate = new Date(targetDate).toISOString().split('T')[0];
+  const requestedDate = targetDate ? normalizeTradeDate(targetDate) : null;
+  const formattedDate = await resolveTradeDate(targetDate);
+
+  if (!formattedDate) {
+    return {
+      success: false,
+      message: 'No PR data found'
+    };
+  }
+
   /* =========================================================
      STEP 1: CHECK EXISTING FORMULA DATA
   ========================================================= */
@@ -40,6 +72,8 @@ export const processFormulaByDate = async ({
       success: true,
       source: 'database',
       calculated: false,
+      trade_date: formattedDate,
+      requested_date: requestedDate,
       totalItems: existingData.length,
       data: existingData
     };
@@ -90,6 +124,8 @@ export const processFormulaByDate = async ({
     success: true,
     source: 'fresh_calculation',
     calculated: true,
+    trade_date: formattedDate,
+    requested_date: requestedDate,
     totalItems: insertedData.length,
     data: insertedData,
     generatedResult
@@ -570,214 +606,351 @@ export const generateBuyDayService = async ({
    MAIN FORMULA ENGINE
 ========================================================= */
 
-export const runFormulaEngineService = async () => {
+const normalizeTradeDate = (value) => {
+  if (!value) return null;
+  const dateValue = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(dateValue.getTime())) return null;
+  return dateValue.toISOString().split('T')[0];
+};
+
+const prExistsForDate = async (dateStr) => {
+  if (!dateStr) return false;
+
+  const count = await PR.count({
+    where: {
+      source_date: {
+        [Op.gte]: `${dateStr} 00:00:00`,
+        [Op.lte]: `${dateStr} 23:59:59`
+      }
+    }
+  });
+
+  return count > 0;
+};
+
+export const resolveTradeDate = async (targetDate = null) => {
+  await PR.sync();
+
+  const requested = targetDate ? normalizeTradeDate(targetDate) : null;
+  if (requested && (await prExistsForDate(requested))) {
+    return requested;
+  }
+
+  const latestDateRaw = await PR.max('source_date');
+  const latest = normalizeTradeDate(latestDateRaw);
+
+  if (latest && (await prExistsForDate(latest))) {
+    return latest;
+  }
+
+  return null;
+};
+
+const shouldBlockDependentFormulas = (stepResult = {}) => {
+  if (stepResult.status !== 'failed') {
+    return false;
+  }
+
+  if (stepResult.error) {
+    return true;
+  }
+
+  return ['No PR data found'].includes(stepResult.message);
+};
+
+const countFormulaMatches = (key, result = {}) => {
+  switch (key) {
+    case 'strong_bullish':
+      return result.totalItems || 0;
+    case 'rally_attempt':
+      return result.count || result.totalItems || 0;
+    case 'follow_through_day':
+      return result.totalItems || 0;
+    case 'buy_day':
+      return result.totalItems || 0;
+    case 'volume_breakout':
+      return result.totalItems || 0;
+    case 'tweezer_bottom':
+      return result.total_signals || 0;
+    default:
+      return result.totalItems || result.count || 0;
+  }
+};
+
+const runFormulaStep = async ({ key, label, dependsOn, execute, completedSteps }) => {
+  const missingDependencies = dependsOn.filter((dep) => !completedSteps.has(dep));
+
+  if (missingDependencies.length) {
+    return {
+      key,
+      label,
+      status: 'skipped',
+      depends_on: dependsOn,
+      skipped_reason: `Waiting for: ${missingDependencies.join(', ')}`,
+      passed_count: 0,
+      records_stored: 0
+    };
+  }
+
+  const startedAt = performance.now();
+
   try {
-    const engineStartedAt = new Date();
-
-    const startedAt = performance.now();
-
-    logger.info(
-      `🚀 Formula Engine Started At: ${engineStartedAt.toLocaleString()}`
-    );
-
-    console.log('\n=================================================');
-    console.log('🚀 FORMULA ENGINE STARTED');
-    console.log('🕒 Start Time:', engineStartedAt.toLocaleString());
-    console.log('=================================================\n');
-
-    const processed = [];
-
-    /* =========================================================
-       1. STRONG BULLISH CANDLE
-    ========================================================= */
-
-    const strongBullishStart = performance.now();
-
-    console.log('\n🚀 [1/6] STRONG BULLISH CANDLE STARTED');
-
-    const bullishResult = await generateStrongBullishService({
-      currentPage: 1,
-      itemsPerPage: 10000,
-      searchTerm: '',
-      base_percent: 2
-    });
-
-    const strongBullishDuration = (
-      (performance.now() - strongBullishStart) /
-      1000
-    ).toFixed(2);
-
-    processed.push(bullishResult.totalItems || 0);
-
-    console.log(
-      `✅ STRONG BULLISH COMPLETED | Records: ${
-        bullishResult.totalItems || 0
-      } | Duration: ${strongBullishDuration}s`
-    );
-
-    /* =========================================================
-       2. RALLY ATTEMPT
-    ========================================================= */
-
-    const rallyStart = performance.now();
-
-    console.log('\n🚀 [2/6] RALLY ATTEMPT STARTED');
-
-    const rallyResult = await generateRallyAttemptService({
-      currentPage: 1,
-      itemsPerPage: 10000,
-      searchTerm: ''
-    });
-
-    const rallyDuration = ((performance.now() - rallyStart) / 1000).toFixed(2);
-
-    processed.push(rallyResult.count || rallyResult.totalItems || 0);
-
-    console.log(
-      `✅ RALLY ATTEMPT COMPLETED | Records: ${
-        rallyResult.count || rallyResult.totalItems || 0
-      } | Duration: ${rallyDuration}s`
-    );
-
-    /* =========================================================
-       3. FOLLOW THROUGH DAY
-    ========================================================= */
-
-    const ftdStart = performance.now();
-
-    console.log('\n🚀 [3/6] FOLLOW THROUGH DAY STARTED');
-
-    const ftdResult = await generateFollowThroughDayService({
-      currentPage: 1,
-      itemsPerPage: 10000,
-      searchTerm: ''
-    });
-
-    const ftdDuration = ((performance.now() - ftdStart) / 1000).toFixed(2);
-
-    processed.push(ftdResult.totalItems || 0);
-
-    console.log(
-      `✅ FOLLOW THROUGH COMPLETED | Records: ${
-        ftdResult.totalItems || 0
-      } | Duration: ${ftdDuration}s`
-    );
-
-    /* =========================================================
-       4. BUY DAY
-    ========================================================= */
-
-    const buyStart = performance.now();
-
-    console.log('\n🚀 [4/6] BUY DAY STARTED');
-
-    const buyDayResult = await generateBuyDayService({
-      currentPage: 1,
-      itemsPerPage: 10000,
-      searchTerm: ''
-    });
-
-    const buyDuration = ((performance.now() - buyStart) / 1000).toFixed(2);
-
-    processed.push(buyDayResult.totalItems || 0);
-
-    console.log(
-      `✅ BUY DAY COMPLETED | Records: ${
-        buyDayResult.totalItems || 0
-      } | Duration: ${buyDuration}s`
-    );
-
-    /* =========================================================
-       5. VOLUME BREAKOUT
-    ========================================================= */
-
-    const volumeStart = performance.now();
-
-    console.log('\n🚀 [5/6] VOLUME BREAKOUT STARTED');
-
-    const volumeResult = await generateVolumeBreakoutService({
-      currentPage: 1,
-      itemsPerPage: 10000,
-      searchTerm: '',
-      targetDate: null
-    });
-
-    const volumeDuration = ((performance.now() - volumeStart) / 1000).toFixed(
-      2
-    );
-
-    processed.push(volumeResult.totalItems || 0);
-
-    console.log(
-      `✅ VOLUME BREAKOUT COMPLETED | Records: ${
-        volumeResult.totalItems || 0
-      } | Duration: ${volumeDuration}s`
-    );
-
-    /* =========================================================
-       6. TWEEZER BOTTOM
-    ========================================================= */
-
-    const tweezerStart = performance.now();
-
-    console.log('\n🚀 [6/6] TWEEZER BOTTOM STARTED');
-
-    const tweezerResult = await detectTweezerBottomPatterns({
-      saveToDb: true,
-      forceRefresh: true
-    });
-
-    const tweezerDuration = ((performance.now() - tweezerStart) / 1000).toFixed(
-      2
-    );
-
-    processed.push(tweezerResult.total_signals || 0);
-
-    console.log(
-      `✅ TWEEZER BOTTOM COMPLETED | Records: ${
-        tweezerResult.total_signals || 0
-      } | Duration: ${tweezerDuration}s`
-    );
-
-    /* =========================================================
-       FINAL SUMMARY
-    ========================================================= */
-
-    const totalProcessed = processed.reduce((sum, count) => sum + count, 0);
-
-    const durationMs = Math.round(performance.now() - startedAt);
-
-    const engineEndedAt = new Date();
-
-    console.log('\n=================================================');
-    console.log('✅ FORMULA ENGINE COMPLETED');
-    console.log('=================================================');
-    console.log('🕒 Start Time:', engineStartedAt.toLocaleString());
-    console.log('🕒 End Time:', engineEndedAt.toLocaleString());
-    console.log(
-      '⏱ Total Duration:',
-      `${(durationMs / 1000).toFixed(2)} seconds`
-    );
-    console.log('📊 Total Processed:', totalProcessed);
-    console.log('=================================================\n');
-
-    logger.info(`✅ Formula engine completed in ${durationMs} ms`);
+    const result = await execute();
+    const passedCount = countFormulaMatches(key, result);
+    const success = result?.success !== false;
 
     return {
-      success: true,
-      processed_symbols: totalProcessed,
-      duration_ms: durationMs
+      key,
+      label,
+      status: success ? 'success' : 'failed',
+      depends_on: dependsOn,
+      passed_count: passedCount,
+      records_stored: passedCount,
+      duration_ms: Math.round(performance.now() - startedAt),
+      message: result?.message || null,
+      already_processed: Boolean(result?.already_processed || result?.message === 'Already generated'),
+      result
     };
   } catch (error) {
-    logger.error(`❌ Formula Engine Error: ${error.message}`, {
-      stack: error.stack
+    return {
+      key,
+      label,
+      status: 'failed',
+      depends_on: dependsOn,
+      passed_count: 0,
+      records_stored: 0,
+      duration_ms: Math.round(performance.now() - startedAt),
+      error: error.message
+    };
+  }
+};
+
+export const runFormulaEngineService = async ({
+  targetDate = null,
+  triggerSource = null
+} = {}) => {
+  const engineStartedAt = new Date();
+  const startedAt = performance.now();
+
+  const tradeDate = await resolveTradeDate(targetDate);
+
+  if (!tradeDate) {
+    throw new Error('No PR bhavcopy data available to run formulas');
+  }
+
+  logger.info(
+    `🚀 Formula Engine Started | trade_date=${tradeDate} | trigger=${triggerSource || 'manual'}`
+  );
+
+  const completedSteps = new Set();
+  const formulaResults = [];
+
+  const steps = [
+    {
+      key: 'strong_bullish',
+      label: 'Strong Bullish Candle',
+      dependsOn: [],
+      execute: () =>
+        generateStrongBullishService({
+          currentPage: 1,
+          itemsPerPage: 10000,
+          searchTerm: '',
+          base_percent: 2,
+          targetDate: tradeDate
+        })
+    },
+    {
+      key: 'bearish_candle',
+      label: 'Bearish Candle',
+      dependsOn: [],
+      execute: () =>
+        generateBearishCandleService({
+          targetDate: tradeDate,
+          base_percent: 2
+        })
+    },
+    {
+      key: 'gap_up_day',
+      label: 'Gap Up Day',
+      dependsOn: [],
+      execute: () =>
+        generateGapUpService({
+          targetDate: tradeDate,
+          gap_threshold: 1
+        })
+    },
+    {
+      key: 'gap_down_day',
+      label: 'Gap Down Day',
+      dependsOn: [],
+      execute: () =>
+        generateGapDownService({
+          targetDate: tradeDate,
+          gap_threshold: 1
+        })
+    },
+    {
+      key: 'fifty_two_week_high',
+      label: '52-Week High Breakout',
+      dependsOn: [],
+      execute: () =>
+        generateFiftyTwoWeekHighService({
+          targetDate: tradeDate
+        })
+    },
+    {
+      key: 'top_gainer_day',
+      label: 'Top Gainer Day',
+      dependsOn: [],
+      execute: () =>
+        generateTopGainerService({
+          targetDate: tradeDate,
+          min_percent: 3
+        })
+    },
+    {
+      key: 'band_hit_52w',
+      label: '52W Band Hit',
+      dependsOn: [],
+      execute: () =>
+        generateBandHit52wService({
+          targetDate: tradeDate
+        })
+    },
+    {
+      key: 'top_loser_day',
+      label: 'Top Loser Day',
+      dependsOn: [],
+      execute: () =>
+        generateTopLoserService({
+          targetDate: tradeDate,
+          min_percent: 3
+        })
+    },
+    {
+      key: 'fifty_two_week_low',
+      label: '52-Week Low Breakdown',
+      dependsOn: [],
+      execute: () =>
+        generateFiftyTwoWeekLowService({
+          targetDate: tradeDate
+        })
+    },
+    {
+      key: 'daily_mover_up',
+      label: 'Daily Mover Up',
+      dependsOn: [],
+      execute: () =>
+        generateDailyMoverUpService({
+          targetDate: tradeDate,
+          min_percent: 3
+        })
+    },
+    {
+      key: 'daily_mover_down',
+      label: 'Daily Mover Down',
+      dependsOn: [],
+      execute: () =>
+        generateDailyMoverDownService({
+          targetDate: tradeDate,
+          min_percent: 3
+        })
+    },
+    {
+      key: 'rally_attempt',
+      label: 'Rally Attempt Day',
+      dependsOn: [],
+      execute: () =>
+        generateRallyAttemptService({
+          currentPage: 1,
+          itemsPerPage: 10000,
+          searchTerm: '',
+          targetDate: tradeDate
+        })
+    },
+    {
+      key: 'volume_breakout',
+      label: 'Volume Breakout',
+      dependsOn: [],
+      execute: () =>
+        generateVolumeBreakoutService({
+          currentPage: 1,
+          itemsPerPage: 10000,
+          searchTerm: '',
+          targetDate: tradeDate
+        })
+    },
+    {
+      key: 'tweezer_bottom',
+      label: 'Tweezer Bottom',
+      dependsOn: [],
+      execute: () =>
+        detectTweezerBottomPatterns({
+          saveToDb: true,
+          targetDate: tradeDate,
+          forceRefresh: false
+        })
+    },
+    {
+      key: 'follow_through_day',
+      label: 'Follow Through Day',
+      dependsOn: ['rally_attempt'],
+      execute: () =>
+        generateFollowThroughDayService({
+          currentPage: 1,
+          itemsPerPage: 10000,
+          searchTerm: '',
+          targetDate: tradeDate
+        })
+    },
+    {
+      key: 'buy_day',
+      label: 'Buy Day',
+      dependsOn: ['follow_through_day'],
+      execute: () =>
+        generateBuyDayService({
+          currentPage: 1,
+          itemsPerPage: 10000,
+          searchTerm: '',
+          targetDate: tradeDate
+        })
+    }
+  ];
+
+  for (const step of steps) {
+    console.log(`\n🚀 Running formula: ${step.label}`);
+
+    const stepResult = await runFormulaStep({
+      ...step,
+      completedSteps
     });
 
-    console.error('\n❌ FORMULA ENGINE FAILED');
-    console.error('ERROR:', error.message);
+    formulaResults.push(stepResult);
 
-    throw error;
+    if (!shouldBlockDependentFormulas(stepResult)) {
+      completedSteps.add(step.key);
+    }
+
+    console.log(
+      `✅ ${step.label} | status=${stepResult.status} | passed=${stepResult.passed_count}`
+    );
   }
+
+  const totalProcessed = formulaResults.reduce(
+    (sum, item) => sum + (item.passed_count || 0),
+    0
+  );
+  const durationMs = Math.round(performance.now() - startedAt);
+
+  return {
+    success: true,
+    trade_date: tradeDate,
+    trigger_source: triggerSource,
+    processed_symbols: totalProcessed,
+    duration_ms: durationMs,
+    started_at: engineStartedAt.toISOString(),
+    formulas: formulaResults
+  };
 };
 
 /* =========================================================
@@ -799,13 +972,7 @@ export const generateStrongBullishService = async ({
     await StrongBullishCandleModel.sync();
     await PR.sync();
 
-    const latestDateRaw = targetDate
-      ? new Date(targetDate)
-      : await PR.max('source_date');
-
-    const latestDate = latestDateRaw
-      ? latestDateRaw.toISOString().split('T')[0]
-      : null;
+    const latestDate = await resolveTradeDate(targetDate);
 
     if (!latestDate) {
       return {
@@ -1275,25 +1442,67 @@ const toDateString = (value) => {
   return dateValue.toISOString().split('T')[0];
 };
 
+const getModelAttributes = (model) =>
+  Object.keys(model?.rawAttributes || {});
+
+const resolveCompanyFields = (model, preferredFields = ['symbol', 'security']) => {
+  const attrs = new Set(getModelAttributes(model));
+  const preferred = (preferredFields || []).filter(
+    (field) => field === 'symbol' || field === 'security'
+  );
+  const fields = preferred.filter((field) => attrs.has(field));
+
+  if (fields.length) return fields;
+  if (attrs.has('security')) return ['security'];
+  if (attrs.has('symbol')) return ['symbol'];
+  return [];
+};
+
+const resolveSearchFields = (model, preferredFields = ['symbol', 'security']) => {
+  const attrs = new Set(getModelAttributes(model));
+  const fields = (preferredFields || ['symbol', 'security']).filter((field) =>
+    attrs.has(field)
+  );
+
+  return fields.length ? fields : resolveCompanyFields(model, preferredFields);
+};
+
+const applyCompanyValueFilter = (where, model, value, preferredFields) => {
+  if (!value) return;
+
+  const companyFields = resolveCompanyFields(model, preferredFields);
+  if (!companyFields.length) return;
+
+  const clause =
+    companyFields.length === 1
+      ? { [companyFields[0]]: value }
+      : { [Op.or]: companyFields.map((field) => ({ [field]: value })) };
+
+  where[Op.and] = [...(where[Op.and] || []), clause];
+};
+
 const buildFormulaQuery = async ({
   model,
   dateField,
   currentPage = 1,
   itemsPerPage = 10,
   searchTerm = '',
+  symbol = '',
+  targetDate = null,
   searchFields = ['symbol', 'security'],
   extraWhere = {},
   order = null,
   latestDateWhere = {},
   includeLatestDate = true
 }) => {
-  const latestDateRaw = includeLatestDate
-    ? await model.max(dateField, { where: latestDateWhere })
-    : null;
+  let selectedDate = targetDate ? toDateString(targetDate) : null;
 
-  const latestDate = includeLatestDate ? toDateString(latestDateRaw) : null;
+  if (!selectedDate && includeLatestDate) {
+    const latestDateRaw = await model.max(dateField, { where: latestDateWhere });
+    selectedDate = toDateString(latestDateRaw);
+  }
 
-  if (includeLatestDate && !latestDate) {
+  if (includeLatestDate && !selectedDate) {
     return {
       success: true,
       data: [],
@@ -1301,6 +1510,7 @@ const buildFormulaQuery = async ({
       totalPages: 0,
       currentPage,
       itemsPerPage,
+      trade_date: null,
       latest_date: null
     };
   }
@@ -1308,13 +1518,24 @@ const buildFormulaQuery = async ({
   const where = { ...extraWhere };
 
   if (includeLatestDate) {
-    where[dateField] = latestDate;
+    where[dateField] = selectedDate;
+  }
+
+  if (symbol) {
+    applyCompanyValueFilter(where, model, symbol, searchFields);
   }
 
   if (searchTerm) {
-    where[Op.or] = searchFields.map((field) => ({
-      [field]: { [Op.like]: `%${searchTerm}%` }
-    }));
+    const activeSearchFields = resolveSearchFields(model, searchFields);
+
+    where[Op.and] = [
+      ...(where[Op.and] || []),
+      {
+        [Op.or]: activeSearchFields.map((field) => ({
+          [field]: { [Op.like]: `%${searchTerm}%` }
+        }))
+      }
+    ];
   }
 
   const finalOrder = order || [
@@ -1338,17 +1559,219 @@ const buildFormulaQuery = async ({
       ...row
     })),
     totalItems: count,
-    totalPages: Math.ceil(count / itemsPerPage),
+    totalPages: Math.ceil(count / itemsPerPage) || 0,
     currentPage,
     itemsPerPage,
-    latest_date: latestDate
+    trade_date: selectedDate,
+    latest_date: selectedDate
+  };
+};
+
+const FORMULA_REGISTRY = {
+  'buy-day': {
+    model: BuyDayModel,
+    dateField: 'buy_date',
+    searchFields: ['symbol']
+  },
+  'follow-through-day': {
+    model: FollowThroughDayModel,
+    dateField: 'ftd_date',
+    searchFields: ['symbol']
+  },
+  'rally-attempt-day': {
+    model: RallyAttemptDayModel,
+    dateField: 'rally_date',
+    searchFields: ['symbol', 'security']
+  },
+  'strong-bullish-candle': {
+    model: StrongBullishCandleModel,
+    dateField: 'trade_date',
+    searchFields: ['security', 'symbol'],
+    extraWhere: (basePercent = 2) => ({ base_percent: basePercent }),
+    latestDateWhere: (basePercent = 2) => ({ base_percent: basePercent })
+  },
+  'bearish-candle': {
+    model: BearishCandleModel,
+    dateField: 'trade_date',
+    searchFields: ['security', 'symbol'],
+    extraWhere: (basePercent = 2) => ({ base_percent: basePercent }),
+    latestDateWhere: (basePercent = 2) => ({ base_percent: basePercent })
+  },
+  'gap-up-day': {
+    model: GapUpDayModel,
+    dateField: 'trade_date',
+    searchFields: ['security', 'symbol'],
+    extraWhere: (basePercent = 1) => ({ gap_threshold: basePercent }),
+    latestDateWhere: (basePercent = 1) => ({ gap_threshold: basePercent })
+  },
+  'gap-down-day': {
+    model: GapDownDayModel,
+    dateField: 'trade_date',
+    searchFields: ['security', 'symbol'],
+    extraWhere: (basePercent = 1) => ({ gap_threshold: basePercent }),
+    latestDateWhere: (basePercent = 1) => ({ gap_threshold: basePercent })
+  },
+  'fifty-two-week-high': {
+    model: FiftyTwoWeekHighModel,
+    dateField: 'trade_date',
+    searchFields: ['security', 'symbol']
+  },
+  'top-gainer-day': {
+    model: TopGainerDayModel,
+    dateField: 'trade_date',
+    searchFields: ['security', 'symbol'],
+    extraWhere: (basePercent = 3) => ({ min_percent: basePercent }),
+    latestDateWhere: (basePercent = 3) => ({ min_percent: basePercent })
+  },
+  'band-hit-52w': {
+    model: BandHit52wModel,
+    dateField: 'trade_date',
+    searchFields: ['symbol', 'security', 'band_type']
+  },
+  'top-loser-day': {
+    model: TopLoserDayModel,
+    dateField: 'trade_date',
+    searchFields: ['security', 'symbol'],
+    extraWhere: (basePercent = 3) => ({ min_percent: basePercent }),
+    latestDateWhere: (basePercent = 3) => ({ min_percent: basePercent })
+  },
+  'fifty-two-week-low': {
+    model: FiftyTwoWeekLowModel,
+    dateField: 'trade_date',
+    searchFields: ['security', 'symbol']
+  },
+  'daily-mover-up': {
+    model: DailyMoverUpModel,
+    dateField: 'trade_date',
+    searchFields: ['security', 'symbol'],
+    extraWhere: (basePercent = 3) => ({ min_percent: basePercent }),
+    latestDateWhere: (basePercent = 3) => ({ min_percent: basePercent })
+  },
+  'daily-mover-down': {
+    model: DailyMoverDownModel,
+    dateField: 'trade_date',
+    searchFields: ['security', 'symbol'],
+    extraWhere: (basePercent = 3) => ({ min_percent: basePercent }),
+    latestDateWhere: (basePercent = 3) => ({ min_percent: basePercent })
+  },
+  'volume-breakouts': {
+    model: VolumeBreakoutModel,
+    dateField: 'trade_date',
+    searchFields: ['symbol', 'security']
+  },
+  'tweezer-bottoms': {
+    model: TweezerBottomModel,
+    dateField: 'trade_date',
+    searchFields: ['security', 'pattern_name'],
+    order: [
+      ['trade_date', 'DESC'],
+      ['signal_strength', 'DESC'],
+      ['id', 'DESC']
+    ]
+  }
+};
+
+const attachGenerateOnRead = (slug, generate, getParams = () => ({})) => {
+  if (FORMULA_REGISTRY[slug]) {
+    FORMULA_REGISTRY[slug].generateOnRead = {
+      generate,
+      getExistingWhere: getParams,
+      getGeneratePayload: getParams
+    };
+  }
+};
+
+attachGenerateOnRead(
+  'strong-bullish-candle',
+  generateStrongBullishService,
+  (basePercent) => ({ base_percent: basePercent })
+);
+attachGenerateOnRead(
+  'bearish-candle',
+  generateBearishCandleService,
+  (basePercent) => ({ base_percent: basePercent })
+);
+attachGenerateOnRead(
+  'gap-up-day',
+  generateGapUpService,
+  (basePercent) => ({ gap_threshold: basePercent })
+);
+attachGenerateOnRead(
+  'gap-down-day',
+  generateGapDownService,
+  (basePercent) => ({ gap_threshold: basePercent })
+);
+attachGenerateOnRead('fifty-two-week-high', generateFiftyTwoWeekHighService);
+attachGenerateOnRead(
+  'top-gainer-day',
+  generateTopGainerService,
+  (basePercent) => ({ min_percent: basePercent })
+);
+attachGenerateOnRead('band-hit-52w', generateBandHit52wService);
+attachGenerateOnRead(
+  'top-loser-day',
+  generateTopLoserService,
+  (basePercent) => ({ min_percent: basePercent })
+);
+attachGenerateOnRead('fifty-two-week-low', generateFiftyTwoWeekLowService);
+attachGenerateOnRead(
+  'daily-mover-up',
+  generateDailyMoverUpService,
+  (basePercent) => ({ min_percent: basePercent })
+);
+attachGenerateOnRead(
+  'daily-mover-down',
+  generateDailyMoverDownService,
+  (basePercent) => ({ min_percent: basePercent })
+);
+
+const getFormulaConfig = (formulaType) => {
+  const config = FORMULA_REGISTRY[formulaType];
+  if (!config) {
+    throw new Error(`Invalid formula type: ${formulaType}`);
+  }
+  return config;
+};
+
+export const getFormulaAvailableDatesService = async (
+  formulaType,
+  { basePercent = 2 } = {}
+) => {
+  const config = getFormulaConfig(formulaType);
+  await config.model.sync();
+
+  const extraWhere =
+    typeof config.latestDateWhere === 'function'
+      ? config.latestDateWhere(basePercent)
+      : config.latestDateWhere || {};
+
+  const rows = await config.model.findAll({
+    attributes: [config.dateField],
+    where: extraWhere,
+    group: [config.dateField],
+    order: [[config.dateField, 'DESC']],
+    raw: true,
+    limit: 90
+  });
+
+  const dates = rows
+    .map((row) => toDateString(row[config.dateField]))
+    .filter(Boolean);
+
+  return {
+    success: true,
+    formula_type: formulaType,
+    dates,
+    latest_date: dates[0] || null
   };
 };
 
 export const getRallyAttemptRecordsService = async ({
   currentPage = 1,
   itemsPerPage = 10,
-  searchTerm = ''
+  searchTerm = '',
+  symbol = '',
+  targetDate = null
 }) => {
   await RallyAttemptDayModel.sync();
 
@@ -1358,6 +1781,8 @@ export const getRallyAttemptRecordsService = async ({
     currentPage,
     itemsPerPage,
     searchTerm,
+    symbol,
+    targetDate,
     searchFields: ['symbol', 'security']
   });
 };
@@ -1365,7 +1790,9 @@ export const getRallyAttemptRecordsService = async ({
 export const getFollowThroughDayRecordsService = async ({
   currentPage = 1,
   itemsPerPage = 10,
-  searchTerm = ''
+  searchTerm = '',
+  symbol = '',
+  targetDate = null
 }) => {
   await FollowThroughDayModel.sync();
 
@@ -1375,6 +1802,8 @@ export const getFollowThroughDayRecordsService = async ({
     currentPage,
     itemsPerPage,
     searchTerm,
+    symbol,
+    targetDate,
     searchFields: ['symbol']
   });
 };
@@ -1382,7 +1811,9 @@ export const getFollowThroughDayRecordsService = async ({
 export const getBuyDayRecordsService = async ({
   currentPage = 1,
   itemsPerPage = 10,
-  searchTerm = ''
+  searchTerm = '',
+  symbol = '',
+  targetDate = null
 }) => {
   await BuyDayModel.sync();
 
@@ -1392,6 +1823,8 @@ export const getBuyDayRecordsService = async ({
     currentPage,
     itemsPerPage,
     searchTerm,
+    symbol,
+    targetDate,
     searchFields: ['symbol']
   });
 };
@@ -1400,9 +1833,13 @@ export const getStrongBullishRecordsService = async ({
   currentPage = 1,
   itemsPerPage = 10,
   searchTerm = '',
+  symbol = '',
+  targetDate = null,
   basePercent = 2
 }) => {
   await StrongBullishCandleModel.sync();
+
+  const percentFilter = { base_percent: basePercent };
 
   return buildFormulaQuery({
     model: StrongBullishCandleModel,
@@ -1410,16 +1847,20 @@ export const getStrongBullishRecordsService = async ({
     currentPage,
     itemsPerPage,
     searchTerm,
+    symbol,
+    targetDate,
     searchFields: ['security', 'symbol'],
-    extraWhere: { base_percent: basePercent },
-    latestDateWhere: { base_percent: basePercent }
+    extraWhere: percentFilter,
+    latestDateWhere: percentFilter
   });
 };
 
 export const getVolumeBreakoutRecordsService = async ({
   currentPage = 1,
   itemsPerPage = 10,
-  searchTerm = ''
+  searchTerm = '',
+  symbol = '',
+  targetDate = null
 }) => {
   await VolumeBreakoutModel.sync();
 
@@ -1429,6 +1870,8 @@ export const getVolumeBreakoutRecordsService = async ({
     currentPage,
     itemsPerPage,
     searchTerm,
+    symbol,
+    targetDate,
     searchFields: ['symbol', 'security']
   });
 };
@@ -1436,7 +1879,9 @@ export const getVolumeBreakoutRecordsService = async ({
 export const getTweezerBottomRecordsService = async ({
   currentPage = 1,
   itemsPerPage = 10,
-  searchTerm = ''
+  searchTerm = '',
+  symbol = '',
+  targetDate = null
 }) => {
   await TweezerBottomModel.sync();
 
@@ -1446,6 +1891,8 @@ export const getTweezerBottomRecordsService = async ({
     currentPage,
     itemsPerPage,
     searchTerm,
+    symbol,
+    targetDate,
     searchFields: ['security', 'pattern_name'],
     order: [
       ['trade_date', 'DESC'],
@@ -1453,4 +1900,434 @@ export const getTweezerBottomRecordsService = async ({
       ['id', 'DESC']
     ]
   });
+};
+
+export const getBearishCandleRecordsService = async ({
+  currentPage = 1,
+  itemsPerPage = 10,
+  searchTerm = '',
+  symbol = '',
+  targetDate = null,
+  basePercent = 2
+}) => {
+  await BearishCandleModel.sync();
+  const percentFilter = { base_percent: basePercent };
+
+  return buildFormulaQuery({
+    model: BearishCandleModel,
+    dateField: 'trade_date',
+    currentPage,
+    itemsPerPage,
+    searchTerm,
+    symbol,
+    targetDate,
+    searchFields: ['security', 'symbol'],
+    extraWhere: percentFilter,
+    latestDateWhere: percentFilter
+  });
+};
+
+export const getGapUpDayRecordsService = async ({
+  currentPage = 1,
+  itemsPerPage = 10,
+  searchTerm = '',
+  symbol = '',
+  targetDate = null,
+  basePercent = 1
+}) => {
+  await GapUpDayModel.sync();
+  const thresholdFilter = { gap_threshold: basePercent };
+
+  return buildFormulaQuery({
+    model: GapUpDayModel,
+    dateField: 'trade_date',
+    currentPage,
+    itemsPerPage,
+    searchTerm,
+    symbol,
+    targetDate,
+    searchFields: ['security', 'symbol'],
+    extraWhere: thresholdFilter,
+    latestDateWhere: thresholdFilter
+  });
+};
+
+export const getGapDownDayRecordsService = async ({
+  currentPage = 1,
+  itemsPerPage = 10,
+  searchTerm = '',
+  symbol = '',
+  targetDate = null,
+  basePercent = 1
+}) => {
+  await GapDownDayModel.sync();
+  const thresholdFilter = { gap_threshold: basePercent };
+
+  return buildFormulaQuery({
+    model: GapDownDayModel,
+    dateField: 'trade_date',
+    currentPage,
+    itemsPerPage,
+    searchTerm,
+    symbol,
+    targetDate,
+    searchFields: ['security', 'symbol'],
+    extraWhere: thresholdFilter,
+    latestDateWhere: thresholdFilter
+  });
+};
+
+export const getFiftyTwoWeekHighRecordsService = async ({
+  currentPage = 1,
+  itemsPerPage = 10,
+  searchTerm = '',
+  symbol = '',
+  targetDate = null
+}) => {
+  await FiftyTwoWeekHighModel.sync();
+
+  return buildFormulaQuery({
+    model: FiftyTwoWeekHighModel,
+    dateField: 'trade_date',
+    currentPage,
+    itemsPerPage,
+    searchTerm,
+    symbol,
+    targetDate,
+    searchFields: ['security', 'symbol']
+  });
+};
+
+export const getTopGainerDayRecordsService = async ({
+  currentPage = 1,
+  itemsPerPage = 10,
+  searchTerm = '',
+  symbol = '',
+  targetDate = null,
+  basePercent = 3
+}) => {
+  await TopGainerDayModel.sync();
+  const percentFilter = { min_percent: basePercent };
+
+  return buildFormulaQuery({
+    model: TopGainerDayModel,
+    dateField: 'trade_date',
+    currentPage,
+    itemsPerPage,
+    searchTerm,
+    symbol,
+    targetDate,
+    searchFields: ['security', 'symbol'],
+    extraWhere: percentFilter,
+    latestDateWhere: percentFilter
+  });
+};
+
+export const getBandHit52wRecordsService = async ({
+  currentPage = 1,
+  itemsPerPage = 10,
+  searchTerm = '',
+  symbol = '',
+  targetDate = null
+}) => {
+  await BandHit52wModel.sync();
+
+  return buildFormulaQuery({
+    model: BandHit52wModel,
+    dateField: 'trade_date',
+    currentPage,
+    itemsPerPage,
+    searchTerm,
+    symbol,
+    targetDate,
+    searchFields: ['symbol', 'security', 'band_type']
+  });
+};
+
+export const getTopLoserDayRecordsService = async ({
+  currentPage = 1,
+  itemsPerPage = 10,
+  searchTerm = '',
+  symbol = '',
+  targetDate = null,
+  basePercent = 3
+}) => {
+  await TopLoserDayModel.sync();
+  const percentFilter = { min_percent: basePercent };
+
+  return buildFormulaQuery({
+    model: TopLoserDayModel,
+    dateField: 'trade_date',
+    currentPage,
+    itemsPerPage,
+    searchTerm,
+    symbol,
+    targetDate,
+    searchFields: ['security', 'symbol'],
+    extraWhere: percentFilter,
+    latestDateWhere: percentFilter
+  });
+};
+
+export const getFiftyTwoWeekLowRecordsService = async ({
+  currentPage = 1,
+  itemsPerPage = 10,
+  searchTerm = '',
+  symbol = '',
+  targetDate = null
+}) => {
+  await FiftyTwoWeekLowModel.sync();
+
+  return buildFormulaQuery({
+    model: FiftyTwoWeekLowModel,
+    dateField: 'trade_date',
+    currentPage,
+    itemsPerPage,
+    searchTerm,
+    symbol,
+    targetDate,
+    searchFields: ['security', 'symbol']
+  });
+};
+
+export const getDailyMoverUpRecordsService = async ({
+  currentPage = 1,
+  itemsPerPage = 10,
+  searchTerm = '',
+  symbol = '',
+  targetDate = null,
+  basePercent = 3
+}) => {
+  await DailyMoverUpModel.sync();
+  const percentFilter = { min_percent: basePercent };
+
+  return buildFormulaQuery({
+    model: DailyMoverUpModel,
+    dateField: 'trade_date',
+    currentPage,
+    itemsPerPage,
+    searchTerm,
+    symbol,
+    targetDate,
+    searchFields: ['security', 'symbol'],
+    extraWhere: percentFilter,
+    latestDateWhere: percentFilter
+  });
+};
+
+export const getDailyMoverDownRecordsService = async ({
+  currentPage = 1,
+  itemsPerPage = 10,
+  searchTerm = '',
+  symbol = '',
+  targetDate = null,
+  basePercent = 3
+}) => {
+  await DailyMoverDownModel.sync();
+  const percentFilter = { min_percent: basePercent };
+
+  return buildFormulaQuery({
+    model: DailyMoverDownModel,
+    dateField: 'trade_date',
+    currentPage,
+    itemsPerPage,
+    searchTerm,
+    symbol,
+    targetDate,
+    searchFields: ['security', 'symbol'],
+    extraWhere: percentFilter,
+    latestDateWhere: percentFilter
+  });
+};
+
+export const getFormulaCompaniesService = async (
+  formulaType,
+  { targetDate = null, searchTerm = '', basePercent = 2, limit = 300 } = {}
+) => {
+  const config = getFormulaConfig(formulaType);
+  await config.model.sync();
+
+  const extraWhere =
+    typeof config.extraWhere === 'function'
+      ? config.extraWhere(basePercent)
+      : config.extraWhere || {};
+
+  let selectedDate = targetDate ? toDateString(targetDate) : null;
+
+  if (!selectedDate) {
+    const latestDateRaw = await config.model.max(config.dateField, {
+      where: extraWhere
+    });
+    selectedDate = toDateString(latestDateRaw);
+  }
+
+  if (!selectedDate) {
+    return {
+      success: true,
+      formula_type: formulaType,
+      trade_date: null,
+      companies: []
+    };
+  }
+
+  const where = {
+    ...extraWhere,
+    [config.dateField]: selectedDate
+  };
+
+  if (searchTerm) {
+    const searchFields = resolveSearchFields(config.model, config.searchFields);
+
+    where[Op.or] = searchFields.map((field) => ({
+      [field]: { [Op.like]: `%${searchTerm}%` }
+    }));
+  }
+
+  const attributes = resolveCompanyFields(config.model, config.searchFields);
+  if (!attributes.length) {
+    return {
+      success: true,
+      formula_type: formulaType,
+      trade_date: selectedDate,
+      companies: []
+    };
+  }
+
+  const rows = await config.model.findAll({
+    attributes,
+    where,
+    group: attributes,
+    order: [[attributes[0], 'ASC']],
+    raw: true,
+    limit
+  });
+
+  return {
+    success: true,
+    formula_type: formulaType,
+    trade_date: selectedDate,
+    companies: rows
+      .filter((row) => attributes.some((field) => row[field]))
+      .map((row) => ({
+        symbol: row.symbol || row.security,
+        security: row.security || row.symbol,
+        label:
+          row.symbol && row.security && row.symbol !== row.security
+            ? `${row.symbol} — ${row.security}`
+            : row.symbol || row.security
+      }))
+  };
+};
+
+export const getFormulaRecordsService = async (
+  formulaType,
+  {
+    currentPage = 1,
+    itemsPerPage = 10,
+    searchTerm = '',
+    symbol = '',
+    targetDate = null,
+    basePercent = 2
+  } = {}
+) => {
+  const config = getFormulaConfig(formulaType);
+  await config.model.sync();
+
+  const extraWhere =
+    typeof config.extraWhere === 'function'
+      ? config.extraWhere(basePercent)
+      : config.extraWhere || {};
+
+  const latestDateWhere =
+    typeof config.latestDateWhere === 'function'
+      ? config.latestDateWhere(basePercent)
+      : config.latestDateWhere ?? extraWhere;
+
+  return buildFormulaQuery({
+    model: config.model,
+    dateField: config.dateField,
+    currentPage,
+    itemsPerPage,
+    searchTerm,
+    symbol,
+    targetDate,
+    searchFields: config.searchFields || ['symbol', 'security'],
+    extraWhere,
+    latestDateWhere,
+    order: config.order || null
+  });
+};
+
+export const queryFormulaService = async (
+  formulaType,
+  {
+    currentPage = 1,
+    itemsPerPage = 10,
+    searchTerm = '',
+    symbol = '',
+    targetDate = null,
+    basePercent = 2
+  } = {}
+) => {
+  const config = getFormulaConfig(formulaType);
+  let ensureMeta = null;
+
+  if (config.generateOnRead) {
+    const params =
+      config.generateOnRead.getGeneratePayload?.(basePercent) ??
+      config.generateOnRead.getExistingWhere?.(basePercent) ??
+      {};
+
+    ensureMeta = await processFormulaByDate({
+      targetDate,
+      formulaModel: config.model,
+      formulaDateField: config.dateField,
+      existingWhere: config.generateOnRead.getExistingWhere?.(basePercent) ?? {},
+      generatePayload: params,
+      generateFunction: config.generateOnRead.generate
+    });
+
+    if (!ensureMeta.success) {
+      return ensureMeta;
+    }
+  }
+
+  const result = await getFormulaRecordsService(formulaType, {
+    currentPage,
+    itemsPerPage,
+    searchTerm,
+    symbol,
+    targetDate: ensureMeta?.trade_date || targetDate,
+    basePercent
+  });
+
+  return {
+    ...result,
+    formula_type: formulaType,
+    source: ensureMeta?.source,
+    calculated: ensureMeta?.calculated,
+    requested_date: ensureMeta?.requested_date || targetDate
+  };
+};
+
+export const getFormulaMetaService = async (
+  formulaType,
+  {
+    resource = 'dates',
+    targetDate = null,
+    searchTerm = '',
+    basePercent = 2,
+    limit = 300
+  } = {}
+) => {
+  if (resource === 'companies') {
+    return getFormulaCompaniesService(formulaType, {
+      targetDate,
+      searchTerm,
+      basePercent,
+      limit
+    });
+  }
+
+  return getFormulaAvailableDatesService(formulaType, { basePercent });
 };

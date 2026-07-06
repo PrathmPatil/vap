@@ -182,7 +182,8 @@ class NseIndicesService:
     # --------------------------------------------------------
     # PUBLIC SAVE METHOD
     # --------------------------------------------------------
-    def save(self, table_name: str, data, db_name="nse_indices"):
+    def save(self, table_name: str, data, db_name=None):
+        db_name = db_name or config.DB_STOCK_MARKET
         self.ensure_database_exists(db_name)
 
         try:

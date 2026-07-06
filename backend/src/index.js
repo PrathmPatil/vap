@@ -32,9 +32,12 @@ import finnhubRoute from './routes/finnhubRoutes.js';
 import formulaRoutes from './routes/formulaRoutes.js';
 import userRoutes from './routes/userRoutes.js';
 import holidayRoutes from './routes/marketHolidayRoutes.js';
+import syncRoutes from './routes/syncRoutes.js';
 import logRoutes from './routes/cronLogRoutes.js';
 import cronManagementRoutes from './routes/cronManagementRoutes.js';
 import { startFormulaCron } from './crons/formulaCron.js';
+import { ensureMasterUser } from './config/ensureMasterUser.js';
+import { bootstrapReferenceData } from './services/pythonSyncService.js';
 
 import {
   sequelizeStockMarket,
@@ -43,13 +46,25 @@ import {
   sequelizeScreener,
   sequelizeIPO,
   sequelizeAnnouncement,
-  sequelizeFormula,
+  MainboardData,
+  SmeData,
   StrongBullishCandleModel,
   RallyAttemptDayModel,
   FollowThroughDayModel,
   BuyDayModel,
   VolumeBreakoutModel,
   TweezerBottomModel,
+  BearishCandleModel,
+  GapUpDayModel,
+  GapDownDayModel,
+  FiftyTwoWeekHighModel,
+  TopGainerDayModel,
+  BandHit52wModel,
+  TopLoserDayModel,
+  FiftyTwoWeekLowModel,
+  DailyMoverUpModel,
+  DailyMoverDownModel,
+  MarketHolidayModel,
   CronLogModel
 } from './models/index.js';
 
@@ -79,7 +94,7 @@ app.use(express.urlencoded({ limit: '20mb', extended: true }));
 app.use(morgan('combined', { stream: logStream }));
 // app.use(passport.initialize());
 // DB connections
-(async () => {
+export const startServer = async () => {
   try {
     console.log('Starting DB connections...');
 
@@ -114,12 +129,16 @@ app.use(morgan('combined', { stream: logStream }));
     // logger.info('✅ bse_data database synced.');
 
     // ============================================================
-    // AUTHENTICATE & SYNC FORMULA DATABASE
+    // AUTHENTICATE & SYNC FORMULA TABLES (stock market DB)
     // ============================================================
     try {
-      await sequelizeFormula.authenticate();
-      logger.info('✅ Connected to formula_data_fastapi database.');
-      console.log('✅ Connected to formula_data_fastapi database.');
+      await sequelizeStockMarket.authenticate();
+      logger.info(
+        `✅ Connected to stock market database (${process.env.STOCK_DB_NAME}).`
+      );
+      console.log(
+        `✅ Connected to stock market database (${process.env.STOCK_DB_NAME}).`
+      );
 
       await RallyAttemptDayModel.sync();
       logger.info('✅ RallyAttemptDay table synced.');
@@ -145,12 +164,54 @@ app.use(morgan('combined', { stream: logStream }));
       logger.info('✅ TweezerBottom table synced.');
       console.log('✅ TweezerBottom table synced.');
 
+      await BearishCandleModel.sync();
+      await GapUpDayModel.sync();
+      await GapDownDayModel.sync();
+      await FiftyTwoWeekHighModel.sync();
+      await TopGainerDayModel.sync();
+      await BandHit52wModel.sync();
+      await TopLoserDayModel.sync();
+      await FiftyTwoWeekLowModel.sync();
+      await DailyMoverUpModel.sync();
+      await DailyMoverDownModel.sync();
+      logger.info('✅ Extended formula tables synced.');
+      console.log('✅ Extended formula tables synced.');
+
       await CronLogModel.sync();
       logger.info('✅ CronLog table synced.');
       console.log('✅ CronLog table synced.');
 
-      logger.info('✅ formula_data_fastapi database fully synced.');
-      console.log('✅ formula_data_fastapi database fully synced.');
+      await MainboardData.sync();
+      logger.info('✅ MainboardData table synced.');
+      console.log('✅ MainboardData table synced.');
+
+      await SmeData.sync();
+      logger.info('✅ SmeData table synced.');
+      console.log('✅ SmeData table synced.');
+
+      await MarketHolidayModel.sync();
+      logger.info('✅ MarketHoliday table synced.');
+      console.log('✅ MarketHoliday table synced.');
+
+      const [holidayCount, mainboardCount, smeCount] = await Promise.all([
+        MarketHolidayModel.count({ where: { is_active: 1 } }),
+        MainboardData.count(),
+        SmeData.count()
+      ]);
+
+      if (holidayCount === 0 || mainboardCount === 0 || smeCount === 0) {
+        logger.info(
+          `📥 Bootstrapping reference data (holidays=${holidayCount}, mainboard=${mainboardCount}, sme=${smeCount})`
+        );
+        bootstrapReferenceData().catch((syncError) => {
+          logger.warn(`⚠️ Reference data bootstrap failed: ${syncError.message}`);
+        });
+      }
+
+      await ensureMasterUser();
+
+      logger.info('✅ Formula tables synced in stock market database.');
+      console.log('✅ Formula tables synced in stock market database.');
     } catch (formulaDbError) {
       logger.error('⚠️ Formula database connection failed', {
         message: formulaDbError.message,
@@ -185,7 +246,7 @@ app.use(morgan('combined', { stream: logStream }));
 
       console.error('====================================\n');
     }
-    
+
     // ============================================================
     // START FORMULA CRON JOB
     // ============================================================
@@ -203,7 +264,7 @@ app.use(morgan('combined', { stream: logStream }));
     console.error('❌ Database connection or sync failed:', error);
     process.exit(1);
   }
-})();
+};
 
 // Routes
 app.use('/vap/stocks', stockDataRoutes);
@@ -220,6 +281,7 @@ app.use('/vap/finnhub', finnhubRoute);
 app.use('/vap/formula', formulaRoutes);
 app.use('/vap/user', userRoutes);
 app.use('/vap/holiday', holidayRoutes);
+app.use('/vap/sync', syncRoutes);
 app.use('/vap/logs', logRoutes);
 app.use('/vap/cron-management', cronManagementRoutes);
 
@@ -232,5 +294,9 @@ app.use(appErrorHandler);
 app.use(errorHandler);
 app.use(genericErrorHandler);
 app.use(notFound);
+
+if (process.env.NODE_ENV !== 'test') {
+  startServer();
+}
 
 export default app;

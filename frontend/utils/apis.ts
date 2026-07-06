@@ -9,7 +9,11 @@ export interface ApiOptions {
 }
 
 const getApiBaseUrl = () => {
-  const baseUrl = process.env.NEXT_PUBLIC_API_URL?.trim();
+  const baseUrl =
+    process.env.NEXT_PUBLIC_API_URL?.trim() ||
+    (process.env.NEXT_PUBLIC_BACKEND_API?.trim()
+      ? `${process.env.NEXT_PUBLIC_BACKEND_API.trim().replace(/\/+$/, '')}/vap`
+      : '');
 
   if (!baseUrl) {
     throw new Error('NEXT_PUBLIC_API_URL is not configured');

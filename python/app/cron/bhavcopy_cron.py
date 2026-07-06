@@ -5,7 +5,11 @@ from apscheduler.triggers.cron import CronTrigger
 from datetime import timezone, timedelta, datetime
 from typing import Optional, List, Dict
 from app.services.bhavcopy_service import bhavcopy_service
-from app.services.backend_formula_service import trigger_backend_formula_refresh
+from app.services.backend_formula_service import (
+    trigger_backend_formula_refresh,
+    trigger_backend_formula_refresh_for_dates,
+    extract_trade_dates_from_bhavcopy_results,
+)
 from app.services.cron_logger_service import cron_logger
 from app.utils.cron_decorator import CronJobContext
 
@@ -14,23 +18,75 @@ IST = timezone(timedelta(hours=5, minutes=30))
 scheduler = BackgroundScheduler(timezone=IST)
 
 
-def refresh_formula_cache(trigger_source: str, context: Optional[CronJobContext] = None):
-    """Refresh the backend formula cache after bhavcopy ingestion completes."""
-    result = trigger_backend_formula_refresh(trigger_source)
+def should_run_formulas(bhavcopy_result: Dict) -> bool:
+    """Run formulas when PR bhavcopy exists for the trade date."""
+    if bhavcopy_result.get("status") != "SUCCESS":
+        return False
+
+    pr_status = (bhavcopy_result.get("data") or {}).get("pr", {}).get("status")
+    if pr_status in ("SUCCESS", "ALREADY_EXISTS"):
+        return True
+
+    return bhavcopy_result.get("files_processed", 0) > 0
+
+
+def refresh_formula_cache(
+    trigger_source: str,
+    context: Optional[CronJobContext] = None,
+    trade_date: Optional[str] = None,
+):
+    """Refresh formula tables in formula DB for a PR trade date."""
+    result = trigger_backend_formula_refresh(trigger_source, trade_date=trade_date)
 
     if context is not None:
-        context.set_data(formula_refresh=result)
+        context.set_data(formula_refresh=result, formula_trade_date=trade_date)
 
     if result.get("success"):
         logger.info(
-            f"✅ Formula cache refreshed from {trigger_source} in {result.get('duration_seconds')}s"
+            "Formula engine completed from %s for %s in %ss",
+            trigger_source,
+            trade_date or "latest",
+            result.get("duration_seconds"),
         )
     else:
         logger.warning(
-            f"⚠ Formula cache refresh from {trigger_source} failed: {result.get('error') or result.get('response')}"
+            "Formula engine failed from %s for %s: %s",
+            trigger_source,
+            trade_date or "latest",
+            result.get("error") or result.get("response"),
         )
 
     return result
+
+
+def run_formulas_for_bhavcopy_results(
+    trigger_source: str,
+    context: Optional[CronJobContext],
+    primary_result: Dict,
+    backfill_results: Optional[List[Dict]] = None,
+):
+    trade_dates = []
+
+    if should_run_formulas(primary_result) and primary_result.get("date"):
+        trade_dates.append(primary_result["date"])
+
+    if backfill_results:
+        trade_dates.extend(extract_trade_dates_from_bhavcopy_results(backfill_results))
+
+    trade_dates = sorted({date for date in trade_dates if date})
+    if not trade_dates:
+        logger.info("Skipping formula engine: no new PR bhavcopy dates to process")
+        return None
+
+    if len(trade_dates) == 1:
+        return refresh_formula_cache(trigger_source, context, trade_date=trade_dates[0])
+
+    formula_results = trigger_backend_formula_refresh_for_dates(trigger_source, trade_dates)
+
+    if context is not None:
+        context.set_data(formula_refresh=formula_results, formula_trade_dates=trade_dates)
+
+    return formula_results
 
 
 def bhavcopy_job():
@@ -46,8 +102,8 @@ def bhavcopy_job():
             context.add_record(processed=files_processed)
             context.set_data(files_processed=files_processed, result=result)
             logger.info(f"✅ Successfully processed {files_processed} files")
-            
-            # Check for missing dates
+
+            backfill_results = None
             if files_processed > 0:
                 end_date = datetime.now().date()
                 start_date = end_date - timedelta(days=7)
@@ -55,10 +111,16 @@ def bhavcopy_job():
                     start_date.strftime("%Y-%m-%d"),
                     end_date.strftime("%Y-%m-%d")
                 )
+                backfill_results = missing_result.get("results", [])
                 context.set_data(missing_dates=missing_result.get("missing_dates", 0))
                 context.set_data(missing_duration_seconds=missing_result.get("duration_seconds"))
 
-            refresh_formula_cache("bhavcopy_daily", context)
+            run_formulas_for_bhavcopy_results(
+                "bhavcopy_daily",
+                context,
+                primary_result=result,
+                backfill_results=backfill_results,
+            )
                 
         elif result.get("status") == "NOT_FOUND":
             logger.warning(f"⚠ Bhavcopy not yet available for today")
@@ -95,21 +157,25 @@ def fetch_missing_bhavcopy_job():
         )
 
         if processed > 0:
-            refresh_formula_cache("bhavcopy_missing", context)
+            run_formulas_for_bhavcopy_results(
+                "bhavcopy_missing",
+                context,
+                primary_result={"status": "SUCCESS", "date": None, "data": {}},
+                backfill_results=result.get("results", []),
+            )
         
         logger.info(f"✅ Missing data check complete: {missing} missing, {processed} processed")
 
 
 def fetch_today_bhavcopy_cron():
-    """Start Bhavcopy cron scheduler"""
+    """Start Bhavcopy cron scheduler - immediate run + daily schedule."""
     if scheduler.running:
         logger.warning("Bhavcopy scheduler already running")
         return
 
-    # Run once immediately
+    logger.info("⏳ Running bhavcopy_job immediately (fetching latest trade date)...")
     bhavcopy_job()
 
-    # Run daily at 6:00 PM IST
     scheduler.add_job(
         bhavcopy_job,
         CronTrigger(hour=18, minute=0),
@@ -117,10 +183,9 @@ def fetch_today_bhavcopy_cron():
         replace_existing=True,
     )
     
-    # Run missing data check every Sunday at 2:00 AM
     scheduler.add_job(
         fetch_missing_bhavcopy_job,
-        CronTrigger(day_of_week='sun', hour=2, minute=0),
+        CronTrigger(day_of_week="sun", hour=2, minute=0),
         id="bhavcopy_missing_job",
         replace_existing=True,
     )
@@ -254,7 +319,7 @@ def get_bhavcopy_status(date_str: Optional[str] = None):
             date_obj = datetime.now()
         
         # Check main equity table
-        exists = bhavcopy_service.is_date_processed("eq", date_obj)
+        exists = bhavcopy_service.is_trade_date_processed(date_obj)
         
         return {
             "date": str(date_obj.date()),
@@ -277,5 +342,4 @@ def generate_bhavcopy_url(date_str: str) -> str:
         URL string
     """
     date_obj = datetime.strptime(date_str, "%Y-%m-%d")
-    date_code = date_obj.strftime("%d%m%y")
-    return f"https://www.nseindia.com/api/archives/csv/BhavCopy_CM_{date_code}_FTP.zip"
+    return bhavcopy_service.build_bhavcopy_url(date_obj)

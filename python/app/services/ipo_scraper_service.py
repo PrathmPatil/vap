@@ -130,14 +130,39 @@ class IpoScraperService:
         report_id = self.resolve_report_id(report_type)
         raw = self.fetch_data(report_id, month, year, fy)
 
-        rows = raw.get("reportTableData", [])
+        rows = raw.get("reportTableData", []) if isinstance(raw, dict) else []
         normalized = [normalize_row(r) for r in rows]
 
         if not normalized:
+            from app.services.nse_ipo_service import nse_ipo_service
+
+            grouped = nse_ipo_service.collect_issues()
+            table_rows = grouped.get("mainboard" if report_type == "mainboard" else "sme", [])
+            if not table_rows:
+                return {
+                    "status": "empty",
+                    "report_type": report_type,
+                    "source": "chittorgarh+nse",
+                    "records_inserted": 0,
+                    "raw_records": 0,
+                }
+
+            conn = db_manager.get_connection(config.DB_IPO)
+            table_name = f"{report_type}_data"
+            try:
+                with conn.cursor(pymysql.cursors.DictCursor) as cursor:
+                    cursor.execute(f"DELETE FROM `{table_name}`")
+                    count = insert_rows(table_name, table_rows, cursor)
+                    conn.commit()
+            finally:
+                conn.close()
+
             return {
-                "status": "empty",
+                "status": "success",
                 "report_type": report_type,
-                "raw": raw
+                "source": "NSE API",
+                "records_inserted": count,
+                "raw_records": len(table_rows),
             }
 
         conn = db_manager.get_connection(config.DB_IPO)

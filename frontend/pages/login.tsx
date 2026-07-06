@@ -2,6 +2,7 @@
 import AuthForm from "@/components/AuthForm";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, TrendingUp, Sparkles } from "lucide-react";
+import Link from "next/link";
 
 export default function LoginPage() {
   return (
@@ -59,13 +60,15 @@ export default function LoginPage() {
               </span>
             </div>
             <AuthForm />
-            <Button 
-              variant="ghost" 
-              onClick={() => window.location.replace("/dashboard")} 
+            <Button
+              variant="ghost"
+              asChild
               className="mt-2 text-sm text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50 group transition-all"
             >
-              Go to Dashboard
-              <ArrowRight className="ml-1 w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
+              <Link href="/">
+                Go to Dashboard
+                <ArrowRight className="ml-1 w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
+              </Link>
             </Button>
           </div>
         </div>

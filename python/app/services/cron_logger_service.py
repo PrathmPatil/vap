@@ -1,5 +1,6 @@
 import logging
-from datetime import datetime
+from datetime import datetime, date
+from decimal import Decimal
 from typing import Dict, Any, Optional
 import json
 import traceback
@@ -8,6 +9,21 @@ from app.config import config
 import pymysql
 
 logger = logging.getLogger(__name__)
+
+
+def _json_safe(value: Any) -> Any:
+    """Recursively convert values to JSON-serializable types."""
+    if value is None or isinstance(value, (str, int, float, bool)):
+        return value
+    if isinstance(value, (datetime, date)):
+        return value.isoformat()
+    if isinstance(value, Decimal):
+        return float(value)
+    if isinstance(value, dict):
+        return {str(k): _json_safe(v) for k, v in value.items()}
+    if isinstance(value, (list, tuple, set)):
+        return [_json_safe(item) for item in value]
+    return str(value)
 
 
 class CronLoggerService:
@@ -107,7 +123,9 @@ class CronLoggerService:
             VALUES (%s, %s, %s, 'RUNNING', %s)
             """
             
-            additional_json = json.dumps(additional_data) if additional_data else None
+            additional_json = (
+                json.dumps(_json_safe(additional_data)) if additional_data else None
+            )
             
             cursor.execute(query, (
                 job_name,
@@ -176,7 +194,9 @@ class CronLoggerService:
                     except:
                         pass
             
-            additional_json = json.dumps(additional_data) if additional_data else None
+            additional_json = (
+                json.dumps(_json_safe(additional_data)) if additional_data else None
+            )
             
             query = """
             UPDATE cron_job_logs 

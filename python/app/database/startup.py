@@ -27,9 +27,8 @@ def wait_for_mysql(max_retries=30, delay=2):
 def ensure_databases():
     wait_for_mysql()
 
-    # ✅ Ensure ALL databases
+    # ✅ Ensure only the two required databases
     db_manager.ensure_database(config.DB_BHAVCOPY)
     db_manager.ensure_database(config.DB_STOCK_MARKET)
-    db_manager.ensure_database(config.DB_NEWS)
 
     print("✅ All databases ensured")

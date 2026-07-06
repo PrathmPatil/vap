@@ -1,7 +1,7 @@
 import logging
 import os
 import time
-from typing import Any, Dict
+from typing import Any, Dict, Iterable, List, Optional
 
 import requests
 
@@ -11,53 +11,101 @@ DEFAULT_BACKEND_BASE_URL = os.getenv("BACKEND_BASE_URL", "http://localhost:8000/
 FORMULA_REFRESH_PATH = "/formula/run-formula-engine"
 
 
-def trigger_backend_formula_refresh(trigger_source: str, timeout_seconds: int = 900) -> Dict[str, Any]:
-    """Trigger the backend formula engine so formula tables are ready before the UI reads them."""
+def trigger_backend_formula_refresh(
+    trigger_source: str,
+    trade_date: Optional[str] = None,
+    timeout_seconds: int = 900,
+) -> Dict[str, Any]:
+    """Run backend formula engine for a PR bhavcopy trade date."""
     url = f"{DEFAULT_BACKEND_BASE_URL}{FORMULA_REFRESH_PATH}"
     started_at = time.perf_counter()
+    payload: Dict[str, Any] = {"trigger_source": trigger_source}
+
+    if trade_date:
+        payload["trade_date"] = trade_date
 
     try:
-        logger.info(f"🔄 Triggering backend formula refresh from {trigger_source}")
-        response = requests.post(
-            url,
-            json={"trigger_source": trigger_source},
-            timeout=timeout_seconds,
+        logger.info(
+            "Triggering backend formula refresh from %s for trade_date=%s",
+            trigger_source,
+            trade_date or "latest",
         )
-
+        response = requests.post(url, json=payload, timeout=timeout_seconds)
         duration_seconds = round(time.perf_counter() - started_at, 3)
 
         try:
-            payload = response.json()
+            body = response.json()
         except ValueError:
-            payload = {"raw": response.text}
+            body = {"raw": response.text}
 
         if response.ok:
             logger.info(
-                f"✅ Backend formula refresh finished in {duration_seconds}s (status={response.status_code})"
+                "Backend formula refresh finished in %ss (status=%s, trade_date=%s)",
+                duration_seconds,
+                response.status_code,
+                body.get("trade_date"),
             )
             return {
                 "success": True,
                 "status_code": response.status_code,
                 "duration_seconds": duration_seconds,
-                "response": payload,
+                "response": body,
             }
 
         logger.warning(
-            f"⚠ Backend formula refresh returned {response.status_code} after {duration_seconds}s"
+            "Backend formula refresh returned %s after %ss",
+            response.status_code,
+            duration_seconds,
         )
         return {
             "success": False,
             "status_code": response.status_code,
             "duration_seconds": duration_seconds,
-            "response": payload,
+            "response": body,
         }
     except Exception as error:
         duration_seconds = round(time.perf_counter() - started_at, 3)
         logger.exception(
-            f"❌ Backend formula refresh failed after {duration_seconds}s: {error}"
+            "Backend formula refresh failed after %ss: %s",
+            duration_seconds,
+            error,
         )
         return {
             "success": False,
             "duration_seconds": duration_seconds,
             "error": str(error),
         }
+
+
+def trigger_backend_formula_refresh_for_dates(
+    trigger_source: str,
+    trade_dates: Iterable[str],
+) -> List[Dict[str, Any]]:
+    """Run formulas in chronological order for multiple bhavcopy dates."""
+    results: List[Dict[str, Any]] = []
+
+    for trade_date in sorted(set(trade_dates)):
+        result = trigger_backend_formula_refresh(trigger_source, trade_date=trade_date)
+        result["trade_date"] = trade_date
+        results.append(result)
+
+    return results
+
+
+def extract_trade_dates_from_bhavcopy_results(results: List[Dict[str, Any]]) -> List[str]:
+    """Collect successful bhavcopy trade dates that stored PR data."""
+    trade_dates: List[str] = []
+
+    for item in results or []:
+        if item.get("status") != "SUCCESS":
+            continue
+
+        data = item.get("data") or {}
+        if data.get("pr", {}).get("status") not in ("SUCCESS", "ALREADY_EXISTS"):
+            continue
+
+        trade_date = item.get("date")
+        if trade_date:
+            trade_dates.append(trade_date)
+
+    return trade_dates

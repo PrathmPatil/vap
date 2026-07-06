@@ -34,6 +34,11 @@ export interface IpoData {
 
   Applications?: string;
   Total_Issue_Amount_Incl_Firm_reservations_Rs_cr_?: string;
+  issue_status?: string;
+  price_band?: string;
+  issue_size_shares?: string;
+  lot_size?: string;
+  listing_date?: string;
 }
 
 export interface SortConfig {
@@ -62,14 +67,24 @@ export interface IpoItem {
 export interface IpoResponse2 {
   success: boolean;
   data: IpoItem[];
+  total?: number;
   totalRecords?: number;
   message?: string;
 }
 
 type IpoType = "mainboard_data" | "sme_data";
+type IpoStatusFilter = "all" | "ongoing" | "upcoming" | "past";
+
+const STATUS_TABS: { value: IpoStatusFilter; label: string }[] = [
+  { value: "all", label: "All" },
+  { value: "ongoing", label: "Ongoing" },
+  { value: "upcoming", label: "Upcoming" },
+  { value: "past", label: "Past" },
+];
 
 const Index = () => {
   const [ipoType, setIpoType] = useState<IpoType>("mainboard_data");
+  const [statusFilter, setStatusFilter] = useState<IpoStatusFilter>("all");
 
   const [ipoData, setIpoData] = useState<{
     mainboard_data: IpoResponse;
@@ -126,10 +141,15 @@ const Index = () => {
     setError(null);
 
     try {
-      const response = await getIpoData(type, currentPage, recordsPerPage);
+      const response = await getIpoData(
+        type,
+        currentPage,
+        recordsPerPage,
+        statusFilter,
+      );
 
       if (response.success) {
-        const total = response.totalRecords || 0;
+        const total = response.totalRecords ?? response.total ?? 0;
         const safeResponse: IpoResponse = {
           success: response.success,
           total: total,
@@ -213,7 +233,7 @@ const Index = () => {
 
   useEffect(() => {
     fetchIpoData(ipoType);
-  }, [ipoType, currentPage, recordsPerPage]);
+  }, [ipoType, currentPage, recordsPerPage, statusFilter]);
 
   const handleSort = (key: keyof IpoData) => {
     setSortConfig((current) => ({
@@ -221,6 +241,11 @@ const Index = () => {
       direction:
         current.key === key && current.direction === "asc" ? "desc" : "asc",
     }));
+  };
+
+  const handleStatusChange = (value: string) => {
+    setStatusFilter(value as IpoStatusFilter);
+    setCurrentPage(1);
   };
 
   const handleTabChange = (value: string) => {
@@ -276,7 +301,7 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
-      {/* <Navigation /> */}
+      <Navigation />
 
       <main className="container mx-auto px-4 py-8 space-y-6">
         {/* Header */}
@@ -287,7 +312,7 @@ const Index = () => {
             </h2>
 
             <p className="text-sm text-gray-500">
-              Browse IPO subscription and listing data
+              Upcoming, ongoing, and recent IPO issues from NSE
             </p>
           </div>
 
@@ -298,6 +323,16 @@ const Index = () => {
             </span>
           </div>
         </div>
+
+        <Tabs value={statusFilter} onValueChange={handleStatusChange}>
+          <TabsList className="grid w-full grid-cols-4">
+            {STATUS_TABS.map((tab) => (
+              <TabsTrigger key={tab.value} value={tab.value}>
+                {tab.label}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        </Tabs>
 
         {/* Tabs */}
         <Tabs value={ipoType} onValueChange={handleTabChange}>

@@ -60,6 +60,13 @@ function Navigation() {
               </Button>
             </Link> */}
 
+            <Link href="/ipo">
+              <Button variant="ghost">
+                <FileText className="h-4 w-4 mr-2" />
+                IPO
+              </Button>
+            </Link>
+
             {role === "admin" && (
               <Link href="/bhavcopy">
                 <Button variant="ghost">
@@ -87,12 +94,14 @@ function Navigation() {
               </Link>
             )}
 
-            {<Link href="/master">
+            {(role === "master" || role === "admin") && (
+              <Link href="/master">
                 <Button variant="ghost">
                   <Calculator className="h-4 w-4 mr-2" />
                   Logs
                 </Button>
-              </Link>}
+              </Link>
+            )}
 
             {/* Auth Button */}
             {!isAuthenticated ? (

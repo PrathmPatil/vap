@@ -68,7 +68,7 @@ export default function AuthForm() {
         return undefined;
       case 'password':
         if (!form.password) return "Password is required";
-        if (!isPasswordValid) return "Please meet all password requirements";
+        if (!isLogin && !isPasswordValid) return "Please meet all password requirements";
         return undefined;
       case 'phone':
         if (!isLogin && !form.phoneNumber) return "Phone number is required";

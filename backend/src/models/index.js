@@ -65,17 +65,7 @@ export const sequelizeYFinanceDB = new Sequelize(
   }
 );
 
-export const sequelizeIPO = new Sequelize(
-  process.env.IPO_DB_NAME,
-  baseDBConfig.user,
-  baseDBConfig.password,
-  {
-    host: baseDBConfig.host,
-    port: baseDBConfig.port,
-    dialect: 'mysql',
-    logging: false,
-  }
-);
+export const sequelizeIPO = sequelizeStockMarket;
 
 export const sequelizeAnnouncement = new Sequelize(
   process.env.ANNOUNCEMENT_DB_NAME,
@@ -101,18 +91,8 @@ export const sequelizeNseDynamic = new Sequelize(
   }
 );
 
-// FORMULA_DB_NAME
-export const sequelizeFormula = new Sequelize(
-  process.env.FORMULA_DB_NAME,
-  baseDBConfig.user,
-  baseDBConfig.password,
-  {
-    host: baseDBConfig.host,
-    port: baseDBConfig.port,
-    dialect: 'mysql',
-    logging: false,
-  }
-);
+// Formula tables are stored in the consolidated stock market database.
+export const sequelizeFormula = sequelizeStockMarket;
 
 /* ---------------------------------------------
    EXPORT DATATYPES (FOR MODELS)
@@ -166,7 +146,24 @@ import Announcements from './announcements_model.js';
 import NseDynamic from './ingestModel.js';
 import CronJobLog from './cronLog.js';
 import MarketHoliday from './marketHoliday.js';
-import { BuyDay, FollowThroughDay, RallyAttemptDay, StrongBullishCandle, TweezerBottom, VolumeBreakout } from './formulaModel.js';
+import {
+  BuyDay,
+  FollowThroughDay,
+  RallyAttemptDay,
+  StrongBullishCandle,
+  TweezerBottom,
+  VolumeBreakout,
+  BearishCandle,
+  GapUpDay,
+  GapDownDay,
+  FiftyTwoWeekHigh,
+  TopGainerDay,
+  BandHit52w,
+  TopLoserDay,
+  FiftyTwoWeekLow,
+  DailyMoverUp,
+  DailyMoverDown
+} from './formulaModel.js';
 // Watchlist
 import WatchlistModel from './watchlist.js';
 
@@ -208,9 +205,9 @@ const Shareholding = ShareholdingModel(sequelizeScreener, DataTypes);
 const UnknownSection = UnknownSectionModel(sequelizeScreener, DataTypes);
 const YCompanies = YFinanceCompaniesModel(sequelizeYFinanceDB, DataTypes);
 
-// IPO
-const MainboardData = MainboardDataModel(sequelizeIPO, DataTypes);
-const SmeData = SmeDataModel(sequelizeIPO, DataTypes);
+// IPO (consolidated into stock market DB)
+const MainboardData = MainboardDataModel(sequelizeStockMarket, DataTypes);
+const SmeData = SmeDataModel(sequelizeStockMarket, DataTypes);
 
 // Announcement
 const AnnouncementsModel = Announcements(sequelizeAnnouncement, DataTypes);
@@ -218,14 +215,23 @@ const AnnouncementsModel = Announcements(sequelizeAnnouncement, DataTypes);
 // NSE Dynamic
 const nseModel = NseDynamic(sequelizeNseDynamic, DataTypes);
 
-// Formula
-const RallyAttemptDayModel = RallyAttemptDay(sequelizeFormula, DataTypes);
-const FollowThroughDayModel = FollowThroughDay(sequelizeFormula, DataTypes);
-const BuyDayModel = BuyDay(sequelizeFormula, DataTypes);
-const StrongBullishCandleModel = StrongBullishCandle(sequelizeFormula, DataTypes);
-const VolumeBreakoutModel = VolumeBreakout(sequelizeFormula, DataTypes);
-const TweezerBottomModel = TweezerBottom(sequelizeFormula, DataTypes);
-
+// Formula (consolidated into stock market DB)
+const RallyAttemptDayModel = RallyAttemptDay(sequelizeStockMarket, DataTypes);
+const FollowThroughDayModel = FollowThroughDay(sequelizeStockMarket, DataTypes);
+const BuyDayModel = BuyDay(sequelizeStockMarket, DataTypes);
+const StrongBullishCandleModel = StrongBullishCandle(sequelizeStockMarket, DataTypes);
+const VolumeBreakoutModel = VolumeBreakout(sequelizeStockMarket, DataTypes);
+const TweezerBottomModel = TweezerBottom(sequelizeStockMarket, DataTypes);
+const BearishCandleModel = BearishCandle(sequelizeStockMarket, DataTypes);
+const GapUpDayModel = GapUpDay(sequelizeStockMarket, DataTypes);
+const GapDownDayModel = GapDownDay(sequelizeStockMarket, DataTypes);
+const FiftyTwoWeekHighModel = FiftyTwoWeekHigh(sequelizeStockMarket, DataTypes);
+const TopGainerDayModel = TopGainerDay(sequelizeStockMarket, DataTypes);
+const BandHit52wModel = BandHit52w(sequelizeStockMarket, DataTypes);
+const TopLoserDayModel = TopLoserDay(sequelizeStockMarket, DataTypes);
+const FiftyTwoWeekLowModel = FiftyTwoWeekLow(sequelizeStockMarket, DataTypes);
+const DailyMoverUpModel = DailyMoverUp(sequelizeStockMarket, DataTypes);
+const DailyMoverDownModel = DailyMoverDown(sequelizeStockMarket, DataTypes);
 
 // logs
 const CronLogModel = CronJobLog(sequelizeStockMarket, DataTypes);
@@ -277,8 +283,23 @@ export {
   CronLogModel,
   MarketHolidayModel,
 
-  RallyAttemptDayModel, FollowThroughDayModel, BuyDayModel, StrongBullishCandleModel, VolumeBreakoutModel, TweezerBottomModel
-  , Watchlist
+  RallyAttemptDayModel,
+  FollowThroughDayModel,
+  BuyDayModel,
+  StrongBullishCandleModel,
+  VolumeBreakoutModel,
+  TweezerBottomModel,
+  BearishCandleModel,
+  GapUpDayModel,
+  GapDownDayModel,
+  FiftyTwoWeekHighModel,
+  TopGainerDayModel,
+  BandHit52wModel,
+  TopLoserDayModel,
+  FiftyTwoWeekLowModel,
+  DailyMoverUpModel,
+  DailyMoverDownModel,
+  Watchlist
 };
 
 /* Mapping for dynamic routes */
