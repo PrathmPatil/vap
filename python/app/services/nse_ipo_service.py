@@ -39,6 +39,8 @@ IPO_TABLE_COLUMNS = [
     "issue_size_shares",
     "lot_size",
     "listing_date",
+    "data_source",
+    "security_type",
 ]
 
 
@@ -53,6 +55,22 @@ def ensure_ipo_table(table_name: str, cursor):
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
         """
     )
+
+    for column in IPO_TABLE_COLUMNS:
+        cursor.execute(
+            f"""
+            SELECT COUNT(*) AS cnt
+            FROM information_schema.columns
+            WHERE table_schema = DATABASE()
+              AND table_name = %s
+              AND column_name = %s
+            """,
+            (table_name, column),
+        )
+        if cursor.fetchone()["cnt"] == 0:
+            cursor.execute(
+                f"ALTER TABLE `{table_name}` ADD COLUMN `{column}` TEXT NULL"
+            )
 
 
 def insert_rows(table_name: str, rows: list, cursor):
@@ -118,6 +136,22 @@ class NseIpoService:
         except (TypeError, ValueError):
             return str(value)
 
+    @classmethod
+    def _subscription_times(cls, item: Dict) -> Optional[str]:
+        times = cls._format_times(item.get("noOfTime"))
+        if times and times != "0.00":
+            return times
+
+        try:
+            offered = float(str(item.get("noOfSharesOffered") or "0").replace(",", ""))
+            bid = float(str(item.get("noOfsharesBid") or "0").replace(",", ""))
+            if offered > 0 and bid > 0:
+                return f"{bid / offered:.2f}"
+        except (TypeError, ValueError):
+            pass
+
+        return times
+
     @staticmethod
     def _parse_issue_date(value: Optional[str]) -> Optional[datetime]:
         if not value:
@@ -171,7 +205,7 @@ class NseIpoService:
         for item in bid_details or []:
             sr_no = str(item.get("srNo") or "").strip()
             category = str(item.get("category") or "").lower()
-            times = self._format_times(item.get("noOfTime"))
+            times = self._subscription_times(item)
             if not times:
                 continue
 
@@ -210,6 +244,7 @@ class NseIpoService:
         listing_date: Optional[str] = None,
         issue_amount_cr: Optional[str] = None,
         bid_details: Optional[List[Dict]] = None,
+        security_type: Optional[str] = None,
     ) -> Dict:
         row = {
             "Company_Name": company_name,
@@ -224,6 +259,8 @@ class NseIpoService:
             "lot_size": lot_size,
             "listing_date": listing_date,
             "Total_Issue_Amount_Incl_Firm_reservations_Rs_cr_": issue_amount_cr,
+            "data_source": "nse",
+            "security_type": security_type,
         }
         row.update(self._map_bid_details(bid_details or []))
         return {column: row.get(column) for column in IPO_TABLE_COLUMNS}
@@ -263,7 +300,7 @@ class NseIpoService:
             return "Active"
         return "Closed"
 
-    def collect_issues(self, past_days: int = 120) -> Dict[str, List[Dict]]:
+    def collect_issues(self, past_days: int = 0) -> Dict[str, List[Dict]]:
         self._session_ready = False
 
         upcoming = self._get_json("/api/all-upcoming-issues?category=ipo")
@@ -277,41 +314,70 @@ class NseIpoService:
         if not isinstance(past, list):
             past = []
 
-        cutoff = datetime.now() - timedelta(days=past_days)
+        cutoff = None
+        if past_days > 0:
+            cutoff = datetime.now() - timedelta(days=past_days)
+
         merged: Dict[str, Dict] = {}
 
-        def add_live_issue(item: Dict, default_status: str = "Forthcoming") -> None:
+        def add_issue(
+            item: Dict,
+            *,
+            default_status: str,
+            fetch_detail: bool = False,
+            listing_date: Optional[str] = None,
+        ) -> None:
             symbol = str(item.get("symbol") or "").strip()
             if not symbol:
                 return
 
             status = str(item.get("status") or default_status).strip()
+            if status.lower() == "forthcoming":
+                status = "Forthcoming"
+            elif status.lower() == "active":
+                status = "Active"
+
             merged[symbol] = {
-                "company_name": item.get("companyName") or symbol,
+                "company_name": item.get("companyName") or item.get("company") or symbol,
                 "symbol": symbol,
-                "open_date": item.get("issueStartDate"),
-                "close_date": item.get("issueEndDate"),
-                "price_band": item.get("issuePrice") or item.get("priceBand"),
-                "issue_size_shares": item.get("issueSize"),
+                "open_date": item.get("issueStartDate") or item.get("ipoStartDate"),
+                "close_date": item.get("issueEndDate") or item.get("ipoEndDate"),
+                "price_band": item.get("issuePrice") or item.get("priceBand") or item.get("priceRange"),
+                "issue_size_shares": item.get("issueSize") or item.get("noOfSharesOffered"),
                 "lot_size": item.get("lotSize"),
-                "listing_date": None,
+                "listing_date": listing_date or item.get("listingDate"),
                 "issue_status": status,
+                "security_type": str(item.get("series") or item.get("securityType") or "EQ").upper(),
                 "is_sme": self._is_sme(item),
-                "fetch_detail": status.lower() == "active",
+                "fetch_detail": fetch_detail,
+                "list_subscription": self._subscription_times(
+                    {
+                        "noOfTime": item.get("noOfTime"),
+                        "noOfSharesOffered": item.get("noOfSharesOffered"),
+                        "noOfsharesBid": item.get("noOfsharesBid"),
+                    }
+                ),
             }
 
-        for item in upcoming:
-            add_live_issue(item)
-
         for item in current:
+            add_issue(item, default_status="Active", fetch_detail=True)
+
+        for item in upcoming:
             symbol = str(item.get("symbol") or "").strip()
             if not symbol:
                 continue
-            if symbol not in merged:
-                add_live_issue(item, default_status="Active")
-            elif str(merged[symbol].get("issue_status") or "").lower() != "active":
-                merged[symbol]["issue_status"] = "Active"
-                merged[symbol]["fetch_detail"] = True
+            status = str(item.get("status") or "Forthcoming").strip()
+            if symbol in merged:
+                if status.lower() == "active":
+                    merged[symbol]["issue_status"] = "Active"
+                    merged[symbol]["fetch_detail"] = True
+                continue
+
+            add_issue(
+                item,
+                default_status="Forthcoming",
+                fetch_detail=status.lower() == "active",
+            )
 
         for item in past:
             symbol = str(item.get("symbol") or "").strip()
@@ -319,7 +385,7 @@ class NseIpoService:
                 continue
 
             close_dt = self._parse_issue_date(item.get("ipoEndDate"))
-            if close_dt and close_dt < cutoff:
+            if cutoff and close_dt and close_dt < cutoff:
                 continue
 
             open_date = item.get("ipoStartDate")
@@ -340,6 +406,7 @@ class NseIpoService:
                     close_date=close_date,
                     listing_date=listing_date,
                 ),
+                "security_type": str(item.get("securityType") or item.get("series") or "EQ").upper(),
                 "is_sme": self._is_sme(item),
                 "fetch_detail": False,
             }
@@ -384,7 +451,14 @@ class NseIpoService:
                 listing_date=issue.get("listing_date"),
                 issue_amount_cr=issue_amount_cr,
                 bid_details=bid_details,
+                security_type=issue.get("security_type"),
             )
+
+            list_subscription = issue.get("list_subscription")
+            if list_subscription and (
+                not row.get("Total_x_") or row.get("Total_x_") == "0.00"
+            ):
+                row["Total_x_"] = list_subscription
 
             if issue.get("is_sme"):
                 sme_rows.append(row)
@@ -393,12 +467,12 @@ class NseIpoService:
 
         return {"mainboard": mainboard_rows, "sme": sme_rows}
 
-    def sync_to_database(self, past_days: int = 120) -> Dict:
+    def sync_to_database(self, past_days: int = 0) -> Dict:
         grouped = self.collect_issues(past_days=past_days)
         conn = db_manager.get_connection(config.DB_IPO)
 
         inserted = {"mainboard_data": 0, "sme_data": 0}
-        replaced_symbols = {"mainboard_data": 0, "sme_data": 0}
+        deleted = {"mainboard_data": 0, "sme_data": 0}
 
         try:
             with conn.cursor(pymysql.cursors.DictCursor) as cursor:
@@ -406,19 +480,12 @@ class NseIpoService:
                     ("mainboard_data", grouped["mainboard"]),
                     ("sme_data", grouped["sme"]),
                 ):
-                    symbols = [
-                        row.get("_id")
-                        for row in rows
-                        if row.get("_id")
-                    ]
-
-                    if symbols:
-                        placeholders = ", ".join(["%s"] * len(symbols))
-                        cursor.execute(
-                            f"DELETE FROM `{table_name}` WHERE `_id` IN ({placeholders})",
-                            symbols,
-                        )
-                        replaced_symbols[table_name] = cursor.rowcount
+                    ensure_ipo_table(table_name, cursor)
+                    cursor.execute(
+                        f"DELETE FROM `{table_name}` WHERE data_source = %s",
+                        ("nse",),
+                    )
+                    deleted[table_name] = cursor.rowcount
 
                     if rows:
                         inserted[table_name] = insert_rows(table_name, rows, cursor)
@@ -431,7 +498,7 @@ class NseIpoService:
             "status": "success",
             "source": "NSE API",
             "records_inserted": inserted,
-            "records_replaced": replaced_symbols,
+            "records_deleted": deleted,
             "raw_records": sum(inserted.values()),
         }
 

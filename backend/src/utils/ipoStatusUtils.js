@@ -1,4 +1,5 @@
 const STATUS_GROUPS = {
+  current: ["Active"],
   ongoing: ["Active"],
   upcoming: ["Forthcoming"],
   past: ["Closed", "Listed"],
@@ -23,7 +24,7 @@ export const parseIpoDate = (value) => {
   if (!value || typeof value !== "string") return null;
 
   const trimmed = value.trim();
-  if (!trimmed) return null;
+  if (!trimmed || trimmed === "-") return null;
 
   const iso = trimmed.match(/^(\d{4})-(\d{2})-(\d{2})$/);
   if (iso) {
@@ -31,7 +32,7 @@ export const parseIpoDate = (value) => {
     return Number.isNaN(date.getTime()) ? null : date;
   }
 
-  const dmy = trimmed.match(/^(\d{1,2})-([A-Za-z]{3})-(\d{4})$/);
+  const dmy = trimmed.match(/^(\d{1,2})-([A-Za-z]{3})-(\d{4})$/i);
   if (dmy) {
     const month = MONTHS[dmy[2].toLowerCase()];
     if (month === undefined) return null;
@@ -86,7 +87,7 @@ export const deriveIpoStatus = (row = {}) => {
 };
 
 export const matchesStatusFilter = (status, filter) => {
-  const normalized = String(filter || "all").toLowerCase();
+  const normalized = String(filter || "current").toLowerCase();
   if (normalized === "all") return true;
 
   const allowed = STATUS_GROUPS[normalized];
@@ -95,8 +96,24 @@ export const matchesStatusFilter = (status, filter) => {
   return status === filter;
 };
 
+export const isNseIpoRow = (row = {}) => {
+  if (String(row.data_source || "").toLowerCase() === "nse") {
+    return true;
+  }
+
+  const company = String(row.Company_Name || "");
+  if (company.includes("<a href")) {
+    return false;
+  }
+
+  const symbol = String(row._id || "").trim();
+  const slug = String(row._URLRewrite_Folder_Name || "").trim();
+
+  return Boolean(symbol) && symbol === slug && /^[A-Z0-9]+$/.test(symbol);
+};
+
 export const getIpoDedupKey = (row = {}) => {
-  if (row._id) return String(row._id);
+  if (row._id && isNseIpoRow(row)) return String(row._id);
   if (row._URLRewrite_Folder_Name) return String(row._URLRewrite_Folder_Name);
 
   const company = String(row.Company_Name || "")

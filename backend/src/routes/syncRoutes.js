@@ -1,4 +1,5 @@
 import express from 'express';
+import { authenticate, requireMaster } from '../middlewares/auth.middleware.js';
 import {
   syncMarketHolidays,
   syncIpoData,
@@ -6,9 +7,10 @@ import {
 } from '../controllers/syncController.js';
 
 const router = express.Router();
+const adminOnly = [authenticate, requireMaster];
 
-router.post('/holidays', syncMarketHolidays);
-router.post('/ipo', syncIpoData);
-router.post('/all', syncReferenceData);
+router.post('/holidays', ...adminOnly, syncMarketHolidays);
+router.post('/ipo', ...adminOnly, syncIpoData);
+router.post('/all', ...adminOnly, syncReferenceData);
 
 export default router;

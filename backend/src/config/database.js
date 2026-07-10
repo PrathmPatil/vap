@@ -1,75 +1,28 @@
-import dotenv from "dotenv";
-import { Sequelize } from "sequelize";
+import dotenv from 'dotenv';
+import { Sequelize } from 'sequelize';
+import {
+  resolveAnnouncementDbName,
+  resolveBhavcopyDbName,
+  resolveScreenerDbName,
+  resolveStockDbName,
+  resolveYFinanceDbName,
+} from './dbEnv.js';
+
 dotenv.config();
 
-export const sequelizeStockMarket = new Sequelize(
-  process.env.DB_STOCK_MARKET,
-  process.env.DB_USER,
-  process.env.DB_PASSWORD,
-  {
-    host: process.env.DB_HOST,
-    dialect: "mysql",
-    port: process.env.DB_PORT || 3306,
-    logging: false,
-  }
-);
+const baseOptions = {
+  host: process.env.DB_HOST,
+  dialect: 'mysql',
+  port: process.env.DB_PORT || 3306,
+  logging: false,
+};
 
-export const sequelizeBhavcopy = new Sequelize(
-  process.env.DB_BHAVCOPY,
-  process.env.DB_USER,
-  process.env.DB_PASSWORD,
-  {
-    host: process.env.DB_HOST,
-    dialect: "mysql",
-    port: process.env.DB_PORT || 3306,
-    logging: false,
-  }
-);
+const connect = (database) =>
+  new Sequelize(database, process.env.DB_USER, process.env.DB_PASSWORD, baseOptions);
 
-export const sequelizeScreener = new Sequelize(
-  process.env.DB_SCREENER,
-  process.env.DB_USER,
-  process.env.DB_PASSWORD,
-  {
-    host: process.env.DB_HOST,
-    dialect: "mysql",
-    port: process.env.DB_PORT || 3306,
-    logging: false,
-  }
-);
-
-export const sequelizeYFinanceDB = new Sequelize(
-  process.env.DB_YFINANCE,
-  process.env.DB_USER,
-  process.env.DB_PASSWORD,
-  {
-    host: process.env.DB_HOST,
-    dialect: "mysql",
-    port: process.env.DB_PORT || 3306,
-    logging: false,
-  }
-);
-
-export const sequelizeIPO = new Sequelize(
-  process.env.DB_BSE,
-  process.env.DB_USER,
-  process.env.DB_PASSWORD,
-  {
-    host: process.env.DB_HOST,
-    dialect: "mysql",
-    port: process.env.DB_PORT || 3306,
-    logging: false,
-  }
-);
-
-export const sequelizeAnnouncement = new Sequelize(
-  process.env.DB_NEWS,
-  process.env.DB_USER,
-  process.env.DB_PASSWORD,
-  {
-    host: process.env.DB_HOST,
-    dialect: "mysql",
-    port: process.env.DB_PORT || 3306,
-    logging: false,
-  }
-);
+export const sequelizeStockMarket = connect(resolveStockDbName());
+export const sequelizeBhavcopy = connect(resolveBhavcopyDbName());
+export const sequelizeScreener = connect(resolveScreenerDbName());
+export const sequelizeYFinanceDB = connect(resolveYFinanceDbName());
+export const sequelizeIPO = connect(resolveStockDbName());
+export const sequelizeAnnouncement = connect(resolveAnnouncementDbName());

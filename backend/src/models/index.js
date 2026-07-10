@@ -1,8 +1,17 @@
 import { Sequelize, DataTypes } from 'sequelize';
 import dotenv from 'dotenv';
-import { ensureDatabase } from '../config/initDatabase.js';
+import {
+  resolveAnnouncementDbName,
+  resolveBhavcopyDbName,
+  resolveNseDynamicDbName,
+  resolveScreenerDbName,
+  resolveStockDbName,
+  resolveYFinanceDbName,
+  validateDbEnv,
+} from '../config/dbEnv.js';
 
 dotenv.config();
+validateDbEnv();
 
 /* ---------------------------------------------
    BASE MYSQL CONFIG (NO DATABASE)
@@ -18,7 +27,7 @@ const baseDBConfig = {
    SEQUELIZE CONNECTIONS
 --------------------------------------------- */
 export const sequelizeStockMarket = new Sequelize(
-  process.env.STOCK_DB_NAME,
+  resolveStockDbName(),
   baseDBConfig.user,
   baseDBConfig.password,
   {
@@ -30,7 +39,7 @@ export const sequelizeStockMarket = new Sequelize(
 );
 
 export const sequelizeBhavcopy = new Sequelize(
-  process.env.BHAVCOPY_DB_NAME,
+  resolveBhavcopyDbName(),
   baseDBConfig.user,
   baseDBConfig.password,
   {
@@ -42,7 +51,7 @@ export const sequelizeBhavcopy = new Sequelize(
 );
 
 export const sequelizeScreener = new Sequelize(
-  process.env.SCREENER_DB_NAME,
+  resolveScreenerDbName(),
   baseDBConfig.user,
   baseDBConfig.password,
   {
@@ -54,7 +63,7 @@ export const sequelizeScreener = new Sequelize(
 );
 
 export const sequelizeYFinanceDB = new Sequelize(
-  process.env.YFINANCE_DB_NAME,
+  resolveYFinanceDbName(),
   baseDBConfig.user,
   baseDBConfig.password,
   {
@@ -68,7 +77,7 @@ export const sequelizeYFinanceDB = new Sequelize(
 export const sequelizeIPO = sequelizeStockMarket;
 
 export const sequelizeAnnouncement = new Sequelize(
-  process.env.ANNOUNCEMENT_DB_NAME,
+  resolveAnnouncementDbName(),
   baseDBConfig.user,
   baseDBConfig.password,
   {
@@ -80,7 +89,7 @@ export const sequelizeAnnouncement = new Sequelize(
 );
 
 export const sequelizeNseDynamic = new Sequelize(
-  process.env.NSE_DYNAMIC_DB_NAME,
+  resolveNseDynamicDbName(),
   baseDBConfig.user,
   baseDBConfig.password,
   {

@@ -39,7 +39,7 @@ class Config:
     FINANCIAL_MODELING_PREP_API_KEY = require_env("FMP_API_KEY")
     
     # Add these to your config
-    MAX_WORKERS = 3  # Reduced from default to avoid rate limiting
+    MAX_WORKERS = int(os.getenv("MAX_WORKERS", "3"))
 
     # =====================================================
     # 🗄️ DATABASE CONNECTION
@@ -139,7 +139,7 @@ class Config:
     # =====================================================
     # 🧵 THREADING CONFIG
     # =====================================================
-    MAX_WORKERS = env_int("MAX_WORKERS")
+    # MAX_WORKERS defined above with default fallback
 
 
 # ✅ Singleton

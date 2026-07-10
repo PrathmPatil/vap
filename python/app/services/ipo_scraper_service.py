@@ -1,13 +1,18 @@
-import re
 import requests
 import pymysql
 from datetime import datetime
 from fastapi import HTTPException
 from app.config import config
 from app.database.connection import db_manager
+from app.services.nse_ipo_service import (
+    IPO_TABLE_COLUMNS,
+    ensure_ipo_table,
+    insert_rows as insert_ipo_rows,
+    nse_ipo_service,
+)
 
 # =====================================================
-# 🔥 FIELD MAPPING (API → EXISTING DB COLUMNS)
+# FIELD MAPPING (Chittorgarh API → DB COLUMNS)
 # =====================================================
 FIELD_MAP = {
     "Company": "Company_Name",
@@ -28,13 +33,10 @@ FIELD_MAP = {
     "~URLRewrite_Folder_Name": "_URLRewrite_Folder_Name",
     "~id": "_id",
     "Total Issue Amount (Incl.Firm reservations) (Rs.cr.)":
-        "Total_Issue_Amount_Incl_Firm_reservations_Rs_cr_"
+        "Total_Issue_Amount_Incl_Firm_reservations_Rs_cr_",
 }
 
 
-# =====================================================
-# 🔧 NORMALIZE RAW API ROW
-# =====================================================
 def normalize_row(row: dict) -> dict:
     clean = {}
     for api_key, db_col in FIELD_MAP.items():
@@ -43,53 +45,36 @@ def normalize_row(row: dict) -> dict:
     return clean
 
 
-# =====================================================
-# 💾 INSERT DATA (NO SCHEMA CHANGES)
-# =====================================================
-def insert_rows(table_name: str, rows: list, cursor):
+def _infer_security_type(report_type: str, row: dict) -> str:
+    symbol = str(row.get("_id") or row.get("_URLRewrite_Folder_Name") or "").upper()
+    company = str(row.get("Company_Name") or "").upper()
+    if report_type == "sme" or "SME" in company:
+        return "SME"
+    return "EQ"
+
+
+def _build_chittorgarh_row(report_type: str, row: dict) -> dict:
+    mapped = {column: None for column in IPO_TABLE_COLUMNS}
+    mapped.update(row)
+    mapped["data_source"] = "chittorgarh"
+    mapped["security_type"] = _infer_security_type(report_type, row)
+    return {column: mapped.get(column) for column in IPO_TABLE_COLUMNS}
+
+
+def sync_chittorgarh_rows(table_name: str, report_type: str, rows: list, cursor) -> int:
     if not rows:
         return 0
 
-    columns = rows[0].keys()
+    ensure_ipo_table(table_name, cursor)
+    prepared = [_build_chittorgarh_row(report_type, row) for row in rows]
 
-    # ----------------------------------------
-    # 1️⃣ Create table if not exists
-    # ----------------------------------------
-    col_defs = []
-    for col in columns:
-        col_defs.append(f"`{col}` VARCHAR(255) NULL")
+    cursor.execute(
+        f"DELETE FROM `{table_name}` WHERE data_source = %s",
+        ("chittorgarh",),
+    )
+    return insert_ipo_rows(table_name, prepared, cursor)
 
-    col_defs.append("`created_at` DATETIME DEFAULT CURRENT_TIMESTAMP")
 
-    cursor.execute(f"""
-        CREATE TABLE IF NOT EXISTS `{table_name}` (
-            id BIGINT AUTO_INCREMENT PRIMARY KEY,
-            {", ".join(col_defs)}
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-    """)
-
-    # ----------------------------------------
-    # 2️⃣ Insert Data
-    # ----------------------------------------
-    cols_sql = ", ".join(f"`{c}`" for c in columns)
-    placeholders = ", ".join(["%s"] * len(columns))
-
-    sql = f"""
-        INSERT INTO `{table_name}` ({cols_sql})
-        VALUES ({placeholders})
-    """
-
-    inserted = 0
-
-    for row in rows:
-        cursor.execute(sql, tuple(row.get(c) for c in columns))
-        inserted += 1
-
-    return inserted
-
-# =====================================================
-# 🚀 IPO SCRAPER SERVICE
-# =====================================================
 class IpoScraperService:
     def __init__(self):
         print("✅ IpoScraperService initialized")
@@ -119,10 +104,10 @@ class IpoScraperService:
         headers = {
             "accept": "application/json",
             "referer": "https://www.chittorgarh.com/",
-            "user-agent": "Mozilla/5.0"
+            "user-agent": "Mozilla/5.0",
         }
 
-        res = requests.get(url, headers=headers)
+        res = requests.get(url, headers=headers, timeout=60)
         res.raise_for_status()
         return res.json()
 
@@ -134,41 +119,15 @@ class IpoScraperService:
         normalized = [normalize_row(r) for r in rows]
 
         if not normalized:
-            from app.services.nse_ipo_service import nse_ipo_service
-
-            grouped = nse_ipo_service.collect_issues()
-            table_rows = grouped.get("mainboard" if report_type == "mainboard" else "sme", [])
-            if not table_rows:
-                return {
-                    "status": "empty",
-                    "report_type": report_type,
-                    "source": "chittorgarh+nse",
-                    "records_inserted": 0,
-                    "raw_records": 0,
-                }
-
-            conn = db_manager.get_connection(config.DB_IPO)
-            table_name = f"{report_type}_data"
-            try:
-                with conn.cursor(pymysql.cursors.DictCursor) as cursor:
-                    cursor.execute(f"DELETE FROM `{table_name}`")
-                    count = insert_rows(table_name, table_rows, cursor)
-                    conn.commit()
-            finally:
-                conn.close()
-
-            return {
-                "status": "success",
-                "report_type": report_type,
-                "source": "NSE API",
-                "records_inserted": count,
-                "raw_records": len(table_rows),
-            }
+            return nse_ipo_service.sync_to_database()
 
         conn = db_manager.get_connection(config.DB_IPO)
+        table_name = f"{report_type}_data"
         try:
             with conn.cursor(pymysql.cursors.DictCursor) as cursor:
-                count = insert_rows(f"{report_type}_data", normalized, cursor)
+                count = sync_chittorgarh_rows(
+                    table_name, report_type, normalized, cursor
+                )
                 conn.commit()
         finally:
             conn.close()
@@ -176,12 +135,10 @@ class IpoScraperService:
         return {
             "status": "success",
             "report_type": report_type,
+            "source": "Chittorgarh",
             "records_inserted": count,
-            "raw_records": len(rows)
+            "raw_records": len(rows),
         }
 
 
-# =====================================================
-# ✅ SINGLETON
-# =====================================================
 ipo_scraper_service = IpoScraperService()

@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { BalanceSheet, CashFlow, Companies, CompanyFinancials, ProfitLoss, QuarterlyResults, Ratios, Shareholding, UnknownSection } from "../models/index.js";
+import { BalanceSheet, CashFlow, Companies, CompanyFinancials, ProfitLoss, QuarterlyResults, Ratios, Shareholding, UnknownSection, sequelizeScreener } from "../models/index.js";
 
 const router = Router();
 
@@ -14,7 +14,12 @@ router.get("/:symbol", async (req, res) => {
     data.companyFinancials = await CompanyFinancials.findAll({ where: { symbol } });
     data.ratios = await Ratios.findAll({ where: { symbol } });
     data.unknownSection = await UnknownSection.findAll({ where: { symbol } });
-    data.profitLoss = await ProfitLoss.findAll({ where: { symbol } });
+    data.profitLoss = (
+      await sequelizeScreener.query(
+        "SELECT * FROM profit_loss_profit_loss WHERE symbol = ?",
+        { replacements: [symbol] }
+      )
+    )[0];
     data.quarterlyResults = await QuarterlyResults.findAll({ where: { symbol } });
     data.shareholding = await Shareholding.findAll({ where: { symbol } });
 

@@ -1,4 +1,5 @@
 import express from "express";
+import { authenticate, requireMaster } from "../middlewares/auth.middleware.js";
 
 import {
   runFormulaEngine,
@@ -26,8 +27,9 @@ import {
 } from "../controllers/formulaController.js";
 
 const router = express.Router();
+const adminOnly = [authenticate, requireMaster];
 
-router.post("/run-formula-engine", runFormulaEngine);
+router.post("/run-formula-engine", ...adminOnly, runFormulaEngine);
 
 router.get("/meta", getFormulaMeta);
 router.post("/query", queryFormula);
@@ -35,32 +37,29 @@ router.post("/query", queryFormula);
 router.get("/meta/:formulaType/dates", getFormulaAvailableDates);
 router.get("/meta/:formulaType/companies", getFormulaCompanies);
 
-router.post("/strong-bullish-candle", generateStrongBullish);
-router.post("/bearish-candle", generateBearishCandle);
-router.post("/gap-up-day", generateGapUpDay);
-router.post("/gap-down-day", generateGapDownDay);
-router.post("/fifty-two-week-high", generateFiftyTwoWeekHigh);
-router.post("/top-gainer-day", generateTopGainerDay);
-router.post("/band-hit-52w", generateBandHit52w);
-router.post("/top-loser-day", generateTopLoserDay);
-router.post("/fifty-two-week-low", generateFiftyTwoWeekLow);
-router.post("/daily-mover-up", generateDailyMoverUp);
-router.post("/daily-mover-down", generateDailyMoverDown);
+router.post("/strong-bullish-candle", ...adminOnly, generateStrongBullish);
+router.post("/bearish-candle", ...adminOnly, generateBearishCandle);
+router.post("/gap-up-day", ...adminOnly, generateGapUpDay);
+router.post("/gap-down-day", ...adminOnly, generateGapDownDay);
+router.post("/fifty-two-week-high", ...adminOnly, generateFiftyTwoWeekHigh);
+router.post("/top-gainer-day", ...adminOnly, generateTopGainerDay);
+router.post("/band-hit-52w", ...adminOnly, generateBandHit52w);
+router.post("/top-loser-day", ...adminOnly, generateTopLoserDay);
+router.post("/fifty-two-week-low", ...adminOnly, generateFiftyTwoWeekLow);
+router.post("/daily-mover-up", ...adminOnly, generateDailyMoverUp);
+router.post("/daily-mover-down", ...adminOnly, generateDailyMoverDown);
 
-router.post("/rally-attempt-day", runRallyAttempt);
+router.post("/rally-attempt-day", ...adminOnly, runRallyAttempt);
 
-router.post("/follow-through-day", runFollowThroughDay);
+router.post("/follow-through-day", ...adminOnly, runFollowThroughDay);
 
-router.post("/buy-day", runBuyDay);
+router.post("/buy-day", ...adminOnly, runBuyDay);
 
-// getVolumeBreakouts
-router.post("/volume-breakouts", getVolumeBreakouts);
+router.post("/volume-breakouts", ...adminOnly, getVolumeBreakouts);
 
-// getTweezerBottoms
-router.post("/tweezer-bottoms", getTweezerBottomPatterns);
+router.post("/tweezer-bottoms", ...adminOnly, getTweezerBottomPatterns);
 
-// Get saved patterns from database
-router.post('/tweezer-bottom/signals', getSavedTweezerBottomSignals);
+router.post('/tweezer-bottom/signals', ...adminOnly, getSavedTweezerBottomSignals);
 
 
 export default router;

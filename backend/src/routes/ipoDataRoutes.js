@@ -1,8 +1,15 @@
 import express from "express";
-import { fetchIpoData, fetchReportsCount } from "../controllers/ipoController.js";
+import {
+  fetchIpoData,
+  fetchNseIpoCounts,
+  fetchNseIpoData,
+  fetchReportsCount,
+} from "../controllers/ipoController.js";
 
 const router = express.Router();
 
+router.get("/nse/counts", fetchNseIpoCounts);
+router.get("/nse", fetchNseIpoData);
 router.post("/finnhub/reportsCount", fetchReportsCount);
 router.post("/sync", async (req, res) => {
   const { syncIpoData } = await import("../controllers/syncController.js");

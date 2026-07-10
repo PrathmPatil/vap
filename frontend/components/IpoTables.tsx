@@ -19,6 +19,7 @@ interface Props {
   loading: boolean;
   sortConfig: SortConfig;
   onSort: (key: keyof IpoData) => void;
+  showSubscription?: boolean;
 }
 
 const SortableHeader: React.FC<{
@@ -82,7 +83,13 @@ const formatShares = (value?: string) => {
   return numeric.toLocaleString("en-IN");
 };
 
-const IpoTable: React.FC<Props> = ({ data, loading, sortConfig, onSort }) => {
+const IpoTable: React.FC<Props> = ({
+  data,
+  loading,
+  sortConfig,
+  onSort,
+  showSubscription = false,
+}) => {
   const sortedData = useMemo(() => {
     if (!sortConfig.key) return data;
 
@@ -115,6 +122,7 @@ const IpoTable: React.FC<Props> = ({ data, loading, sortConfig, onSort }) => {
     return {
       issue_status: checkColumn("issue_status"),
       symbol: checkColumn("_id"),
+      security_type: checkColumn("security_type"),
       price_band: checkColumn("price_band"),
       lot_size: checkColumn("lot_size"),
       issue_size_shares: checkColumn("issue_size_shares"),
@@ -150,7 +158,7 @@ const IpoTable: React.FC<Props> = ({ data, loading, sortConfig, onSort }) => {
         <TableHeader>
           <TableRow>
             <SortableHeader
-              column="Company"
+              column="Company Name"
               sortKey="Company_Name"
               sortConfig={sortConfig}
               onSort={onSort}
@@ -165,6 +173,13 @@ const IpoTable: React.FC<Props> = ({ data, loading, sortConfig, onSort }) => {
               />
             )}
 
+            <SortableHeader
+              column="Security Type"
+              sortKey="security_type"
+              sortConfig={sortConfig}
+              onSort={onSort}
+            />
+
             {visibleColumns.issue_status && (
               <SortableHeader
                 column="Status"
@@ -175,14 +190,14 @@ const IpoTable: React.FC<Props> = ({ data, loading, sortConfig, onSort }) => {
             )}
 
             <SortableHeader
-              column="Open Date"
+              column="Issue Start Date"
               sortKey="_Issue_Open_Date"
               sortConfig={sortConfig}
               onSort={onSort}
             />
 
             <SortableHeader
-              column="Close Date"
+              column="Issue End Date"
               sortKey="_Issue_Close_Date"
               sortConfig={sortConfig}
               onSort={onSort}
@@ -215,7 +230,16 @@ const IpoTable: React.FC<Props> = ({ data, loading, sortConfig, onSort }) => {
               />
             )}
 
-            {visibleColumns.issue_size_shares && (
+            {showSubscription && visibleColumns.issue_size_shares && (
+              <SortableHeader
+                column="Shares Offered"
+                sortKey="issue_size_shares"
+                sortConfig={sortConfig}
+                onSort={onSort}
+              />
+            )}
+
+            {!showSubscription && visibleColumns.issue_size_shares && (
               <SortableHeader
                 column="Issue Size (Shares)"
                 sortKey="issue_size_shares"
@@ -233,7 +257,16 @@ const IpoTable: React.FC<Props> = ({ data, loading, sortConfig, onSort }) => {
               />
             )}
 
-            {visibleColumns.QIB_x_ && (
+            {showSubscription && visibleColumns.Total_x_ && (
+              <SortableHeader
+                column="Total Subscribed (x)"
+                sortKey="Total_x_"
+                sortConfig={sortConfig}
+                onSort={onSort}
+              />
+            )}
+
+            {!showSubscription && visibleColumns.QIB_x_ && (
               <SortableHeader
                 column="QIB"
                 sortKey="QIB_x_"
@@ -242,7 +275,7 @@ const IpoTable: React.FC<Props> = ({ data, loading, sortConfig, onSort }) => {
               />
             )}
 
-            {visibleColumns.NII_x_ && (
+            {!showSubscription && visibleColumns.NII_x_ && (
               <SortableHeader
                 column="NII"
                 sortKey="NII_x_"
@@ -251,7 +284,7 @@ const IpoTable: React.FC<Props> = ({ data, loading, sortConfig, onSort }) => {
               />
             )}
 
-            {visibleColumns.bNII_x_ && (
+            {!showSubscription && visibleColumns.bNII_x_ && (
               <SortableHeader
                 column="bNII"
                 sortKey="bNII_x_"
@@ -260,7 +293,7 @@ const IpoTable: React.FC<Props> = ({ data, loading, sortConfig, onSort }) => {
               />
             )}
 
-            {visibleColumns.sNII_x_ && (
+            {!showSubscription && visibleColumns.sNII_x_ && (
               <SortableHeader
                 column="sNII"
                 sortKey="sNII_x_"
@@ -269,7 +302,7 @@ const IpoTable: React.FC<Props> = ({ data, loading, sortConfig, onSort }) => {
               />
             )}
 
-            {visibleColumns.Retail_x_ && (
+            {!showSubscription && visibleColumns.Retail_x_ && (
               <SortableHeader
                 column="Retail"
                 sortKey="Retail_x_"
@@ -278,7 +311,7 @@ const IpoTable: React.FC<Props> = ({ data, loading, sortConfig, onSort }) => {
               />
             )}
 
-            {visibleColumns.Employee_x_ && (
+            {!showSubscription && visibleColumns.Employee_x_ && (
               <SortableHeader
                 column="Employee"
                 sortKey="Employee_x_"
@@ -287,7 +320,7 @@ const IpoTable: React.FC<Props> = ({ data, loading, sortConfig, onSort }) => {
               />
             )}
 
-            {visibleColumns.Shareholder_x_ && (
+            {!showSubscription && visibleColumns.Shareholder_x_ && (
               <SortableHeader
                 column="Shareholder"
                 sortKey="Shareholder_x_"
@@ -296,7 +329,7 @@ const IpoTable: React.FC<Props> = ({ data, loading, sortConfig, onSort }) => {
               />
             )}
 
-            {visibleColumns.Others_x_ && (
+            {!showSubscription && visibleColumns.Others_x_ && (
               <SortableHeader
                 column="Others"
                 sortKey="Others_x_"
@@ -305,7 +338,7 @@ const IpoTable: React.FC<Props> = ({ data, loading, sortConfig, onSort }) => {
               />
             )}
 
-            {visibleColumns.Total_x_ && (
+            {!showSubscription && visibleColumns.Total_x_ && (
               <SortableHeader
                 column="Total Sub."
                 sortKey="Total_x_"
@@ -329,6 +362,8 @@ const IpoTable: React.FC<Props> = ({ data, loading, sortConfig, onSort }) => {
                     {ipo._id || "—"}
                   </TableCell>
                 )}
+
+                <TableCell>{ipo.security_type || "EQ"}</TableCell>
 
                 {visibleColumns.issue_status && (
                   <TableCell>
@@ -365,39 +400,45 @@ const IpoTable: React.FC<Props> = ({ data, loading, sortConfig, onSort }) => {
                   </TableCell>
                 )}
 
-                {visibleColumns.QIB_x_ && (
+                {showSubscription && visibleColumns.Total_x_ && (
+                  <TableCell className="font-semibold text-green-600">
+                    {ipo.Total_x_ || "—"}
+                  </TableCell>
+                )}
+
+                {!showSubscription && visibleColumns.QIB_x_ && (
                   <TableCell>{ipo.QIB_x_ || "—"}</TableCell>
                 )}
 
-                {visibleColumns.NII_x_ && (
+                {!showSubscription && visibleColumns.NII_x_ && (
                   <TableCell>{ipo.NII_x_ || "—"}</TableCell>
                 )}
 
-                {visibleColumns.bNII_x_ && (
+                {!showSubscription && visibleColumns.bNII_x_ && (
                   <TableCell>{ipo.bNII_x_ || "—"}</TableCell>
                 )}
 
-                {visibleColumns.sNII_x_ && (
+                {!showSubscription && visibleColumns.sNII_x_ && (
                   <TableCell>{ipo.sNII_x_ || "—"}</TableCell>
                 )}
 
-                {visibleColumns.Retail_x_ && (
+                {!showSubscription && visibleColumns.Retail_x_ && (
                   <TableCell>{ipo.Retail_x_ || "—"}</TableCell>
                 )}
 
-                {visibleColumns.Employee_x_ && (
+                {!showSubscription && visibleColumns.Employee_x_ && (
                   <TableCell>{ipo.Employee_x_ || "—"}</TableCell>
                 )}
 
-                {visibleColumns.Shareholder_x_ && (
+                {!showSubscription && visibleColumns.Shareholder_x_ && (
                   <TableCell>{ipo.Shareholder_x_ || "—"}</TableCell>
                 )}
 
-                {visibleColumns.Others_x_ && (
+                {!showSubscription && visibleColumns.Others_x_ && (
                   <TableCell>{ipo.Others_x_ || "—"}</TableCell>
                 )}
 
-                {visibleColumns.Total_x_ && (
+                {!showSubscription && visibleColumns.Total_x_ && (
                   <TableCell className="font-semibold text-green-600">
                     {ipo.Total_x_ || "—"}
                   </TableCell>

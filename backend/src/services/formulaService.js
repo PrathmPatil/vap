@@ -36,6 +36,85 @@ import logger from '../config/logger.js';
 import { performance } from 'node:perf_hooks';
 import { fn, col, where, Op } from 'sequelize';
 
+/* =========================================================
+   TRADE DATE + LISTED COMPANY HELPERS
+========================================================= */
+
+export const normalizeTradeDate = (value) => {
+  if (!value) return null;
+
+  if (typeof value === 'string') {
+    const match = value.match(/^(\d{4}-\d{2}-\d{2})/);
+    if (match) return match[1];
+  }
+
+  const dateValue = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(dateValue.getTime())) return null;
+
+  const year = dateValue.getFullYear();
+  const month = String(dateValue.getMonth() + 1).padStart(2, '0');
+  const day = String(dateValue.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+const prExistsForDate = async (dateStr) => {
+  if (!dateStr) return false;
+
+  const count = await PR.count({
+    where: where(fn('DATE', col('source_date')), dateStr),
+  });
+
+  return count > 0;
+};
+
+export const resolveTradeDate = async (targetDate = null) => {
+  await PR.sync();
+
+  const requested = targetDate ? normalizeTradeDate(targetDate) : null;
+  if (requested && (await prExistsForDate(requested))) {
+    return requested;
+  }
+
+  const latestRow = await PR.findOne({
+    attributes: [[fn('MAX', col('source_date')), 'latest_source_date']],
+    where: { source_date: { [Op.ne]: null } },
+    raw: true,
+  });
+
+  const latest = normalizeTradeDate(latestRow?.latest_source_date);
+
+  if (latest && (await prExistsForDate(latest))) {
+    return latest;
+  }
+
+  return null;
+};
+
+const loadListedCompanyMaps = async () => {
+  const listedCompanies = await ListedCompanies.findAll({
+    attributes: ['name', 'symbol'],
+    where: { series: 'EQ' },
+    raw: true,
+  });
+
+  const nameToSymbol = new Map();
+  const symbolToName = new Map();
+
+  for (const company of listedCompanies) {
+    const name = String(company.name || '').trim();
+    const symbol = String(company.symbol || '').trim();
+    if (name) nameToSymbol.set(name, symbol);
+    if (symbol) symbolToName.set(symbol, name);
+  }
+
+  return { nameToSymbol, symbolToName };
+};
+
+const resolveSecurityForSymbol = (symbol, symbolToName) => {
+  const normalized = String(symbol || '').trim();
+  return symbolToName.get(normalized) || normalized;
+};
+
 export const processFormulaByDate = async ({
   targetDate,
   formulaModel,
@@ -84,12 +163,7 @@ export const processFormulaByDate = async ({
   ========================================================= */
 
   const prCount = await PR.count({
-    where: {
-      [prDateField]: {
-        [Op.gte]: `${formattedDate} 00:00:00`,
-        [Op.lte]: `${formattedDate} 23:59:59`
-      }
-    }
+    where: where(fn('DATE', col('source_date')), formattedDate)
   });
 
   if (!prCount) {
@@ -150,13 +224,7 @@ export const generateRallyAttemptService = async ({
        GET LATEST DATE
     -------------------------------- */
 
-    const latestDateRaw = targetDate
-      ? new Date(targetDate)
-      : await PR.max('source_date');
-
-    const latestDate = latestDateRaw
-      ? latestDateRaw.toISOString().split('T')[0]
-      : null;
+    const latestDate = await resolveTradeDate(targetDate);
 
     if (!latestDate) {
       return {
@@ -312,6 +380,7 @@ export const generateFollowThroughDayService = async ({
     }
 
     const insertedFTD = [];
+    const { symbolToName } = await loadListedCompanyMaps();
 
     /* --------------------------------
        LOOP RALLY STOCKS
@@ -320,6 +389,7 @@ export const generateFollowThroughDayService = async ({
     for (const rally of rallyStocks) {
       const symbol = rally.symbol;
       const rallyDate = rally.rally_date;
+      const securityName = resolveSecurityForSymbol(symbol, symbolToName);
 
       /* --------------------------------
          GET STOCK DATA AFTER RALLY DATE
@@ -327,7 +397,7 @@ export const generateFollowThroughDayService = async ({
 
       const stockData = await PR.findAll({
         where: {
-          SECURITY: symbol,
+          SECURITY: securityName,
           source_date: {
             [Op.gte]: rallyDate
           }
@@ -477,6 +547,7 @@ export const generateBuyDayService = async ({
     console.log('📊 FTD Stocks:', ftdStocks.length);
 
     const insertedBuyDays = [];
+    const { symbolToName } = await loadListedCompanyMaps();
 
     /* --------------------------------
        LOOP THROUGH FTD STOCKS
@@ -486,6 +557,7 @@ export const generateBuyDayService = async ({
       const symbol = ftd.symbol;
       const rallyDate = ftd.rally_date;
       const ftdDate = ftd.ftd_date;
+      const securityName = resolveSecurityForSymbol(symbol, symbolToName);
 
       /* --------------------------------
          FETCH STOCK DATA
@@ -493,7 +565,7 @@ export const generateBuyDayService = async ({
 
       const stockData = await PR.findAll({
         where: {
-          SECURITY: symbol
+          SECURITY: securityName
         },
         order: [['source_date', 'ASC']],
         raw: true
@@ -605,46 +677,6 @@ export const generateBuyDayService = async ({
 /* =========================================================
    MAIN FORMULA ENGINE
 ========================================================= */
-
-const normalizeTradeDate = (value) => {
-  if (!value) return null;
-  const dateValue = value instanceof Date ? value : new Date(value);
-  if (Number.isNaN(dateValue.getTime())) return null;
-  return dateValue.toISOString().split('T')[0];
-};
-
-const prExistsForDate = async (dateStr) => {
-  if (!dateStr) return false;
-
-  const count = await PR.count({
-    where: {
-      source_date: {
-        [Op.gte]: `${dateStr} 00:00:00`,
-        [Op.lte]: `${dateStr} 23:59:59`
-      }
-    }
-  });
-
-  return count > 0;
-};
-
-export const resolveTradeDate = async (targetDate = null) => {
-  await PR.sync();
-
-  const requested = targetDate ? normalizeTradeDate(targetDate) : null;
-  if (requested && (await prExistsForDate(requested))) {
-    return requested;
-  }
-
-  const latestDateRaw = await PR.max('source_date');
-  const latest = normalizeTradeDate(latestDateRaw);
-
-  if (latest && (await prExistsForDate(latest))) {
-    return latest;
-  }
-
-  return null;
-};
 
 const shouldBlockDependentFormulas = (stepResult = {}) => {
   if (stepResult.status !== 'failed') {
@@ -1119,74 +1151,95 @@ export const generateVolumeBreakoutService = async ({
   await VolumeBreakoutModel.sync();
   await PR.sync();
 
-  const latestDateRaw = targetDate
-    ? new Date(targetDate)
-    : await PR.max('source_date');
-  const latestDate = latestDateRaw.toISOString().split('T')[0];
+  const latestDate = await resolveTradeDate(targetDate);
+  if (!latestDate) {
+    return {
+      success: false,
+      data: [],
+      message: 'No PR data found',
+    };
+  }
 
-  const stocks = await PR.findAll({
-    where: {
-      source_date: {
-        [Op.lte]: latestDate
-      }
-    },
-    order: [['source_date', 'DESC']],
-    raw: true
+  const existingCount = await VolumeBreakoutModel.count({
+    where: { trade_date: latestDate },
   });
 
-  const breakoutStocks = [];
-
-  for (const stock of stocks) {
-    const history = await PR.findAll({
-      where: { SECURITY: stock.SECURITY },
-      order: [['source_date', 'DESC']],
-      limit: 11,
-      raw: true
+  if (existingCount === 0) {
+    const dayRows = await PR.findAll({
+      where: where(fn('DATE', col('source_date')), latestDate),
+      raw: true,
     });
 
-    if (history.length < 11) continue;
+    const securities = [...new Set(dayRows.map((row) => row.SECURITY).filter(Boolean))];
+    const breakoutStocks = [];
 
-    const today = history[0];
+    for (const security of securities) {
+      const history = await PR.findAll({
+        where: { SECURITY: security },
+        order: [['source_date', 'DESC']],
+        limit: 11,
+        raw: true,
+      });
 
-    const prev = history[1];
+      if (history.length < 11) continue;
 
-    const avgVolume =
-      history.slice(1).reduce((sum, r) => sum + Number(r.NET_TRDQTY), 0) / 10;
+      const today = history[0];
+      const prev = history[1];
+      const todayDate = normalizeTradeDate(today.source_date);
 
-    const todayVolume = Number(today.NET_TRDQTY);
+      if (todayDate !== latestDate) continue;
 
-    if (todayVolume >= avgVolume * 2 && today.CLOSE_PRICE > prev.CLOSE_PRICE) {
-      breakoutStocks.push({
-        security: today.SECURITY,
-        trade_date: today.source_date,
-        close_price: today.CLOSE_PRICE,
-        volume: todayVolume,
-        avg_volume_10d: avgVolume,
-        volume_ratio: todayVolume / avgVolume
+      const avgVolume =
+        history.slice(1).reduce((sum, row) => sum + Number(row.NET_TRDQTY), 0) / 10;
+      const todayVolume = Number(today.NET_TRDQTY);
+
+      if (todayVolume >= avgVolume * 2 && today.CLOSE_PRICE > prev.CLOSE_PRICE) {
+        breakoutStocks.push({
+          security: today.SECURITY,
+          trade_date: todayDate,
+          close_price: today.CLOSE_PRICE,
+          volume: todayVolume,
+          avg_volume_10d: avgVolume,
+          volume_ratio: todayVolume / avgVolume,
+        });
+      }
+    }
+
+    if (breakoutStocks.length) {
+      await VolumeBreakoutModel.bulkCreate(breakoutStocks, {
+        ignoreDuplicates: true,
       });
     }
   }
 
-  if (breakoutStocks.length)
-    await VolumeBreakoutModel.bulkCreate(breakoutStocks);
+  const whereCondition = { trade_date: latestDate };
+  if (searchTerm) {
+    whereCondition.security = { [Op.like]: `%${searchTerm}%` };
+  }
 
   const { count, rows } = await VolumeBreakoutModel.findAndCountAll({
+    where: whereCondition,
     limit: itemsPerPage,
     offset: (currentPage - 1) * itemsPerPage,
-    raw: true
+    order: [['volume_ratio', 'DESC']],
+    raw: true,
   });
 
   const offset = (currentPage - 1) * itemsPerPage;
 
-  const data = rows.map((r, i) => ({
-    id: offset + i + 1,
-    ...r
+  const data = rows.map((row, index) => ({
+    id: offset + index + 1,
+    ...row,
   }));
 
   return {
     success: true,
     data,
-    totalItems: count
+    latest_date: latestDate,
+    totalItems: count,
+    currentPage,
+    itemsPerPage,
+    totalPages: Math.ceil(count / itemsPerPage) || 1,
   };
 };
 
@@ -1198,18 +1251,21 @@ export const detectTweezerBottomPatterns = async (options = {}) => {
 
   await PR.sync();
   await TweezerBottomModel.sync();
-  // Get the date to analyze
-  let analysisDate;
+  let analysisDateStr;
   if (targetDate) {
-    analysisDate = new Date(targetDate);
+    analysisDateStr = normalizeTradeDate(targetDate);
   } else {
-    const latestDateRaw = targetDate
-      ? new Date(targetDate)
-      : await PR.max('source_date');
-    analysisDate = latestDateRaw;
+    analysisDateStr = await resolveTradeDate();
   }
 
-  const analysisDateStr = analysisDate.toISOString().split('T')[0];
+  if (!analysisDateStr) {
+    return {
+      success: false,
+      message: 'No PR data found',
+      signals: [],
+      total_signals: 0,
+    };
+  }
 
   // Check if already processed for today
   if (!forceRefresh && saveToDb && TweezerBottomModel) {
@@ -1235,11 +1291,13 @@ export const detectTweezerBottomPatterns = async (options = {}) => {
   // Fetch all stocks
   const stocks = await PR.findAll({
     where: {
-      source_date: { [Op.lte]: analysisDate }
+      source_date: {
+        [Op.lte]: `${analysisDateStr} 23:59:59`,
+      },
     },
     attributes: ['SECURITY'],
     group: ['SECURITY'],
-    raw: true
+    raw: true,
   });
 
   const signals = [];
@@ -1261,9 +1319,7 @@ export const detectTweezerBottomPatterns = async (options = {}) => {
       const prev = history[1];
 
       // Skip if not the target date
-      const todayDateStr = new Date(today.source_date)
-        .toISOString()
-        .split('T')[0];
+      const todayDateStr = normalizeTradeDate(today.source_date);
       if (todayDateStr !== analysisDateStr) continue;
 
       /* ---------------- Equal Low Detection ---------------- */
@@ -1433,14 +1489,7 @@ export const saveSignalsToDatabase = async (signals) => {
   };
 };
 
-const toDateString = (value) => {
-  if (!value) return null;
-
-  const dateValue = value instanceof Date ? value : new Date(value);
-  if (Number.isNaN(dateValue.getTime())) return null;
-
-  return dateValue.toISOString().split('T')[0];
-};
+const toDateString = (value) => normalizeTradeDate(value);
 
 const getModelAttributes = (model) =>
   Object.keys(model?.rawAttributes || {});

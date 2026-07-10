@@ -1,8 +1,47 @@
 // controllers/ipoController.js
 
-import { getPaginatedIpoData } from '../services/ipoService.js';
+import { getNseIpoCounts, getNseIpoData, getPaginatedIpoData } from '../services/ipoService.js';
 import { dbModels } from "../models/index.js";
 
+
+export const fetchNseIpoData = async (req, res) => {
+  try {
+    const result = await getNseIpoData(req.query);
+
+    return res.status(200).json({
+      success: true,
+      source: "nse",
+      ...result,
+    });
+  } catch (error) {
+    console.error("❌ Error in fetchNseIpoData:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Internal Server Error",
+      error: error.message,
+    });
+  }
+};
+
+export const fetchNseIpoCounts = async (req, res) => {
+  try {
+    const counts = await getNseIpoCounts();
+
+    return res.status(200).json({
+      success: true,
+      counts,
+    });
+  } catch (error) {
+    console.error("❌ Error in fetchNseIpoCounts:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Internal Server Error",
+      error: error.message,
+    });
+  }
+};
 
 export const fetchIpoData = async (req, res) => {
   try {

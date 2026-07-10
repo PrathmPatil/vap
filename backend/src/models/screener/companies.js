@@ -9,7 +9,7 @@ export default function CompaniesModel(sequelize, DataTypes) {
       value: { type: DataTypes.STRING(100), allowNull: true },
     },
     {
-      tableName: 'companies',
+      tableName: 'screener_company_parameters',
       timestamps: false,
       freezeTableName: true,
     }

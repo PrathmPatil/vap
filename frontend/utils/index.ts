@@ -1,7 +1,7 @@
 // utils/api.ts
 import { callApi } from "./apis";
 import { YFinanceResponse } from "@/components/screener/CompanyDashboard";
-import { IpoResponse2 } from "@/pages/ipo";
+import { IpoResponse2 } from "@/pages/ipo/index";
 import { BseNewsResponse } from "@/components/news/NewsComponent";
 import { MarketSignalsData } from "@/components/MarketSignals";
 import { FailedSymbolsResponse, ListedCompaniesResponse, StockData } from "@/lib/screener";
@@ -89,7 +89,7 @@ export const getIpoData = async (
   type: string,
   currentPage: number,
   recordsPerPage: number,
-  status: string = 'all'
+  status: string = 'current'
 ): Promise<IpoResponse2> => {
   return callApi<IpoResponse2>({
     url: `ipo/${type}`,
@@ -98,7 +98,45 @@ export const getIpoData = async (
       page: currentPage, 
       limit: recordsPerPage,
       status,
+      source: 'nse',
     },
+  });
+};
+
+type NseIpoCountsResponse = {
+  success: boolean;
+  counts: {
+    current: number;
+    upcoming: number;
+    past: number;
+    mainboard: number;
+    sme: number;
+    total: number;
+  };
+};
+
+export const getNseIpoData = async (
+  currentPage: number,
+  recordsPerPage: number,
+  status: string = 'current',
+  board: string = 'all',
+): Promise<IpoResponse2> => {
+  return callApi<IpoResponse2>({
+    url: 'ipo/nse',
+    method: 'GET',
+    params: {
+      page: currentPage,
+      limit: recordsPerPage,
+      status,
+      board,
+    },
+  });
+};
+
+export const getNseIpoCounts = async (): Promise<NseIpoCountsResponse> => {
+  return callApi<NseIpoCountsResponse>({
+    url: 'ipo/nse/counts',
+    method: 'GET',
   });
 };
 

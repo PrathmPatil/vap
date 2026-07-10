@@ -1,4 +1,5 @@
 import express from 'express';
+import { authenticate, requireMaster } from '../middlewares/auth.middleware.js';
 import {
   getActiveJobs,
   getCronJobLogs,
@@ -10,36 +11,27 @@ import {
 } from '../controllers/cronManagementController.js';
 
 const router = express.Router();
-
-/**
- * ============================================================
- * CRON MANAGEMENT ROUTES
- * ============================================================
- * Admin endpoints to manage and monitor cron jobs
- * 
- * Note: Consider adding authentication middleware before
- * deploying to production
- */
+const adminOnly = [authenticate, requireMaster];
 
 // Get active cron jobs
-router.get('/active-jobs', getActiveJobs);
+router.get('/active-jobs', ...adminOnly, getActiveJobs);
 
 // Get cron logs
-router.post('/logs', getCronJobLogs);
+router.post('/logs', ...adminOnly, getCronJobLogs);
 
 // Get last execution of a cron job
-router.get('/last-execution', getLastExecution);
+router.get('/last-execution', ...adminOnly, getLastExecution);
 
 // Start formula cron manually
-router.post('/start-formula-cron', startFormulaCronManual);
+router.post('/start-formula-cron', ...adminOnly, startFormulaCronManual);
 
 // Stop a specific cron job
-router.post('/stop-cron', stopCronJobManual);
+router.post('/stop-cron', ...adminOnly, stopCronJobManual);
 
 // Stop all cron jobs
-router.post('/stop-all-crons', stopAllCronsManual);
+router.post('/stop-all-crons', ...adminOnly, stopAllCronsManual);
 
 // Validate cron expression
-router.post('/validate-expression', validateCron);
+router.post('/validate-expression', ...adminOnly, validateCron);
 
 export default router;

@@ -37,15 +37,15 @@ import logRoutes from './routes/cronLogRoutes.js';
 import cronManagementRoutes from './routes/cronManagementRoutes.js';
 import { startFormulaCron } from './crons/formulaCron.js';
 import { ensureMasterUser } from './config/ensureMasterUser.js';
+import { ensureIpoColumns } from './config/ensureIpoColumns.js';
+import { runStartupMigrations } from './config/startupMigrations.js';
+import { resolveBhavcopyDbName, resolveStockDbName } from './config/dbEnv.js';
 import { bootstrapReferenceData } from './services/pythonSyncService.js';
 
 import {
   sequelizeStockMarket,
   sequelizeBhavcopy,
   sequelizeYFinanceDB,
-  sequelizeScreener,
-  sequelizeIPO,
-  sequelizeAnnouncement,
   MainboardData,
   SmeData,
   StrongBullishCandleModel,
@@ -132,13 +132,30 @@ export const startServer = async () => {
     // AUTHENTICATE & SYNC FORMULA TABLES (stock market DB)
     // ============================================================
     try {
+      await sequelizeBhavcopy.authenticate();
+      logger.info(`✅ Connected to bhavcopy database (${resolveBhavcopyDbName()}).`);
+
       await sequelizeStockMarket.authenticate();
       logger.info(
-        `✅ Connected to stock market database (${process.env.STOCK_DB_NAME}).`
+        `✅ Connected to stock market database (${resolveStockDbName()}).`
       );
       console.log(
-        `✅ Connected to stock market database (${process.env.STOCK_DB_NAME}).`
+        `✅ Connected to stock market database (${resolveStockDbName()}).`
       );
+
+      await runStartupMigrations({
+        host: process.env.DB_HOST,
+        user: process.env.DB_USER,
+        password: process.env.DB_PASSWORD,
+        port: process.env.DB_PORT,
+      });
+
+      await ensureIpoColumns({
+        host: process.env.DB_HOST,
+        user: process.env.DB_USER,
+        password: process.env.DB_PASSWORD,
+        port: process.env.DB_PORT,
+      });
 
       await RallyAttemptDayModel.sync();
       logger.info('✅ RallyAttemptDay table synced.');
@@ -193,15 +210,15 @@ export const startServer = async () => {
       logger.info('✅ MarketHoliday table synced.');
       console.log('✅ MarketHoliday table synced.');
 
-      const [holidayCount, mainboardCount, smeCount] = await Promise.all([
+      const [holidayCount, nseMainboardCount, nseSmeCount] = await Promise.all([
         MarketHolidayModel.count({ where: { is_active: 1 } }),
-        MainboardData.count(),
-        SmeData.count()
+        MainboardData.count({ where: { data_source: 'nse' } }),
+        SmeData.count({ where: { data_source: 'nse' } }),
       ]);
 
-      if (holidayCount === 0 || mainboardCount === 0 || smeCount === 0) {
+      if (holidayCount === 0 || (nseMainboardCount === 0 && nseSmeCount === 0)) {
         logger.info(
-          `📥 Bootstrapping reference data (holidays=${holidayCount}, mainboard=${mainboardCount}, sme=${smeCount})`
+          `📥 Bootstrapping reference data (holidays=${holidayCount}, nse_mainboard=${nseMainboardCount}, nse_sme=${nseSmeCount})`
         );
         bootstrapReferenceData().catch((syncError) => {
           logger.warn(`⚠️ Reference data bootstrap failed: ${syncError.message}`);

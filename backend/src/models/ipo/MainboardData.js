@@ -30,6 +30,8 @@ const MainboardDataModel = (sequelize, DataTypes) => {
       issue_size_shares: DataTypes.TEXT,
       lot_size: DataTypes.TEXT,
       listing_date: DataTypes.TEXT,
+      data_source: DataTypes.TEXT,
+      security_type: DataTypes.TEXT,
       created_at: {
         type: DataTypes.DATE,
         defaultValue: DataTypes.NOW

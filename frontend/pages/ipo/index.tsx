@@ -4,16 +4,15 @@ import { Badge } from "@/components/ui/badge";
 import CustomPagination from "@/components/ui/custom-pagination";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { getIpoData, getIpoReportsCount } from "@/utils";
+import { getNseIpoCounts, getNseIpoData } from "@/utils";
 import { useEffect, useState } from "react";
 
-// Types
 export interface IpoData {
   id: number;
   _id: string;
   _URLRewrite_Folder_Name: string;
   created_at: string;
-  type: "mainboard_data" | "sme_data";
+  type?: "mainboard_data" | "sme_data";
 
   Company_Name?: string;
   Close_Date?: string;
@@ -39,6 +38,8 @@ export interface IpoData {
   issue_size_shares?: string;
   lot_size?: string;
   listing_date?: string;
+  security_type?: string;
+  data_source?: string;
 }
 
 export interface SortConfig {
@@ -55,185 +56,118 @@ interface IpoResponse {
   message?: string;
 }
 
-export interface IpoItem {
-  name: string;
-  symbol: string;
-  issuePrice: number;
-  lotSize: number;
-  listingDate: string;
-  [key: string]: any;
-}
+export type IpoResponse2 = IpoResponse;
 
-export interface IpoResponse2 {
-  success: boolean;
-  data: IpoItem[];
-  total?: number;
-  totalRecords?: number;
-  message?: string;
-}
-
-type IpoType = "mainboard_data" | "sme_data";
-type IpoStatusFilter = "all" | "ongoing" | "upcoming" | "past";
+type IpoStatusFilter = "current" | "upcoming" | "past";
+type BoardFilter = "all" | "mainboard" | "sme";
 
 const STATUS_TABS: { value: IpoStatusFilter; label: string }[] = [
+  { value: "current", label: "Current" },
+  { value: "upcoming", label: "Upcoming Issues" },
+  { value: "past", label: "Past Issues" },
+];
+
+const BOARD_TABS: { value: BoardFilter; label: string }[] = [
   { value: "all", label: "All" },
-  { value: "ongoing", label: "Ongoing" },
-  { value: "upcoming", label: "Upcoming" },
-  { value: "past", label: "Past" },
+  { value: "mainboard", label: "Mainboard" },
+  { value: "sme", label: "SME" },
 ];
 
 const Index = () => {
-  const [ipoType, setIpoType] = useState<IpoType>("mainboard_data");
-  const [statusFilter, setStatusFilter] = useState<IpoStatusFilter>("all");
-
-  const [ipoData, setIpoData] = useState<{
-    mainboard_data: IpoResponse;
-    sme_data: IpoResponse;
-  }>({
-    mainboard_data: {
-      success: false,
-      total: 0,
-      page: 1,
-      pages: 1,
-      data: [],
-    },
-    sme_data: {
-      success: false,
-      total: 0,
-      page: 1,
-      pages: 1,
-      data: [],
-    },
+  const [statusFilter, setStatusFilter] = useState<IpoStatusFilter>("current");
+  const [boardFilter, setBoardFilter] = useState<BoardFilter>("all");
+  const [ipoData, setIpoData] = useState<IpoResponse>({
+    success: false,
+    total: 0,
+    page: 1,
+    pages: 1,
+    data: [],
   });
-
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
   const [recordsPerPage, setRecordsPerPage] = useState(10);
-
   const [sortConfig, setSortConfig] = useState<SortConfig>({
-    key: "Company_Name",
-    direction: "asc",
+    key: "_Issue_Open_Date",
+    direction: "desc",
+  });
+  const [counts, setCounts] = useState({
+    current: 0,
+    upcoming: 0,
+    past: 0,
+    mainboard: 0,
+    sme: 0,
+    total: 0,
   });
 
-  const [reportCounts, setReportCounts] = useState<{
-    mainboard_data: number;
-    sme_data: number;
-  }>({
-    mainboard_data: 0,
-    sme_data: 0,
-  });
+  const totalPages = ipoData.pages || Math.ceil(ipoData.total / recordsPerPage) || 1;
 
-  const currentData = ipoData[ipoType];
-
-  const totalRecords = currentData?.total || 0;
-
-  const totalPages =
-    currentData?.pages ||
-    Math.ceil(totalRecords / recordsPerPage) ||
-    1;
-
-  // Fetch data for selected IPO type
-  const fetchIpoData = async (type: IpoType) => {
+  const fetchIpoData = async () => {
     setLoading(true);
     setError(null);
 
     try {
-      const response = await getIpoData(
-        type,
+      const response = await getNseIpoData(
         currentPage,
         recordsPerPage,
         statusFilter,
+        boardFilter,
       );
 
       if (response.success) {
         const total = response.totalRecords ?? response.total ?? 0;
-        const safeResponse: IpoResponse = {
+        setIpoData({
           success: response.success,
-          total: total,
+          total,
           page: currentPage,
           pages: Math.ceil(total / recordsPerPage) || 1,
           data: (response.data || []) as unknown as IpoData[],
           message: response.message,
-        };
-
-        setIpoData((prev) => ({
-          ...prev,
-          [type]: safeResponse,
-        }));
-
-        setError(null);
+        });
       } else {
-        setIpoData((prev) => ({
-          ...prev,
-          [type]: {
-            success: false,
-            total: 0,
-            page: 1,
-            pages: 1,
-            data: [],
-            message: response.message,
-          },
-        }));
-
-        setError(response.message || "Failed to fetch data");
-      }
-    } catch (err) {
-      console.error("Error fetching IPO data:", err);
-
-      setIpoData((prev) => ({
-        ...prev,
-        [type]: {
+        setIpoData({
           success: false,
           total: 0,
           page: 1,
           pages: 1,
           data: [],
-        },
-      }));
-
-      setError("Failed to fetch data");
+          message: response.message,
+        });
+        setError(response.message || "Failed to fetch IPO data");
+      }
+    } catch (err) {
+      console.error("Error fetching IPO data:", err);
+      setIpoData({
+        success: false,
+        total: 0,
+        page: 1,
+        pages: 1,
+        data: [],
+      });
+      setError("Failed to fetch IPO data");
     } finally {
       setLoading(false);
     }
   };
 
-  const fetchReportCounts = async () => {
+  const fetchCounts = async () => {
     try {
-      const countResponse = await getIpoReportsCount([
-        "mainboard_data",
-        "sme_data",
-      ]);
-
-      if (countResponse.success) {
-        setReportCounts(countResponse.counts);
-      } else {
-        setReportCounts({
-          mainboard_data: 0,
-          sme_data: 0,
-        });
-
-        console.error("Failed to fetch report counts:", countResponse?.message);
+      const response = await getNseIpoCounts();
+      if (response.success) {
+        setCounts(response.counts);
       }
     } catch (err) {
-      console.error("Error fetching report counts:", err);
-
-      setReportCounts({
-        mainboard_data: 0,
-        sme_data: 0,
-      });
+      console.error("Error fetching IPO counts:", err);
     }
   };
 
   useEffect(() => {
-    fetchReportCounts();
+    fetchCounts();
   }, []);
 
   useEffect(() => {
-    fetchIpoData(ipoType);
-  }, [ipoType, currentPage, recordsPerPage, statusFilter]);
+    fetchIpoData();
+  }, [statusFilter, boardFilter, currentPage, recordsPerPage]);
 
   const handleSort = (key: keyof IpoData) => {
     setSortConfig((current) => ({
@@ -248,33 +182,19 @@ const Index = () => {
     setCurrentPage(1);
   };
 
-  const handleTabChange = (value: string) => {
-    setIpoType(value as IpoType);
+  const handleBoardChange = (value: string) => {
+    setBoardFilter(value as BoardFilter);
     setCurrentPage(1);
   };
 
-  const handlePageChange = (page: number) => {
-    if (page < 1 || page > totalPages) return;
-
-    setCurrentPage(page);
-  };
-
-  const handleRecordsPerPageChange = (newLimit: number) => {
-    setRecordsPerPage(newLimit);
-    setCurrentPage(1);
-  };
-
-  // Render loading state only for first page initial load
-  if (loading && currentPage === 1 && currentData.data.length === 0) {
+  if (loading && currentPage === 1 && ipoData.data.length === 0) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
         <Navigation />
-
         <main className="container mx-auto px-4 py-8">
           <div className="space-y-8 text-center">
             <Skeleton className="h-10 w-64 mx-auto mb-2" />
             <Skeleton className="h-6 w-96 mx-auto" />
-
             {[...Array(3)].map((_, index) => (
               <Skeleton key={index} className="h-32" />
             ))}
@@ -284,130 +204,121 @@ const Index = () => {
     );
   }
 
-  // Render error state only when no data available
-  if (error && currentPage === 1 && currentData.data.length === 0) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
-        <Navigation />
-
-        <main className="container mx-auto px-4 py-8">
-          <div className="flex justify-center items-center py-12 text-red-600 text-lg">
-            {error}
-          </div>
-        </main>
-      </div>
-    );
-  }
+  const statusCount =
+    statusFilter === "current"
+      ? counts.current
+      : statusFilter === "upcoming"
+        ? counts.upcoming
+        : counts.past;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
       <Navigation />
 
       <main className="container mx-auto px-4 py-8 space-y-6">
-        {/* Header */}
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h2 className="text-2xl font-bold text-gray-900">
-              IPO Listing - {ipoType === "mainboard_data" ? "Mainboard" : "SME"}
-            </h2>
-
+            <h2 className="text-2xl font-bold text-gray-900">IPO Issues</h2>
             <p className="text-sm text-gray-500">
-              Upcoming, ongoing, and recent IPO issues from NSE
+              Current, upcoming, and past IPO issues from NSE India
             </p>
           </div>
 
           <div className="text-sm text-gray-500">
-            Total Records:{" "}
-            <span className="font-semibold text-gray-900">
-              {totalRecords}
-            </span>
+            Showing{" "}
+            <span className="font-semibold text-gray-900">{ipoData.total}</span>{" "}
+            of{" "}
+            <span className="font-semibold text-gray-900">{statusCount}</span>{" "}
+            NSE records
           </div>
         </div>
 
         <Tabs value={statusFilter} onValueChange={handleStatusChange}>
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-3">
             {STATUS_TABS.map((tab) => (
               <TabsTrigger key={tab.value} value={tab.value}>
                 {tab.label}
-              </TabsTrigger>
-            ))}
-          </TabsList>
-        </Tabs>
-
-        {/* Tabs */}
-        <Tabs value={ipoType} onValueChange={handleTabChange}>
-          <TabsList className="grid w-full grid-cols-2">
-            {(["mainboard_data", "sme_data"] as IpoType[]).map((type) => (
-              <TabsTrigger key={type} value={type}>
-                {type === "mainboard_data" ? "Mainboard" : "SME"}
-
-                <Badge className="ml-2">
-                  {reportCounts[type]}
+                <Badge className="ml-2" variant="secondary">
+                  {tab.value === "current"
+                    ? counts.current
+                    : tab.value === "upcoming"
+                      ? counts.upcoming
+                      : counts.past}
                 </Badge>
               </TabsTrigger>
             ))}
           </TabsList>
-
-          {(["mainboard_data", "sme_data"] as IpoType[]).map((type) => {
-            const tabData = ipoData[type];
-
-            return (
-              <TabsContent key={type} value={type}>
-                <div className="space-y-4">
-                  {loading && (
-                    <div className="rounded-lg border bg-white p-3 text-sm text-gray-500">
-                      Loading data...
-                    </div>
-                  )}
-
-                  {error && (
-                    <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-600">
-                      {error}
-                    </div>
-                  )}
-
-                  <IpoTable
-                    data={tabData.data}
-                    loading={loading}
-                    sortConfig={sortConfig}
-                    onSort={handleSort}
-                  />
-
-                  <div className="rounded-xl border bg-white p-4">
-                    <div className="mb-3 flex flex-wrap items-center justify-between gap-2 text-xs text-gray-500">
-                      <span>
-                        Total Records:{" "}
-                        <span className="font-semibold text-gray-900">
-                          {tabData.total || 0}
-                        </span>
-                      </span>
-
-                      <span>
-                        Page{" "}
-                        <span className="font-semibold text-gray-900">
-                          {currentPage}
-                        </span>{" "}
-                        of{" "}
-                        <span className="font-semibold text-gray-900">
-                          {totalPages}
-                        </span>
-                      </span>
-                    </div>
-
-                    <CustomPagination
-                      currentPage={currentPage}
-                      totalPages={totalPages}
-                      onPageChange={handlePageChange}
-                      pageSize={recordsPerPage}
-                      onPageSizeChange={handleRecordsPerPageChange}
-                      pageSizeOptions={[10, 25, 50, 100]}
-                    />
-                  </div>
-                </div>
-              </TabsContent>
-            );
-          })}
         </Tabs>
+
+        <Tabs value={boardFilter} onValueChange={handleBoardChange}>
+          <TabsList className="grid w-full grid-cols-3">
+            {BOARD_TABS.map((tab) => (
+              <TabsTrigger key={tab.value} value={tab.value}>
+                {tab.label}
+                {tab.value !== "all" && (
+                  <Badge className="ml-2" variant="outline">
+                    {tab.value === "mainboard" ? counts.mainboard : counts.sme}
+                  </Badge>
+                )}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        </Tabs>
+
+        <div className="space-y-4">
+          {loading && (
+            <div className="rounded-lg border bg-white p-3 text-sm text-gray-500">
+              Loading NSE IPO data...
+            </div>
+          )}
+
+          {error && (
+            <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-600">
+              {error}
+            </div>
+          )}
+
+          <IpoTable
+            data={ipoData.data}
+            loading={loading}
+            sortConfig={sortConfig}
+            onSort={handleSort}
+            showSubscription={statusFilter === "current"}
+          />
+
+          <div className="rounded-xl border bg-white p-4">
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-2 text-xs text-gray-500">
+              <span>
+                Total Records:{" "}
+                <span className="font-semibold text-gray-900">
+                  {ipoData.total || 0}
+                </span>
+              </span>
+
+              <span>
+                Page{" "}
+                <span className="font-semibold text-gray-900">{currentPage}</span>{" "}
+                of{" "}
+                <span className="font-semibold text-gray-900">{totalPages}</span>
+              </span>
+            </div>
+
+            <CustomPagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={(page) => {
+                if (page < 1 || page > totalPages) return;
+                setCurrentPage(page);
+              }}
+              pageSize={recordsPerPage}
+              onPageSizeChange={(size) => {
+                setRecordsPerPage(size);
+                setCurrentPage(1);
+              }}
+              pageSizeOptions={[10, 25, 50, 100]}
+            />
+          </div>
+        </div>
       </main>
     </div>
   );

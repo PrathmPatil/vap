@@ -10,10 +10,9 @@ export default function CashFlowModel(sequelize, DataTypes) {
       },
 
       // FIX: TEXT → STRING(50) to allow indexing
-      symbol: { 
-        type: DataTypes.STRING(50), 
+      symbol: {
+        type: DataTypes.STRING(50),
         allowNull: false,
-        primaryKey: true 
       },
 
       col_unknown: { type: DataTypes.STRING(255), allowNull: true },

@@ -30,6 +30,8 @@ const SmeDataModel = (sequelize, DataTypes) => {
       issue_size_shares: DataTypes.STRING,
       lot_size: DataTypes.STRING,
       listing_date: DataTypes.STRING,
+      data_source: DataTypes.STRING,
+      security_type: DataTypes.STRING,
       created_at: {
         type: DataTypes.DATE,
         defaultValue: DataTypes.NOW
