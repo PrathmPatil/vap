@@ -1,7 +1,6 @@
 "use client";
 
 import {
-  TrendingUp,
   BarChart3,
   FileText,
   LogOut,
@@ -9,6 +8,7 @@ import {
   Calculator,
   Building2,
 } from "lucide-react";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
@@ -23,7 +23,14 @@ function Navigation() {
 
           {/* Logo */}
           <Link href="/" className="flex items-center space-x-2">
-            <TrendingUp className="h-8 w-8 text-blue-600" />
+            <Image
+              src="/logo.png"
+              alt="TrendTraders"
+              width={32}
+              height={32}
+              className="h-8 w-8"
+              priority
+            />
             <span className="text-xl font-bold text-slate-900">
               TrendTraders
             </span>

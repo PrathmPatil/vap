@@ -51,10 +51,10 @@ const Ipo = () => {
 
     try {
       const response = await getNseIpoData(
-        "current",
-        boardFilter,
         currentPage,
         recordsPerPage,
+        "current",
+        boardFilter,
       );
 
       if (response.success) {
@@ -168,12 +168,12 @@ const Ipo = () => {
           currentPage={currentPage}
           totalPages={totalPages}
           onPageChange={setCurrentPage}
-          recordsPerPage={recordsPerPage}
-          onRecordsPerPageChange={(limit) => {
+          pageSize={recordsPerPage}
+          onPageSizeChange={(limit) => {
             setRecordsPerPage(limit);
             setCurrentPage(1);
           }}
-          totalRecords={totalRecords}
+          pageSizeOptions={[10, 25, 50]}
         />
       ) : null}
     </div>

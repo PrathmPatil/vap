@@ -115,7 +115,7 @@ const Index = () => {
       );
 
       if (response.success) {
-        const total = response.totalRecords ?? response.total ?? 0;
+        const total = response.total ?? 0;
         setIpoData({
           success: response.success,
           total,

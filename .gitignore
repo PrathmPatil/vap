@@ -72,6 +72,7 @@ python/.env.*
 *.jpg
 *.png
 *.jpeg
+!frontend/public/logo.png
 
 # ========================
 # Docker
