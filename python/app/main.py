@@ -165,10 +165,11 @@ def initialize_cron_jobs():
 
     for name, func in cron_services:
         try:
+            logger.info(f"⏳ Starting {name}...")
             func()
             logger.info(f"✅ {name} started successfully")
         except Exception as e:
-            logger.error(f"❌ Failed to start {name}: {e}")
+            logger.exception(f"❌ Failed to start {name}: {e}")
 
     bootstrap_market_holidays()
 

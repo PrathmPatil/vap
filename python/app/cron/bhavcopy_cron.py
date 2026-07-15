@@ -167,31 +167,68 @@ def fetch_missing_bhavcopy_job():
         logger.info(f"✅ Missing data check complete: {missing} missing, {processed} processed")
 
 
+def _parse_bhavcopy_cron_trigger() -> CronTrigger:
+    """Use BHAVCOPY_UPDATE_CRON from env; fall back to 18:00 IST daily."""
+    from app.config import config
+
+    cron_expr = (
+        str(config.SCHEDULER_CONFIG.get("bhavcopy_update") or "0 18 * * *")
+        .strip()
+        .strip('"')
+        .strip("'")
+    )
+    try:
+        return CronTrigger.from_crontab(cron_expr, timezone=IST)
+    except ValueError as error:
+        logger.warning(
+            "Invalid BHAVCOPY_UPDATE_CRON '%s' (%s); using 0 18 * * *",
+            cron_expr,
+            error,
+        )
+        return CronTrigger(hour=18, minute=0, timezone=IST)
+
+
 def fetch_today_bhavcopy_cron():
-    """Start Bhavcopy cron scheduler - immediate run + daily schedule."""
+    """Start Bhavcopy cron scheduler - schedule first, then run once."""
     if scheduler.running:
         logger.warning("Bhavcopy scheduler already running")
         return
 
-    logger.info("⏳ Running bhavcopy_job immediately (fetching latest trade date)...")
-    bhavcopy_job()
-
+    # Register jobs BEFORE the immediate run so a fetch failure cannot
+    # leave the daily scheduler unregistered (this was happening on prod).
+    cron_trigger = _parse_bhavcopy_cron_trigger()
     scheduler.add_job(
         bhavcopy_job,
-        CronTrigger(hour=18, minute=0),
+        cron_trigger,
         id="bhavcopy_daily_job",
         replace_existing=True,
+        max_instances=1,
+        coalesce=True,
     )
-    
+
     scheduler.add_job(
         fetch_missing_bhavcopy_job,
-        CronTrigger(day_of_week="sun", hour=2, minute=0),
+        CronTrigger(day_of_week="sun", hour=2, minute=0, timezone=IST),
         id="bhavcopy_missing_job",
         replace_existing=True,
+        max_instances=1,
+        coalesce=True,
     )
 
     scheduler.start()
-    logger.info("✅ Bhavcopy scheduler started (daily at 6:00 PM IST)")
+    logger.info(
+        "✅ Bhavcopy scheduler started | daily=%s | timezone=IST",
+        cron_trigger,
+    )
+
+    logger.info("⏳ Running bhavcopy_job immediately (fetching latest trade date)...")
+    try:
+        bhavcopy_job()
+    except Exception as error:
+        logger.exception(
+            "Immediate bhavcopy fetch failed (scheduler still active): %s",
+            error,
+        )
 
 
 # =========================================================

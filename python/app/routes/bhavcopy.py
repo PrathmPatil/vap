@@ -15,7 +15,7 @@ from app.cron.bhavcopy_cron import (
     generate_bhavcopy_url
 )
 
-router = APIRouter(prefix="/bhavcopy", tags=["Bhavcopy"])
+router = APIRouter(tags=["Bhavcopy"])
 
 
 @router.get("/fetch-range")
