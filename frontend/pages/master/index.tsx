@@ -167,44 +167,130 @@ const MasterIndex = () => {
   }, [pagination.total_pages, pagination.total, pagination.limit]);
 
   // Predefined API endpoints
+  const PYTHON_API_BASE =
+    process.env.NEXT_PUBLIC_PYTHON_API_URL || "http://localhost:8080";
+
   const apiEndpoints: ApiEndpoint[] = [
     {
-      name: "Run Manual API",
-      path: "/vap/formula/run-manual-api",
-      method: "GET",
-      description: "Manually trigger the main cron job",
+      name: "Run Formula Engine",
+      path: "/vap/formula/run-formula-engine",
+      method: "POST",
+      description: "Manually trigger the main formula cron job",
     },
     {
-      name: "Process Formula Data",
-      path: "/vap/formula/process-formula-data",
+      name: "Start Formula Cron",
+      path: "/vap/cron-management/start-formula-cron",
       method: "POST",
-      description: "Process formula data with specific parameters",
+      description: "Start / re-run the formula cron job",
+    },
+    {
+      name: "Sync IPO (NSE)",
+      path: "/vap/sync/ipo",
+      method: "POST",
+      description: "Trigger NSE IPO sync via Python service",
+    },
+  ];
+
+  const bhavcopyEndpoints: ApiEndpoint[] = [
+    {
+      name: "Fetch Today Bhavcopy",
+      path: "/bhavcopy/fetch-today",
+      method: "GET",
+      description: "Fetch latest trade-date PR bhavcopy (usually yesterday)",
+      parameters: [
+        {
+          name: "force_refresh",
+          type: "boolean",
+          required: false,
+          description: "Reprocess even if data already exists",
+        },
+      ],
+    },
+    {
+      name: "Fetch Date Range",
+      path: "/bhavcopy/fetch-range",
+      method: "GET",
+      description: "Backfill NSE PR bhavcopy between two dates",
+      parameters: [
+        {
+          name: "start_date",
+          type: "string",
+          required: true,
+          description: "Start date YYYY-MM-DD",
+        },
+        {
+          name: "end_date",
+          type: "string",
+          required: true,
+          description: "End date YYYY-MM-DD",
+        },
+        {
+          name: "force_refresh",
+          type: "boolean",
+          required: false,
+          description: "Force re-download / reprocess",
+        },
+      ],
+    },
+    {
+      name: "Fetch Specific Date",
+      path: "/bhavcopy/fetch-date/{date}",
+      method: "GET",
+      description: "Fetch bhavcopy for one trade date",
+      parameters: [
+        {
+          name: "date",
+          type: "string",
+          required: true,
+          description: "Date in path, YYYY-MM-DD",
+        },
+        {
+          name: "force_refresh",
+          type: "boolean",
+          required: false,
+          description: "Force reprocess",
+        },
+      ],
+    },
+    {
+      name: "Bhavcopy Status",
+      path: "/bhavcopy/status",
+      method: "GET",
+      description: "Check if PR data exists for a date",
       parameters: [
         {
           name: "date",
           type: "string",
           required: false,
-          description: "Date to process (YYYY-MM-DD)",
-        },
-        {
-          name: "formula_id",
-          type: "number",
-          required: false,
-          description: "Specific formula ID to process",
+          description: "YYYY-MM-DD (defaults to today)",
         },
       ],
     },
     {
-      name: "Retry Failed Jobs",
-      path: "/vap/formula/retry-failed",
-      method: "POST",
-      description: "Retry all failed cron jobs",
+      name: "Generate NSE Zip URL",
+      path: "/bhavcopy/generate-url/{date}",
+      method: "GET",
+      description: "Build the official NSE PR zip URL for a date",
+      parameters: [
+        {
+          name: "date",
+          type: "string",
+          required: true,
+          description: "YYYY-MM-DD in path",
+        },
+      ],
     },
     {
-      name: "Clear Cache",
-      path: "/vap/formula/clear-cache",
-      method: "DELETE",
-      description: "Clear formula cache",
+      name: "Fetch From Manual URL",
+      path: "/bhavcopy/fetch-from-url",
+      method: "POST",
+      description: "Download and store a PR zip from a direct NSE URL",
+    },
+    {
+      name: "Bhavcopy Health",
+      path: "/bhavcopy/health",
+      method: "GET",
+      description: "Health check for bhavcopy service",
     },
   ];
 
@@ -844,10 +930,10 @@ const MasterIndex = () => {
           )}
         </div>
 
-        {/* Modal - Keep existing modal code */}
+        {/* Modal - Cron Job Details */}
         <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-          <DialogContent className="max-h-[90vh] max-w-4xl overflow-y-auto">
-            <DialogHeader>
+          <DialogContent className="flex max-h-[90vh] max-w-4xl flex-col gap-0 overflow-hidden p-0">
+            <DialogHeader className="shrink-0 border-b px-6 py-4 pr-12">
               <DialogTitle>
                 Cron Job Details: {selectedLog?.job_name}
                 {selectedLog?.status?.toUpperCase() === "FAILED" && (
@@ -856,10 +942,10 @@ const MasterIndex = () => {
               </DialogTitle>
             </DialogHeader>
 
+            <div className="min-h-0 flex-1 overflow-y-auto px-6 py-4">
             <Tabs
               value={activeTab}
               onValueChange={setActiveTab}
-              className="mt-4"
             >
               <TabsList className="grid w-full grid-cols-3">
                 <TabsTrigger value="details">Job Details</TabsTrigger>
@@ -1018,9 +1104,127 @@ const MasterIndex = () => {
 
               <TabsContent value="swagger" className="space-y-4">
                 <div className="space-y-6">
+                  <div className="rounded-lg border border-sky-200 bg-sky-50 p-4">
+                    <h3 className="mb-2 text-lg font-semibold">
+                      FastAPI Swagger (Bhavcopy)
+                    </h3>
+                    <p className="mb-3 text-sm text-gray-600">
+                      Open the live Python service docs and try Bhavcopy endpoints
+                      directly. After a successful fetch, formula cron can run.
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      <Button asChild variant="default" size="sm">
+                        <a
+                          href={`${PYTHON_API_BASE}/docs#/Bhavcopy`}
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          Open Swagger → Bhavcopy
+                        </a>
+                      </Button>
+                      <Button asChild variant="outline" size="sm">
+                        <a
+                          href={`${PYTHON_API_BASE}/docs`}
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          Full FastAPI Docs
+                        </a>
+                      </Button>
+                      <Button asChild variant="outline" size="sm">
+                        <a
+                          href={`${PYTHON_API_BASE}/openapi.json`}
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          openapi.json
+                        </a>
+                      </Button>
+                    </div>
+                    <p className="mt-2 font-mono text-xs text-gray-500">
+                      {PYTHON_API_BASE}/docs
+                    </p>
+                  </div>
+
                   <div>
                     <h3 className="mb-3 text-lg font-semibold">
-                      Available API Endpoints
+                      Bhavcopy FastAPI Endpoints
+                    </h3>
+                    <Accordion type="single" collapsible className="w-full">
+                      {bhavcopyEndpoints.map((endpoint, index) => (
+                        <AccordionItem
+                          key={`bh-${index}`}
+                          value={`bhavcopy-${index}`}
+                        >
+                          <AccordionTrigger>
+                            <div className="flex items-center gap-2">
+                              <Badge
+                                variant={
+                                  endpoint.method === "GET"
+                                    ? "default"
+                                    : "secondary"
+                                }
+                              >
+                                {endpoint.method}
+                              </Badge>
+                              <span className="font-mono text-sm">
+                                {endpoint.path}
+                              </span>
+                            </div>
+                          </AccordionTrigger>
+                          <AccordionContent>
+                            <div className="space-y-3">
+                              <p className="text-sm text-gray-600">
+                                {endpoint.description}
+                              </p>
+                              {endpoint.parameters && (
+                                <div>
+                                  <h4 className="mb-2 text-sm font-semibold">
+                                    Parameters
+                                  </h4>
+                                  <div className="space-y-2">
+                                    {endpoint.parameters.map((param, idx) => (
+                                      <div key={idx} className="text-sm">
+                                        <span className="font-mono">
+                                          {param.name}
+                                        </span>
+                                        <span className="text-gray-500">
+                                          {" "}
+                                          ({param.type})
+                                        </span>
+                                        {!param.required && (
+                                          <span className="text-gray-400">
+                                            {" "}
+                                            - optional
+                                          </span>
+                                        )}
+                                        <p className="text-xs text-gray-500">
+                                          {param.description}
+                                        </p>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                              <Button asChild size="sm" variant="outline">
+                                <a
+                                  href={`${PYTHON_API_BASE}/docs#/Bhavcopy`}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                >
+                                  Try in Swagger
+                                </a>
+                              </Button>
+                            </div>
+                          </AccordionContent>
+                        </AccordionItem>
+                      ))}
+                    </Accordion>
+                  </div>
+
+                  <div>
+                    <h3 className="mb-3 text-lg font-semibold">
+                      Backend Formula Endpoints
                     </h3>
 
                     <Accordion type="single" collapsible className="w-full">
@@ -1207,6 +1411,7 @@ const MasterIndex = () => {
                 <p className="mt-2">Executing API...</p>
               </div>
             )}
+            </div>
           </DialogContent>
         </Dialog>
       </main>
