@@ -1,7 +1,9 @@
 # app/cron/bhavcopy_cron.py
 import logging
+import os
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
+from apscheduler.triggers.interval import IntervalTrigger
 from datetime import timezone, timedelta, datetime
 from typing import Optional, List, Dict
 from app.services.bhavcopy_service import bhavcopy_service
@@ -16,6 +18,105 @@ from app.utils.cron_decorator import CronJobContext
 logger = logging.getLogger(__name__)
 IST = timezone(timedelta(hours=5, minutes=30))
 scheduler = BackgroundScheduler(timezone=IST)
+BHAVCOPY_RETRY_JOB_ID = "bhavcopy_retry_job"
+BHAVCOPY_DAILY_JOB_ID = "bhavcopy_daily_job"
+
+
+def _bhavcopy_retry_interval_hours() -> int:
+    try:
+        return max(1, int(os.getenv("BHAVCOPY_RETRY_INTERVAL_HOURS", "2")))
+    except ValueError:
+        return 2
+
+
+def _now_ist() -> datetime:
+    return datetime.now(IST)
+
+
+def _calendar_trade_datetime(for_date=None) -> Optional[datetime]:
+    """Weekday date at midnight (naive) for bhavcopy fetch."""
+    day = for_date or _now_ist().date()
+    if day.weekday() >= 5:
+        return None
+    return datetime.combine(day, datetime.min.time())
+
+
+def _latest_missing_trade_date(within_days: int = 7) -> Optional[datetime]:
+    """Most recent weekday still missing PR/eq bhavcopy (today first)."""
+    today = _now_ist().date()
+    for days_back in range(within_days):
+        day = today - timedelta(days=days_back)
+        if day.weekday() >= 5:
+            continue
+        date_obj = datetime.combine(day, datetime.min.time())
+        if not bhavcopy_service.is_trade_date_processed(date_obj):
+            return date_obj
+    return None
+
+
+def _schedule_bhavcopy_retry():
+    """Retry every N hours until the latest missing bhavcopy succeeds."""
+    if scheduler.get_job(BHAVCOPY_RETRY_JOB_ID):
+        return
+
+    hours = _bhavcopy_retry_interval_hours()
+    scheduler.add_job(
+        bhavcopy_retry_job,
+        IntervalTrigger(hours=hours, timezone=IST),
+        id=BHAVCOPY_RETRY_JOB_ID,
+        replace_existing=True,
+        max_instances=1,
+        coalesce=True,
+    )
+    logger.info(
+        "Bhavcopy retry scheduled every %s hour(s) until fetch succeeds",
+        hours,
+    )
+
+
+def _clear_bhavcopy_retry():
+    job = scheduler.get_job(BHAVCOPY_RETRY_JOB_ID)
+    if job:
+        scheduler.remove_job(BHAVCOPY_RETRY_JOB_ID)
+        logger.info("Bhavcopy retry job stopped (data fetched)")
+
+
+def _handle_bhavcopy_success(
+    context: CronJobContext,
+    result: Dict,
+    trigger_source: str,
+    run_backfill: bool = True,
+):
+    files_processed = result.get("files_processed", 0)
+    context.add_record(processed=files_processed)
+    context.set_data(files_processed=files_processed, result=result)
+    logger.info(
+        "Successfully processed %s files for %s",
+        files_processed,
+        result.get("date"),
+    )
+
+    backfill_results = None
+    if run_backfill and files_processed > 0:
+        end_date = _now_ist().date()
+        start_date = end_date - timedelta(days=7)
+        missing_result = bhavcopy_service.fetch_missing_dates(
+            start_date.strftime("%Y-%m-%d"),
+            end_date.strftime("%Y-%m-%d"),
+        )
+        backfill_results = missing_result.get("results", [])
+        context.set_data(missing_dates=missing_result.get("missing_dates", 0))
+        context.set_data(
+            missing_duration_seconds=missing_result.get("duration_seconds")
+        )
+
+    run_formulas_for_bhavcopy_results(
+        trigger_source,
+        context,
+        primary_result=result,
+        backfill_results=backfill_results,
+    )
+    _clear_bhavcopy_retry()
 
 
 def should_run_formulas(bhavcopy_result: Dict) -> bool:
@@ -89,48 +190,51 @@ def run_formulas_for_bhavcopy_results(
     return formula_results
 
 
-def bhavcopy_job():
-    """Main job to fetch Bhavcopy data with logging"""
+def bhavcopy_job(from_daily_cron: bool = False):
+    """Fetch latest missing bhavcopy; at 8 PM IST schedule 2h retries on failure."""
     with CronJobContext("bhavcopy_daily", "bhavcopy") as context:
-        logger.info("🔥 Bhavcopy cron started")
-        
-        result = bhavcopy_service.fetch_today_bhavcopy(force_refresh=False)
+        logger.info("Bhavcopy cron started (daily=%s)", from_daily_cron)
+
+        target = _latest_missing_trade_date(within_days=7)
+        if target is None:
+            logger.info("All recent bhavcopy dates already present")
+            context.set_data(status="UP_TO_DATE")
+            _clear_bhavcopy_retry()
+            return
+
+        logger.info("Fetching bhavcopy for trade date: %s", target.date())
+        result = bhavcopy_service.process_zip_for_date(target, force_refresh=False)
         context.set_data(fetch_duration_seconds=result.get("duration_seconds"))
-        
+
         if result.get("status") == "SUCCESS":
-            files_processed = result.get("files_processed", 0)
-            context.add_record(processed=files_processed)
-            context.set_data(files_processed=files_processed, result=result)
-            logger.info(f"✅ Successfully processed {files_processed} files")
-
-            backfill_results = None
-            if files_processed > 0:
-                end_date = datetime.now().date()
-                start_date = end_date - timedelta(days=7)
-                missing_result = bhavcopy_service.fetch_missing_dates(
-                    start_date.strftime("%Y-%m-%d"),
-                    end_date.strftime("%Y-%m-%d")
-                )
-                backfill_results = missing_result.get("results", [])
-                context.set_data(missing_dates=missing_result.get("missing_dates", 0))
-                context.set_data(missing_duration_seconds=missing_result.get("duration_seconds"))
-
-            run_formulas_for_bhavcopy_results(
-                "bhavcopy_daily",
-                context,
-                primary_result=result,
-                backfill_results=backfill_results,
-            )
-                
+            _handle_bhavcopy_success(context, result, "bhavcopy_daily")
         elif result.get("status") == "NOT_FOUND":
-            logger.warning(f"⚠ Bhavcopy not yet available for today")
-            context.set_data(status="NOT_FOUND")
+            logger.warning("Bhavcopy not yet available for %s", target.date())
+            context.set_data(status="NOT_FOUND", target_date=str(target.date()))
+            if from_daily_cron or _now_ist().hour >= 20:
+                _schedule_bhavcopy_retry()
         elif result.get("status") == "WEEKEND":
-            logger.info(f"📅 Weekend, no Bhavcopy expected")
+            logger.info("Weekend, no Bhavcopy expected")
             context.set_data(status="WEEKEND")
+            _clear_bhavcopy_retry()
         else:
-            logger.error(f"❌ Bhavcopy failed: {result.get('message')}")
-            context.set_data(error_message=result.get('message'))
+            logger.error("Bhavcopy failed: %s", result.get("message"))
+            context.set_data(error_message=result.get("message"))
+            if from_daily_cron or _now_ist().hour >= 20:
+                _schedule_bhavcopy_retry()
+
+
+def bhavcopy_daily_job():
+    """8 PM IST entry point — fetch today; start 2h retry loop if NSE not ready."""
+    bhavcopy_job(from_daily_cron=True)
+
+
+def bhavcopy_retry_job():
+    """Retry fetch every 2 hours until the latest missing trade date succeeds."""
+    if _latest_missing_trade_date(within_days=7) is None:
+        _clear_bhavcopy_retry()
+        return
+    bhavcopy_job(from_daily_cron=False)
 
 
 def fetch_missing_bhavcopy_job():
@@ -168,11 +272,11 @@ def fetch_missing_bhavcopy_job():
 
 
 def _parse_bhavcopy_cron_trigger() -> CronTrigger:
-    """Use BHAVCOPY_UPDATE_CRON from env; fall back to 18:00 IST daily."""
+    """Use BHAVCOPY_UPDATE_CRON from env; fall back to 20:00 IST daily."""
     from app.config import config
 
     cron_expr = (
-        str(config.SCHEDULER_CONFIG.get("bhavcopy_update") or "0 18 * * *")
+        str(config.SCHEDULER_CONFIG.get("bhavcopy_update") or "0 20 * * *")
         .strip()
         .strip('"')
         .strip("'")
@@ -181,11 +285,11 @@ def _parse_bhavcopy_cron_trigger() -> CronTrigger:
         return CronTrigger.from_crontab(cron_expr, timezone=IST)
     except ValueError as error:
         logger.warning(
-            "Invalid BHAVCOPY_UPDATE_CRON '%s' (%s); using 0 18 * * *",
+            "Invalid BHAVCOPY_UPDATE_CRON '%s' (%s); using 0 20 * * *",
             cron_expr,
             error,
         )
-        return CronTrigger(hour=18, minute=0, timezone=IST)
+        return CronTrigger(hour=20, minute=0, timezone=IST)
 
 
 def fetch_today_bhavcopy_cron():
@@ -198,9 +302,9 @@ def fetch_today_bhavcopy_cron():
     # leave the daily scheduler unregistered (this was happening on prod).
     cron_trigger = _parse_bhavcopy_cron_trigger()
     scheduler.add_job(
-        bhavcopy_job,
+        bhavcopy_daily_job,
         cron_trigger,
-        id="bhavcopy_daily_job",
+        id=BHAVCOPY_DAILY_JOB_ID,
         replace_existing=True,
         max_instances=1,
         coalesce=True,
@@ -216,19 +320,23 @@ def fetch_today_bhavcopy_cron():
     )
 
     scheduler.start()
+    retry_hours = _bhavcopy_retry_interval_hours()
     logger.info(
-        "✅ Bhavcopy scheduler started | daily=%s | timezone=IST",
+        "Bhavcopy scheduler started | daily=%s | retry_every=%sh | timezone=IST",
         cron_trigger,
+        retry_hours,
     )
 
-    logger.info("⏳ Running bhavcopy_job immediately (fetching latest trade date)...")
-    try:
-        bhavcopy_job()
-    except Exception as error:
-        logger.exception(
-            "Immediate bhavcopy fetch failed (scheduler still active): %s",
-            error,
-        )
+    now = _now_ist()
+    if now.hour >= 20 and _calendar_trade_datetime() and _latest_missing_trade_date():
+        logger.info("Past 8 PM IST with missing bhavcopy — running catch-up fetch now")
+        try:
+            bhavcopy_daily_job()
+        except Exception as error:
+            logger.exception(
+                "Catch-up bhavcopy fetch failed (scheduler still active): %s",
+                error,
+            )
 
 
 # =========================================================
