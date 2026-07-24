@@ -48,6 +48,7 @@ import {
 import { cn } from "@/lib/utils";
 import { Pagination } from "@/components/ui/custom-pagination";
 import Navigation from "@/components/Navigation";
+import CronManualOpsPanel from "@/components/CronManualOpsPanel";
 
 interface LogEntry {
   id: number;
@@ -167,8 +168,50 @@ const MasterIndex = () => {
   }, [pagination.total_pages, pagination.total, pagination.limit]);
 
   // Predefined API endpoints
-  const PYTHON_API_BASE =
-    process.env.NEXT_PUBLIC_PYTHON_API_URL || "http://localhost:8080";
+  const PYTHON_API_BASE = (
+    process.env.NEXT_PUBLIC_PYTHON_API_URL ||
+    process.env.NEXT_PUBLIC_PYTHON_API ||
+    "http://localhost:8080"
+  ).replace(/\/+$/, "");
+
+  const getBackendBaseUrl = () => {
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL?.trim();
+    if (apiUrl) {
+      // NEXT_PUBLIC_API_URL is usually .../vap — strip trailing /vap for full paths
+      return apiUrl.replace(/\/vap\/?$/, "").replace(/\/+$/, "");
+    }
+    const backend = process.env.NEXT_PUBLIC_BACKEND_API?.trim();
+    if (backend) return backend.replace(/\/+$/, "");
+    return "http://localhost:8000";
+  };
+
+  const BACKEND_API_BASE = getBackendBaseUrl();
+
+  const getAuthHeaders = () => {
+    if (typeof window === "undefined") return {};
+    const token =
+      window.localStorage.getItem("token")?.trim() ||
+      document.cookie
+        .split("; ")
+        .find((row) => row.startsWith("token="))
+        ?.split("=")?.[1]
+        ?.trim();
+    return token ? { Authorization: `Bearer ${token}` } : {};
+  };
+
+  /** Resolve master Quick Action paths to backend vs Python FastAPI hosts. */
+  const resolveApiUrl = (path: string) => {
+    if (/^https?:\/\//i.test(path)) return path;
+    const normalized = path.startsWith("/") ? path : `/${path}`;
+    if (
+      normalized.startsWith("/bhavcopy") ||
+      normalized.startsWith("/docs") ||
+      normalized.startsWith("/openapi")
+    ) {
+      return `${PYTHON_API_BASE}${normalized}`;
+    }
+    return `${BACKEND_API_BASE}${normalized}`;
+  };
 
   const apiEndpoints: ApiEndpoint[] = [
     {
@@ -436,20 +479,22 @@ const MasterIndex = () => {
     setApiResponse(null);
 
     try {
+      const url = resolveApiUrl(endpoint.path);
+      const headers = getAuthHeaders();
       let response;
 
       switch (endpoint.method) {
         case "GET":
-          response = await axios.get(endpoint.path);
+          response = await axios.get(url, { params: customParams, headers });
           break;
         case "POST":
-          response = await axios.post(endpoint.path, customParams || {});
+          response = await axios.post(url, customParams || {}, { headers });
           break;
         case "PUT":
-          response = await axios.put(endpoint.path, customParams || {});
+          response = await axios.put(url, customParams || {}, { headers });
           break;
         case "DELETE":
-          response = await axios.delete(endpoint.path);
+          response = await axios.delete(url, { headers });
           break;
         default:
           throw new Error("Unsupported API method");
@@ -483,13 +528,15 @@ const MasterIndex = () => {
     setApiResponse(null);
 
     try {
+      const url = resolveApiUrl(customApiPath);
+      const headers = getAuthHeaders();
       let response;
 
       if (customApiMethod === "GET") {
-        response = await axios.get(customApiPath);
+        response = await axios.get(url, { headers });
       } else {
         const body = customApiBody ? JSON.parse(customApiBody) : {};
-        response = await axios.post(customApiPath, body);
+        response = await axios.post(url, body, { headers });
       }
 
       setApiResponse({
@@ -517,6 +564,13 @@ const MasterIndex = () => {
     setSelectedLog(log);
     setIsModalOpen(true);
     setActiveTab("details");
+    setApiResponse(null);
+  };
+
+  const openManualOps = (log?: LogEntry | null) => {
+    setSelectedLog(log || null);
+    setIsModalOpen(true);
+    setActiveTab("api");
     setApiResponse(null);
   };
 
@@ -556,9 +610,40 @@ const MasterIndex = () => {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
       <Navigation />
       <main className="container mx-auto px-4 py-8">
-        <h1 className="mb-6 text-3xl font-bold">
-          Master Index - Cron Job Monitor
-        </h1>
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+          <h1 className="text-3xl font-bold">
+            Master Index - Cron Job Monitor
+          </h1>
+          <div className="flex flex-wrap gap-2">
+            <Button variant="default" onClick={() => openManualOps(null)}>
+              Manual APIs
+            </Button>
+            {jobNameFilter === "bhavcopy_daily" && (
+              <Button
+                variant="secondary"
+                onClick={() =>
+                  openManualOps({
+                    id: 0,
+                    job_name: "bhavcopy_daily",
+                    job_group: "bhavcopy",
+                    start_time: "",
+                    end_time: "",
+                    duration_seconds: 0,
+                    status: "SUCCESS",
+                    records_processed: 0,
+                    records_inserted: 0,
+                    records_updated: 0,
+                    error_message: "",
+                    error_traceback: "",
+                    additional_data: null,
+                  })
+                }
+              >
+                Bhavcopy + Formulas
+              </Button>
+            )}
+          </div>
+        </div>
 
         {/* Filter Section */}
         <div className="mb-6 rounded-lg border bg-gray-50 p-4">
@@ -874,6 +959,14 @@ const MasterIndex = () => {
                         >
                           View Details
                         </Button>
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          className="ml-2"
+                          onClick={() => openManualOps(log)}
+                        >
+                          Manual APIs
+                        </Button>
                       </TableCell>
                     </TableRow>
                   ))
@@ -935,9 +1028,14 @@ const MasterIndex = () => {
           <DialogContent className="flex max-h-[90vh] max-w-4xl flex-col gap-0 overflow-hidden p-0">
             <DialogHeader className="shrink-0 border-b px-6 py-4 pr-12">
               <DialogTitle>
-                Cron Job Details: {selectedLog?.job_name}
+                {selectedLog
+                  ? `Cron Job Details: ${selectedLog.job_name}`
+                  : "Manual Cron APIs"}
                 {selectedLog?.status?.toUpperCase() === "FAILED" && (
                   <Badge className="ml-2 bg-red-500">Failed</Badge>
+                )}
+                {selectedLog?.status?.toUpperCase() === "RUNNING" && (
+                  <Badge className="ml-2 bg-yellow-500">Running / Stuck?</Badge>
                 )}
               </DialogTitle>
             </DialogHeader>
@@ -948,8 +1046,10 @@ const MasterIndex = () => {
               onValueChange={setActiveTab}
             >
               <TabsList className="grid w-full grid-cols-3">
-                <TabsTrigger value="details">Job Details</TabsTrigger>
-                <TabsTrigger value="api">Run API / Retry</TabsTrigger>
+                <TabsTrigger value="details" disabled={!selectedLog}>
+                  Job Details
+                </TabsTrigger>
+                <TabsTrigger value="api">Manual APIs</TabsTrigger>
                 <TabsTrigger value="swagger">Self Swagger</TabsTrigger>
               </TabsList>
 
@@ -1054,52 +1154,14 @@ const MasterIndex = () => {
               </TabsContent>
 
               <TabsContent value="api" className="space-y-4">
-                <div className="space-y-4">
-                  <h3 className="text-lg font-semibold">Quick Actions</h3>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    {apiEndpoints.map((endpoint, index) => (
-                      <Button
-                        key={index}
-                        variant="outline"
-                        onClick={() => runApi(endpoint)}
-                        disabled={apiLoading}
-                        className="flex h-auto flex-col items-start py-3"
-                      >
-                        <div className="font-semibold">{endpoint.name}</div>
-                        <div className="text-xs text-gray-500">
-                          {endpoint.method} {endpoint.path}
-                        </div>
-                        <div className="mt-1 text-xs">
-                          {endpoint.description}
-                        </div>
-                      </Button>
-                    ))}
-                  </div>
-
-                  {selectedLog?.status?.toUpperCase() === "FAILED" && (
-                    <div className="mt-6 rounded border border-yellow-200 bg-yellow-50 p-4">
-                      <h4 className="mb-2 font-semibold">Retry Failed Job</h4>
-                      <p className="mb-3 text-sm">
-                        This cron job failed. You can retry it manually:
-                      </p>
-
-                      <Button
-                        onClick={() =>
-                          runApi({
-                            name: `Retry ${selectedLog.job_name}`,
-                            path: `/vap/formula/retry/${selectedLog.id}`,
-                            method: "POST",
-                            description: "Retry failed job",
-                          })
-                        }
-                        disabled={apiLoading}
-                      >
-                        Retry This Job
-                      </Button>
-                    </div>
-                  )}
-                </div>
+                <CronManualOpsPanel
+                  jobName={selectedLog?.job_name}
+                  jobGroup={selectedLog?.job_group}
+                  pythonBase={PYTHON_API_BASE}
+                  backendBase={BACKEND_API_BASE}
+                  getAuthHeaders={getAuthHeaders}
+                  onCompleted={fetchLogsData}
+                />
               </TabsContent>
 
               <TabsContent value="swagger" className="space-y-4">

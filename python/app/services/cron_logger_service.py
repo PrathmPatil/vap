@@ -419,6 +419,48 @@ class CronLoggerService:
             if conn:
                 conn.close()
 
+    def clear_stuck_running(self, older_than_minutes: int = 120):
+        """Mark RUNNING rows without end_time as FAILED (crashed workers)."""
+        if not self.table_created:
+            self.ensure_table_exists()
+            if not self.table_created:
+                return {"cleared": 0, "message": "cron_job_logs table unavailable"}
+
+        conn = None
+        cursor = None
+        try:
+            conn = db_manager.get_connection(self.db_name)
+            cursor = conn.cursor()
+            query = """
+            UPDATE cron_job_logs
+            SET status = 'FAILED',
+                end_time = NOW(),
+                duration_seconds = TIMESTAMPDIFF(SECOND, start_time, NOW()),
+                error_message = COALESCE(
+                    error_message,
+                    'Marked stuck RUNNING (process likely crashed or restarted)'
+                )
+            WHERE status = 'RUNNING'
+              AND end_time IS NULL
+              AND start_time < DATE_SUB(NOW(), INTERVAL %s MINUTE)
+            """
+            cursor.execute(query, (max(1, int(older_than_minutes)),))
+            cleared = cursor.rowcount
+            conn.commit()
+            return {
+                "cleared": cleared,
+                "older_than_minutes": older_than_minutes,
+                "message": f"Cleared {cleared} stuck RUNNING log(s)",
+            }
+        except Exception as e:
+            logger.error(f"Failed to clear stuck RUNNING logs: {e}")
+            return {"cleared": 0, "error": str(e)}
+        finally:
+            if cursor:
+                cursor.close()
+            if conn:
+                conn.close()
+
 
 # Singleton instance
 cron_logger = CronLoggerService()

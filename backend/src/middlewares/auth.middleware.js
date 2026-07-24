@@ -61,3 +61,45 @@ export const requireMaster = (req, res, next) => {
   next();
 };
 
+/**
+ * Allow master JWT OR shared internal API key (Python → Node service calls).
+ * Header: X-Internal-Api-Key: <INTERNAL_API_KEY>
+ */
+export const authenticateMasterOrInternal = (req, res, next) => {
+  const configuredKey = process.env.INTERNAL_API_KEY?.trim();
+  const headerKey = req.headers["x-internal-api-key"]?.toString().trim();
+
+  if (configuredKey && headerKey && headerKey === configuredKey) {
+    req.user = {
+      id: 0,
+      email: "internal@vap.service",
+      role: "master",
+      internal: true,
+    };
+    return next();
+  }
+
+  const token = req.headers.authorization?.split(" ")[1];
+  if (!token) {
+    return res.status(401).json({
+      message: "Unauthorized",
+      hint: "Use master JWT or X-Internal-Api-Key",
+    });
+  }
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    req.user = decoded;
+    const role = decoded?.role;
+    if (role !== "master" && role !== "admin") {
+      return res.status(403).json({
+        success: false,
+        message: "Master access required",
+      });
+    }
+    return next();
+  } catch {
+    return res.status(401).json({ message: "Invalid token" });
+  }
+};
+

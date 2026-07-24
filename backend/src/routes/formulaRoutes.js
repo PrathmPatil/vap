@@ -1,5 +1,9 @@
 import express from "express";
-import { authenticate, requireMaster } from "../middlewares/auth.middleware.js";
+import {
+  authenticate,
+  requireMaster,
+  authenticateMasterOrInternal,
+} from "../middlewares/auth.middleware.js";
 
 import {
   runFormulaEngine,
@@ -29,7 +33,12 @@ import {
 const router = express.Router();
 const adminOnly = [authenticate, requireMaster];
 
-router.post("/run-formula-engine", ...adminOnly, runFormulaEngine);
+// Python bhavcopy cron uses INTERNAL_API_KEY; master UI uses JWT
+router.post(
+  "/run-formula-engine",
+  authenticateMasterOrInternal,
+  runFormulaEngine
+);
 
 router.get("/meta", getFormulaMeta);
 router.post("/query", queryFormula);

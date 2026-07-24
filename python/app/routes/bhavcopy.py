@@ -12,7 +12,12 @@ from app.cron.bhavcopy_cron import (
     manual_fetch_from_url,
     manual_fetch_multiple_urls,
     get_bhavcopy_status,
-    generate_bhavcopy_url
+    generate_bhavcopy_url,
+    manual_fetch_date_with_formulas,
+    manual_fetch_range_with_formulas,
+    list_missing_bhavcopy_dates,
+    clear_stuck_cron_logs,
+    manual_run_formulas_for_range,
 )
 
 router = APIRouter(tags=["Bhavcopy"])
@@ -70,6 +75,69 @@ async def api_fetch_date_bhavcopy(
     try:
         result = manual_fetch_bhavcopy(date, force_refresh)
         return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/fetch-date-with-formulas/{date}")
+async def api_fetch_date_with_formulas(
+    date: str,
+    force_refresh: bool = Query(False, description="Reprocess even if data exists"),
+):
+    """Fetch one trade date then run all formulas (same pipeline as daily cron)."""
+    try:
+        return manual_fetch_date_with_formulas(date, force_refresh)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/fetch-range-with-formulas")
+async def api_fetch_range_with_formulas(
+    start_date: str = Query(..., example="2026-06-28"),
+    end_date: str = Query(..., example="2026-07-03"),
+    force_refresh: bool = Query(False),
+):
+    """Backfill missing weekdays then run formulas for each successful PR day."""
+    try:
+        return manual_fetch_range_with_formulas(start_date, end_date, force_refresh)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/missing-dates")
+async def api_missing_dates(
+    start_date: str = Query(..., example="2026-06-01"),
+    end_date: str = Query(..., example="2026-07-21"),
+):
+    """List weekdays in range that still need PR bhavcopy."""
+    try:
+        return list_missing_bhavcopy_dates(start_date, end_date)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.post("/run-formulas-for-range")
+async def api_run_formulas_for_range(
+    start_date: str = Query(..., example="2026-07-06"),
+    end_date: str = Query(..., example="2026-07-20"),
+):
+    """
+    Run formula engine only (no bhavcopy download) for PR dates already in DB.
+    Use after a range fetch when formula steps timed out / backend restarted.
+    """
+    try:
+        return manual_run_formulas_for_range(start_date, end_date)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/clear-stuck-logs")
+async def api_clear_stuck_logs(
+    older_than_minutes: int = Query(120, ge=1, le=10080),
+):
+    """Mark stuck RUNNING cron logs as FAILED (after process crash / restart)."""
+    try:
+        return clear_stuck_cron_logs(older_than_minutes)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

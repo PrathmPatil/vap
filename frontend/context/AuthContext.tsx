@@ -55,7 +55,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const { user: userData, accessToken, success, message } = response;
       if (success) {
         localStorage.setItem("token", accessToken);
-        document.cookie = `token=${accessToken}; path=/`;
+        document.cookie = `token=${accessToken}; path=/; max-age=${60 * 60}`;
         setIsAuthenticated(true);
 
         router.push("/");
@@ -98,7 +98,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       localStorage.setItem("stockUser", JSON.stringify(userData));
       setUser(userData);
 
-      document.cookie = `token=${accessToken}; path=/`;
+      document.cookie = `token=${accessToken}; path=/; max-age=${60 * 60}`;
       setIsAuthenticated(true);
       router.push("/");
 
