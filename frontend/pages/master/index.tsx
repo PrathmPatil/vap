@@ -187,7 +187,7 @@ const MasterIndex = () => {
 
   const BACKEND_API_BASE = getBackendBaseUrl();
 
-  const getAuthHeaders = () => {
+  const getAuthHeaders = (): Record<string, string> => {
     if (typeof window === "undefined") return {};
     const token =
       window.localStorage.getItem("token")?.trim() ||
@@ -196,7 +196,8 @@ const MasterIndex = () => {
         .find((row) => row.startsWith("token="))
         ?.split("=")?.[1]
         ?.trim();
-    return token ? { Authorization: `Bearer ${token}` } : {};
+    if (!token) return {};
+    return { Authorization: `Bearer ${token}` };
   };
 
   /** Resolve master Quick Action paths to backend vs Python FastAPI hosts. */
