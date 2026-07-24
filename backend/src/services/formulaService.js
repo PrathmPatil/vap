@@ -395,11 +395,14 @@ export const generateFollowThroughDayService = async ({
          GET STOCK DATA AFTER RALLY DATE
       -------------------------------- */
 
+      const rallyDateStr = normalizeTradeDate(rallyDate);
+      if (!rallyDateStr) continue;
+
       const stockData = await PR.findAll({
         where: {
           SECURITY: securityName,
           source_date: {
-            [Op.gte]: rallyDate
+            [Op.gte]: rallyDateStr
           }
         },
         order: [['source_date', 'ASC']],
@@ -413,7 +416,7 @@ export const generateFollowThroughDayService = async ({
       -------------------------------- */
 
       const rallyIndex = stockData.findIndex(
-        (row) => row.source_date === rallyDate
+        (row) => normalizeTradeDate(row.source_date) === rallyDateStr
       );
 
       if (rallyIndex === -1) continue;
@@ -434,18 +437,19 @@ export const generateFollowThroughDayService = async ({
         const volumePrev = Number(stockData[i - 1].NET_TRDQTY);
 
         if (percent >= 1.5 && volumeToday > volumePrev) {
+          const ftdDateStr = normalizeTradeDate(stockData[i].source_date);
           const exists = await FollowThroughDayModel.count({
             where: {
               symbol,
-              rally_date: rallyDate
+              rally_date: rallyDateStr
             }
           });
 
           if (!exists) {
             const record = {
               symbol,
-              rally_date: rallyDate,
-              ftd_date: stockData[i].source_date,
+              rally_date: rallyDateStr,
+              ftd_date: ftdDateStr,
               change_percent: percent,
               volume: volumeToday,
               status: 'ftd_detected'
@@ -555,8 +559,9 @@ export const generateBuyDayService = async ({
 
     for (const ftd of ftdStocks) {
       const symbol = ftd.symbol;
-      const rallyDate = ftd.rally_date;
-      const ftdDate = ftd.ftd_date;
+      const rallyDateStr = normalizeTradeDate(ftd.rally_date);
+      const ftdDateStr = normalizeTradeDate(ftd.ftd_date);
+      if (!rallyDateStr || !ftdDateStr) continue;
       const securityName = resolveSecurityForSymbol(symbol, symbolToName);
 
       /* --------------------------------
@@ -578,7 +583,7 @@ export const generateBuyDayService = async ({
       -------------------------------- */
 
       const ftdIndex = stockData.findIndex(
-        (row) => row.source_date === ftdDate
+        (row) => normalizeTradeDate(row.source_date) === ftdDateStr
       );
 
       if (ftdIndex === -1) continue;
@@ -597,19 +602,20 @@ export const generateBuyDayService = async ({
         const prevVolume = Number(stockData[i - 1].NET_TRDQTY);
 
         if (price > ftdHigh && volume > prevVolume) {
+          const buyDateStr = normalizeTradeDate(stockData[i].source_date);
           const exists = await BuyDayModel.count({
             where: {
               symbol,
-              ftd_date: ftdDate
+              ftd_date: ftdDateStr
             }
           });
 
           if (!exists) {
             const record = {
               symbol,
-              rally_date: rallyDate,
-              ftd_date: ftdDate,
-              buy_date: stockData[i].source_date,
+              rally_date: rallyDateStr,
+              ftd_date: ftdDateStr,
+              buy_date: buyDateStr,
               breakout_price: price,
               status: 'ready_to_buy'
             };
