@@ -67,7 +67,7 @@ export const generateBearishCandleService = async ({
   base_percent = 2
 }) => {
   await BearishCandleModel.sync();
-  const tradeDate = await getTradeDate(null, targetDate);
+  const tradeDate = await getTradeDate(targetDate);
   if (!tradeDate) return { success: false, message: 'No PR data found' };
 
   const existing = await BearishCandleModel.count({
@@ -109,7 +109,7 @@ export const generateGapUpService = async ({
   gap_threshold = 1
 }) => {
   await GapUpDayModel.sync();
-  const tradeDate = await getTradeDate(null, targetDate);
+  const tradeDate = await getTradeDate(targetDate);
   if (!tradeDate) return { success: false, message: 'No PR data found' };
 
   const existing = await GapUpDayModel.count({
@@ -151,7 +151,7 @@ export const generateGapDownService = async ({
   gap_threshold = 1
 }) => {
   await GapDownDayModel.sync();
-  const tradeDate = await getTradeDate(null, targetDate);
+  const tradeDate = await getTradeDate(targetDate);
   if (!tradeDate) return { success: false, message: 'No PR data found' };
 
   const existing = await GapDownDayModel.count({
@@ -190,7 +190,7 @@ export const generateGapDownService = async ({
 
 export const generateFiftyTwoWeekHighService = async ({ targetDate = null }) => {
   await FiftyTwoWeekHighModel.sync();
-  const tradeDate = await getTradeDate(null, targetDate);
+  const tradeDate = await getTradeDate(targetDate);
   if (!tradeDate) return { success: false, message: 'No PR data found' };
 
   const existing = await FiftyTwoWeekHighModel.count({
@@ -230,7 +230,7 @@ export const generateTopGainerService = async ({
   min_percent = 3
 }) => {
   await TopGainerDayModel.sync();
-  const tradeDate = await getTradeDate(null, targetDate);
+  const tradeDate = await getTradeDate(targetDate);
   if (!tradeDate) return { success: false, message: 'No PR data found' };
 
   const existing = await TopGainerDayModel.count({
@@ -276,7 +276,7 @@ export const generateTopGainerService = async ({
 
 export const generateBandHit52wService = async ({ targetDate = null }) => {
   await BandHit52wModel.sync();
-  const tradeDate = await getTradeDate(null, targetDate);
+  const tradeDate = await getTradeDate(targetDate);
   if (!tradeDate) return { success: false, message: 'No PR data found' };
 
   const existing = await BandHit52wModel.count({ where: { trade_date: tradeDate } });
@@ -318,7 +318,7 @@ export const generateTopLoserService = async ({
   min_percent = 3
 }) => {
   await TopLoserDayModel.sync();
-  const tradeDate = await getTradeDate(null, targetDate);
+  const tradeDate = await getTradeDate(targetDate);
   if (!tradeDate) return { success: false, message: 'No PR data found' };
 
   const existing = await TopLoserDayModel.count({
@@ -364,7 +364,7 @@ export const generateTopLoserService = async ({
 
 export const generateFiftyTwoWeekLowService = async ({ targetDate = null }) => {
   await FiftyTwoWeekLowModel.sync();
-  const tradeDate = await getTradeDate(null, targetDate);
+  const tradeDate = await getTradeDate(targetDate);
   if (!tradeDate) return { success: false, message: 'No PR data found' };
 
   const existing = await FiftyTwoWeekLowModel.count({
@@ -404,7 +404,7 @@ export const generateDailyMoverUpService = async ({
   min_percent = 3
 }) => {
   await DailyMoverUpModel.sync();
-  const tradeDate = await getTradeDate(null, targetDate);
+  const tradeDate = await getTradeDate(targetDate);
   if (!tradeDate) return { success: false, message: 'No PR data found' };
 
   const existing = await DailyMoverUpModel.count({
@@ -446,7 +446,7 @@ export const generateDailyMoverDownService = async ({
   min_percent = 3
 }) => {
   await DailyMoverDownModel.sync();
-  const tradeDate = await getTradeDate(null, targetDate);
+  const tradeDate = await getTradeDate(targetDate);
   if (!tradeDate) return { success: false, message: 'No PR data found' };
 
   const existing = await DailyMoverDownModel.count({

@@ -242,7 +242,13 @@ export const generateRallyAttemptService = async ({
     });
 
     if (existingCount > 0) {
-      return { success: true, message: 'Already generated' };
+      return {
+        success: true,
+        message: 'Already generated',
+        count: existingCount,
+        totalItems: existingCount,
+        already_processed: true,
+      };
     }
 
     /* --------------------------------
