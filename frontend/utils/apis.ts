@@ -41,6 +41,27 @@ const getAuthToken = () => {
   return cookieToken || '';
 };
 
+/** Clear the expired/invalid session and send the user to the login page. */
+const handleSessionExpired = (requestUrl: string) => {
+  if (typeof window === 'undefined') return;
+
+  // Never redirect for auth endpoints (wrong password also returns 401)
+  if (/(^|\/)auth\//.test(requestUrl) || /login|register/i.test(requestUrl)) {
+    return;
+  }
+
+  window.localStorage.removeItem('token');
+  window.localStorage.removeItem('stockUser');
+  document.cookie = 'token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+
+  if (!window.location.pathname.startsWith('/login')) {
+    const from = encodeURIComponent(
+      window.location.pathname + window.location.search
+    );
+    window.location.href = `/login?expired=1&from=${from}`;
+  }
+};
+
 export async function callApi<T>({
   url,
   method,
@@ -68,6 +89,11 @@ export async function callApi<T>({
     return response.data;
   } catch (error: any) {
     if (error.response) {
+      // Redirect to login only when a token was actually sent and rejected
+      // (guests without a token keep the friendly in-page 401 handling).
+      if (error.response.status === 401 && token) {
+        handleSessionExpired(url);
+      }
       throw error;
     }
 

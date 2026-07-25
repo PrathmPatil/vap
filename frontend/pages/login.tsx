@@ -1,10 +1,14 @@
 // pages/login.tsx (or app/login/page.tsx)
 import AuthForm from "@/components/AuthForm";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, TrendingUp, Sparkles } from "lucide-react";
+import { ArrowRight, TrendingUp, Sparkles, Clock } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/router";
 
 export default function LoginPage() {
+  const router = useRouter();
+  const sessionExpired = router.query.expired === "1";
+
   return (
     <div className="relative min-h-screen w-full overflow-hidden bg-gradient-to-br from-indigo-50 via-white to-slate-100 flex items-center justify-center p-4">
       {/* Animated background orbs */}
@@ -59,6 +63,12 @@ export default function LoginPage() {
                 TrendTraders
               </span>
             </div>
+            {sessionExpired && (
+              <div className="w-full mt-2 mb-1 flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+                <Clock className="w-4 h-4 shrink-0" />
+                <span>Your session has expired. Please log in again.</span>
+              </div>
+            )}
             <AuthForm />
             <Button
               variant="ghost"
