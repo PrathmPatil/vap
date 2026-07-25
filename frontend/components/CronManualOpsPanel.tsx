@@ -56,8 +56,8 @@ function buildCatalog(): ManualApiEndpoint[] {
       description: "Show weekdays in a range that still need PR data",
       primary: true,
       parameters: [
-        { name: "start_date", type: "string", required: true, in: "query", defaultValue: "2026-06-28", description: "YYYY-MM-DD" },
-        { name: "end_date", type: "string", required: true, in: "query", defaultValue: "2026-07-21", description: "YYYY-MM-DD" },
+        { name: "start_date", type: "string", required: true, in: "query", defaultValue: "2026-06-24", description: "YYYY-MM-DD" },
+        { name: "end_date", type: "string", required: true, in: "query", defaultValue: "2026-07-24", description: "YYYY-MM-DD" },
       ],
     },
     {
@@ -82,8 +82,8 @@ function buildCatalog(): ManualApiEndpoint[] {
       description: "Backfill missing weekdays then run formulas for each success day",
       primary: true,
       parameters: [
-        { name: "start_date", type: "string", required: true, in: "query", defaultValue: "2026-06-28" },
-        { name: "end_date", type: "string", required: true, in: "query", defaultValue: "2026-07-03" },
+        { name: "start_date", type: "string", required: true, in: "query", defaultValue: "2026-06-24" },
+        { name: "end_date", type: "string", required: true, in: "query", defaultValue: "2026-07-24" },
         { name: "force_refresh", type: "boolean", required: false, in: "query", defaultValue: "false" },
       ],
     },
@@ -131,8 +131,8 @@ function buildCatalog(): ManualApiEndpoint[] {
         "Re-run formula engine for days that already have PR data (use after formula timeouts)",
       primary: true,
       parameters: [
-        { name: "start_date", type: "string", required: true, in: "query", defaultValue: "2026-07-06" },
-        { name: "end_date", type: "string", required: true, in: "query", defaultValue: "2026-07-20" },
+        { name: "start_date", type: "string", required: true, in: "query", defaultValue: "2026-06-24" },
+        { name: "end_date", type: "string", required: true, in: "query", defaultValue: "2026-07-24" },
       ],
     },
     {
@@ -326,6 +326,12 @@ export default function CronManualOpsPanel({
       const url = `${base}${path.startsWith("/") ? path : `/${path}`}`;
       const headers = getAuthHeaders();
 
+      if (!base || base.includes("localhost")) {
+        console.warn(
+          `[ManualOps] Calling ${endpoint.host} at ${url}. If this 404s in production, set NEXT_PUBLIC_PYTHON_API=https://your-domain/ml`
+        );
+      }
+
       let res;
       switch (endpoint.method) {
         case "GET":
@@ -483,6 +489,9 @@ function EndpointCard({
           </div>
           <p className="mt-1 text-sm text-gray-600">{endpoint.description}</p>
           <p className="mt-1 font-mono text-xs text-gray-500">{endpoint.path}</p>
+          <p className="mt-0.5 text-[10px] text-slate-400">
+            host: {endpoint.host}
+          </p>
         </div>
       )}
 

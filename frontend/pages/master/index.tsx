@@ -167,12 +167,24 @@ const MasterIndex = () => {
     );
   }, [pagination.total_pages, pagination.total, pagination.limit]);
 
-  // Predefined API endpoints
-  const PYTHON_API_BASE = (
-    process.env.NEXT_PUBLIC_PYTHON_API_URL ||
-    process.env.NEXT_PUBLIC_PYTHON_API ||
-    "http://localhost:8080"
-  ).replace(/\/+$/, "");
+  // FastAPI is reverse-proxied at /ml on production (see python root_path="/ml").
+  // Prefer env; otherwise same-origin /ml so browser calls never hit Next.js pages.
+  const getPythonBaseUrl = () => {
+    const fromEnv = (
+      process.env.NEXT_PUBLIC_PYTHON_API_URL ||
+      process.env.NEXT_PUBLIC_PYTHON_API ||
+      ""
+    )
+      .trim()
+      .replace(/\/+$/, "");
+    if (fromEnv && !/localhost|127\.0\.0\.1/i.test(fromEnv)) {
+      return fromEnv;
+    }
+    if (typeof window !== "undefined") {
+      return `${window.location.origin}/ml`;
+    }
+    return fromEnv || "http://localhost:8080";
+  };
 
   const getBackendBaseUrl = () => {
     const apiUrl = process.env.NEXT_PUBLIC_API_URL?.trim();
@@ -182,9 +194,13 @@ const MasterIndex = () => {
     }
     const backend = process.env.NEXT_PUBLIC_BACKEND_API?.trim();
     if (backend) return backend.replace(/\/+$/, "");
+    if (typeof window !== "undefined") {
+      return `${window.location.origin}/api`;
+    }
     return "http://localhost:8000";
   };
 
+  const PYTHON_API_BASE = getPythonBaseUrl();
   const BACKEND_API_BASE = getBackendBaseUrl();
 
   const getAuthHeaders = (): Record<string, string> => {
