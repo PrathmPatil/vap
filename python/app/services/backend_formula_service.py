@@ -1,5 +1,6 @@
 import logging
 import os
+import threading
 import time
 from typing import Any, Dict, Iterable, List, Optional
 
@@ -10,12 +11,16 @@ logger = logging.getLogger(__name__)
 DEFAULT_BACKEND_BASE_URL = os.getenv("BACKEND_BASE_URL", "http://localhost:8000/vap").rstrip("/")
 FORMULA_REFRESH_PATH = "/formula/run-formula-engine"
 
+# Serialize Python→Node formula calls. Concurrent daily/manual/range jobs
+# otherwise stampede the Node DB pool and hang forever in running_formulas.
+_formula_refresh_lock = threading.Lock()
+
 
 def _formula_timeout_seconds() -> int:
     try:
-        return max(300, int(os.getenv("FORMULA_REFRESH_TIMEOUT_SECONDS", "1800")))
+        return max(120, int(os.getenv("FORMULA_REFRESH_TIMEOUT_SECONDS", "600")))
     except ValueError:
-        return 1800
+        return 600
 
 
 def _formula_max_retries() -> int:
@@ -70,13 +75,48 @@ def trigger_backend_formula_refresh(
     trigger_source: str,
     trade_date: Optional[str] = None,
     timeout_seconds: Optional[int] = None,
+    job_meta: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
     """Run backend formula engine for a PR bhavcopy trade date (with retries)."""
+    wait_timeout = max(
+        timeout_seconds or _formula_timeout_seconds(),
+        _formula_timeout_seconds(),
+    )
+    acquired = _formula_refresh_lock.acquire(timeout=wait_timeout)
+    if not acquired:
+        return {
+            "success": False,
+            "error": (
+                "Timed out waiting for formula engine lock "
+                "(another job is already running formulas)"
+            ),
+            "trade_date": trade_date,
+        }
+    try:
+        return _trigger_backend_formula_refresh_unlocked(
+            trigger_source,
+            trade_date=trade_date,
+            timeout_seconds=timeout_seconds,
+            job_meta=job_meta,
+        )
+    finally:
+        _formula_refresh_lock.release()
+
+
+def _trigger_backend_formula_refresh_unlocked(
+    trigger_source: str,
+    trade_date: Optional[str] = None,
+    timeout_seconds: Optional[int] = None,
+    job_meta: Optional[Dict[str, Any]] = None,
+) -> Dict[str, Any]:
+    from app.services.manual_job_hub import manual_job_hub
+
     url = f"{DEFAULT_BACKEND_BASE_URL}{FORMULA_REFRESH_PATH}"
     started_at = time.perf_counter()
     payload: Dict[str, Any] = {"trigger_source": trigger_source}
     timeout = timeout_seconds or _formula_timeout_seconds()
     max_retries = _formula_max_retries()
+    meta = job_meta or {}
 
     if trade_date:
         payload["trade_date"] = trade_date
@@ -93,6 +133,14 @@ def trigger_backend_formula_refresh(
     last_status: Optional[int] = None
 
     for attempt in range(1, max_retries + 1):
+        manual_job_hub.emit(
+            "formula_started",
+            trigger_source=trigger_source,
+            trade_date=trade_date,
+            attempt=attempt,
+            max_attempts=max_retries,
+            **meta,
+        )
         try:
             logger.info(
                 "Triggering backend formula refresh from %s for trade_date=%s "
@@ -120,6 +168,15 @@ def trigger_backend_formula_refresh(
                     response.status_code,
                     body.get("trade_date"),
                 )
+                manual_job_hub.emit(
+                    "formula_completed",
+                    trigger_source=trigger_source,
+                    trade_date=trade_date or body.get("trade_date"),
+                    attempt=attempt,
+                    duration_seconds=duration_seconds,
+                    success=True,
+                    **meta,
+                )
                 return {
                     "success": True,
                     "status_code": response.status_code,
@@ -145,6 +202,17 @@ def trigger_backend_formula_refresh(
                 response.status_code,
                 duration_seconds,
                 body,
+            )
+            manual_job_hub.emit(
+                "formula_failed",
+                trigger_source=trigger_source,
+                trade_date=trade_date,
+                attempt=attempt,
+                duration_seconds=duration_seconds,
+                success=False,
+                status_code=response.status_code,
+                error=str(body),
+                **meta,
             )
             return {
                 "success": False,
@@ -172,6 +240,16 @@ def trigger_backend_formula_refresh(
                 duration_seconds,
                 error,
             )
+            manual_job_hub.emit(
+                "formula_failed",
+                trigger_source=trigger_source,
+                trade_date=trade_date,
+                attempt=attempt,
+                duration_seconds=duration_seconds,
+                success=False,
+                error=last_error,
+                **meta,
+            )
             return {
                 "success": False,
                 "duration_seconds": duration_seconds,
@@ -192,12 +270,34 @@ def trigger_backend_formula_refresh(
 def trigger_backend_formula_refresh_for_dates(
     trigger_source: str,
     trade_dates: Iterable[str],
+    context: Optional[Any] = None,
 ) -> List[Dict[str, Any]]:
     """Run formulas in chronological order for multiple bhavcopy dates."""
     results: List[Dict[str, Any]] = []
+    dates = sorted(set(trade_dates))
+    total = len(dates)
 
-    for trade_date in sorted(set(trade_dates)):
-        result = trigger_backend_formula_refresh(trigger_source, trade_date=trade_date)
+    job_meta: Dict[str, Any] = {}
+    if context is not None:
+        job_meta = {
+            "log_id": getattr(context, "log_id", None),
+            "job_name": getattr(context, "job_name", None),
+            "job_group": getattr(context, "job_group", None),
+        }
+
+    for index, trade_date in enumerate(dates, start=1):
+        if context is not None and hasattr(context, "flush_progress"):
+            context.flush_progress(
+                phase="running_formulas",
+                trade_date=trade_date,
+                formula_index=index,
+                formula_total=total,
+            )
+        result = trigger_backend_formula_refresh(
+            trigger_source,
+            trade_date=trade_date,
+            job_meta={**job_meta, "formula_index": index, "formula_total": total},
+        )
         result["trade_date"] = trade_date
         results.append(result)
         # Brief pause so Node can GC between heavy formula runs

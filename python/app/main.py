@@ -3,6 +3,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from datetime import datetime, timezone, timedelta
 from typing import Dict
+import asyncio
 import requests
 import threading
 import logging
@@ -198,6 +199,10 @@ def initialize_cron_jobs():
 async def startup_event():
     """Startup actions: warmup sessions & initialize crons"""
     logger.info("🚀 Starting Unified Stock Data API...")
+
+    from app.services.manual_job_hub import manual_job_hub
+
+    manual_job_hub.set_loop(asyncio.get_running_loop())
     
     # Initialize databases
     ensure_databases()

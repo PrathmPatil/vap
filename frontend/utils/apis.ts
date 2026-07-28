@@ -32,13 +32,25 @@ const getAuthToken = () => {
     return storedToken;
   }
 
-  const cookieToken = document.cookie
+  const cookieRow = document.cookie
     .split('; ')
-    .find((row) => row.startsWith('token='))
-    ?.split('=')?.[1]
-    ?.trim();
+    .find((row) => row.startsWith('token='));
 
-  return cookieToken || '';
+  // Don't use split('=')[1] — JWT payloads can contain '=' padding.
+  return cookieRow ? cookieRow.slice('token='.length).trim() : '';
+};
+
+const isAuthFailureMessage = (payload: unknown): boolean => {
+  const message =
+    typeof payload === 'string'
+      ? payload
+      : typeof payload === 'object' && payload && 'message' in payload
+        ? String((payload as { message?: unknown }).message || '')
+        : '';
+
+  return /invalid token|jwt expired|token expired|jwt malformed|jwt must be provided/i.test(
+    message
+  );
 };
 
 /** Clear the expired/invalid session and send the user to the login page. */
@@ -89,9 +101,13 @@ export async function callApi<T>({
     return response.data;
   } catch (error: any) {
     if (error.response) {
-      // Redirect to login only when a token was actually sent and rejected
-      // (guests without a token keep the friendly in-page 401 handling).
-      if (error.response.status === 401 && token) {
+      // Only force logout when the backend actually rejected the JWT —
+      // not on every 401 (e.g. permission edge cases / transient auth blips).
+      if (
+        error.response.status === 401 &&
+        token &&
+        isAuthFailureMessage(error.response.data)
+      ) {
         handleSessionExpired(url);
       }
       throw error;

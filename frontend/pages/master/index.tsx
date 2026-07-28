@@ -1,5 +1,5 @@
 import axios from "axios";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/router";
 import { Button } from "@/components/ui/button";
 import { getLogs } from "@/utils/apis";
@@ -120,14 +120,18 @@ const DEFAULT_STATUS_COUNTS: StatusCounts = {
 
 const MasterIndex = () => {
   const router = useRouter();
-  const { isAuthenticated, role } = useAuth();
+  const { isAuthenticated, authLoading, role } = useAuth();
   const isMaster = role === "master" || role === "admin";
 
   useEffect(() => {
+    // Wait until the client-side token check is done before deciding to redirect.
+    // Without this, isAuthenticated is always false on first render (SSR flash)
+    // and the user gets kicked to /login immediately.
+    if (authLoading) return;
     if (!isAuthenticated || !isMaster) {
       router.replace("/login");
     }
-  }, [isAuthenticated, isMaster, router]);
+  }, [authLoading, isAuthenticated, isMaster, router]);
 
   const [logsData, setLogsData] = useState<LogEntry[]>([]);
   const [pagination, setPagination] =
@@ -167,8 +171,8 @@ const MasterIndex = () => {
     );
   }, [pagination.total_pages, pagination.total, pagination.limit]);
 
-  // FastAPI is reverse-proxied at /ml on production (see python root_path="/ml").
-  // Prefer env; otherwise same-origin /ml so browser calls never hit Next.js pages.
+  // FastAPI: local = :8080; production = reverse-proxied at /ml.
+  // If a production build still has localhost in env, override to same-origin /ml.
   const getPythonBaseUrl = () => {
     const fromEnv = (
       process.env.NEXT_PUBLIC_PYTHON_API_URL ||
@@ -177,12 +181,17 @@ const MasterIndex = () => {
     )
       .trim()
       .replace(/\/+$/, "");
-    if (fromEnv && !/localhost|127\.0\.0\.1/i.test(fromEnv)) {
-      return fromEnv;
-    }
+
     if (typeof window !== "undefined") {
-      return `${window.location.origin}/ml`;
+      const host = window.location.hostname;
+      const pageIsLocal = host === "localhost" || host === "127.0.0.1";
+      const envIsLocal = !fromEnv || /localhost|127\.0\.0\.1/i.test(fromEnv);
+
+      if (!pageIsLocal && envIsLocal) {
+        return `${window.location.origin}/ml`;
+      }
     }
+
     return fromEnv || "http://localhost:8080";
   };
 
@@ -195,7 +204,10 @@ const MasterIndex = () => {
     const backend = process.env.NEXT_PUBLIC_BACKEND_API?.trim();
     if (backend) return backend.replace(/\/+$/, "");
     if (typeof window !== "undefined") {
-      return `${window.location.origin}/api`;
+      const host = window.location.hostname;
+      if (host !== "localhost" && host !== "127.0.0.1") {
+        return `${window.location.origin}/api`;
+      }
     }
     return "http://localhost:8000";
   };
@@ -207,11 +219,12 @@ const MasterIndex = () => {
     if (typeof window === "undefined") return {};
     const token =
       window.localStorage.getItem("token")?.trim() ||
-      document.cookie
-        .split("; ")
-        .find((row) => row.startsWith("token="))
-        ?.split("=")?.[1]
-        ?.trim();
+      (() => {
+        const row = document.cookie
+          .split("; ")
+          .find((r) => r.startsWith("token="));
+        return row ? row.slice("token=".length).trim() : "";
+      })();
     if (!token) return {};
     return { Authorization: `Bearer ${token}` };
   };
@@ -381,8 +394,9 @@ const MasterIndex = () => {
   };
 
   // Fetch logs with filters
-  const fetchLogsData = async () => {
-    setLoading(true);
+  const fetchLogsData = useCallback(async (opts?: { silent?: boolean }) => {
+    const silent = !!opts?.silent;
+    if (!silent) setLoading(true);
 
     try {
       const response = await getLogs(
@@ -406,23 +420,49 @@ const MasterIndex = () => {
             1,
         };
 
-        setLogsData(response.data || []);
-        setPagination(nextPagination);
+        const rows = (response.data || []) as LogEntry[];
+        setLogsData(rows);
+        setPagination((prev) => {
+          if (
+            prev.total === nextPagination.total &&
+            prev.page === nextPagination.page &&
+            prev.limit === nextPagination.limit &&
+            prev.total_pages === nextPagination.total_pages
+          ) {
+            return prev;
+          }
+          return nextPagination;
+        });
         setStatusCounts(response.statusCounts || DEFAULT_STATUS_COUNTS);
+
+        // Keep modal details in sync when a RUNNING job updates
+        setSelectedLog((prev) => {
+          if (!prev?.id) return prev;
+          const fresh = rows.find((r) => r.id === prev.id);
+          return fresh || prev;
+        });
 
         if (response.uniqueJobNames && response.uniqueJobNames.length > 0) {
           setUniqueJobNames(response.uniqueJobNames);
-        } else if (
-          response.data &&
-          Array.isArray(response.data) &&
-          response.data.length > 0
-        ) {
-          const logData = response.data as LogEntry[];
-          const names = [...new Set(logData.map((log) => log.job_name))];
+        } else if (rows.length > 0) {
+          const names = [...new Set(rows.map((log) => log.job_name))];
           setUniqueJobNames(names);
         }
       } else {
         console.error("Failed to fetch logs:", response.message);
+        if (!silent) {
+          setLogsData([]);
+          setPagination((prev) => ({
+            ...prev,
+            total: 0,
+            total_pages: 1,
+          }));
+          setStatusCounts(DEFAULT_STATUS_COUNTS);
+        }
+      }
+    } catch (error) {
+      console.error("Error fetching logs:", error);
+      if (!silent) {
         setLogsData([]);
         setPagination((prev) => ({
           ...prev,
@@ -431,19 +471,19 @@ const MasterIndex = () => {
         }));
         setStatusCounts(DEFAULT_STATUS_COUNTS);
       }
-    } catch (error) {
-      console.error("Error fetching logs:", error);
-      setLogsData([]);
-      setPagination((prev) => ({
-        ...prev,
-        total: 0,
-        total_pages: 1,
-      }));
-      setStatusCounts(DEFAULT_STATUS_COUNTS);
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
-  };
+  }, [
+    pagination.page,
+    pagination.limit,
+    searchTerm,
+    statusFilter,
+    dateFilter,
+    startDate,
+    endDate,
+    jobNameFilter,
+  ]);
 
   // Reset to page 1 when filters change
   useEffect(() => {
@@ -452,17 +492,23 @@ const MasterIndex = () => {
 
   // Fetch logs when dependencies change
   useEffect(() => {
-    fetchLogsData();
-  }, [
-    pagination.page,
-    pagination.limit,
-    statusFilter,
-    dateFilter,
-    startDate,
-    endDate,
-    jobNameFilter,
-    searchTerm,
-  ]);
+    void fetchLogsData();
+  }, [fetchLogsData]);
+
+  // While any job is RUNNING, silently refresh logs so phase / progress stay current
+  const hasRunningJobs =
+    (statusCounts.running || 0) > 0 ||
+    selectedLog?.status?.toUpperCase() === "RUNNING";
+
+  useEffect(() => {
+    if (!hasRunningJobs) return;
+
+    const id = window.setInterval(() => {
+      void fetchLogsData({ silent: true });
+    }, 5000);
+
+    return () => window.clearInterval(id);
+  }, [hasRunningJobs, fetchLogsData]);
 
   const clearFilters = () => {
     setStatusFilter("all");
@@ -618,6 +664,10 @@ const MasterIndex = () => {
       searchTerm !== ""
     );
   };
+
+  if (authLoading) {
+    return null; // Still checking token — don't redirect yet
+  }
 
   if (!isAuthenticated || !isMaster) {
     return null;
@@ -1052,7 +1102,9 @@ const MasterIndex = () => {
                   <Badge className="ml-2 bg-red-500">Failed</Badge>
                 )}
                 {selectedLog?.status?.toUpperCase() === "RUNNING" && (
-                  <Badge className="ml-2 bg-yellow-500">Running / Stuck?</Badge>
+                  <Badge className="ml-2 bg-yellow-500">
+                    Running — auto-refreshing every 5s
+                  </Badge>
                 )}
               </DialogTitle>
             </DialogHeader>

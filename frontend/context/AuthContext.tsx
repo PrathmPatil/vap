@@ -20,6 +20,8 @@ interface User {
 
 interface AuthContextType {
   isAuthenticated: boolean;
+  /** True while the initial token check hasn't run yet (SSR → client hydration). */
+  authLoading: boolean;
   user: User | null;
   role: string;
   isSubscribed: boolean; 
@@ -33,20 +35,38 @@ const AuthContext = createContext<AuthContextType | null>(null);
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  // Stays true until the first client-side token check completes.
+  // Prevents pages from redirecting to /login during SSR/hydration flash.
+  const [authLoading, setAuthLoading] = useState(true);
   const router = useRouter();
 
   useEffect(() => {
     const storedUser = localStorage.getItem("stockUser");
 
     if (storedUser) {
-      setUser(JSON.parse(storedUser));
+      try {
+        setUser(JSON.parse(storedUser));
+      } catch {
+        localStorage.removeItem("stockUser");
+      }
     }
 
-    const token = document.cookie
+    const storedToken = localStorage.getItem("token")?.trim() || "";
+    const cookieRow = document.cookie
       .split("; ")
       .find((row) => row.startsWith("token="));
+    const cookieToken = cookieRow
+      ? cookieRow.slice("token=".length).trim()
+      : "";
 
-    setIsAuthenticated(!!token);
+    // Keep middleware cookie in sync with localStorage (source of truth).
+    if (storedToken && storedToken !== cookieToken) {
+      document.cookie = `token=${storedToken}; path=/; max-age=${60 * 60 * 8}`;
+    }
+
+    setIsAuthenticated(!!(storedToken || cookieToken));
+    // Mark auth check complete — pages can now safely evaluate isAuthenticated.
+    setAuthLoading(false);
   }, []);
 
   const login = async (email: string, password: string) => {
@@ -55,7 +75,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const { user: userData, accessToken, success, message } = response;
       if (success) {
         localStorage.setItem("token", accessToken);
-        document.cookie = `token=${accessToken}; path=/; max-age=${60 * 60}`;
+        // Cookie must exist for Next middleware; keep aligned with JWT (backend default 1h, allow 8h buffer for refresh UX).
+        document.cookie = `token=${accessToken}; path=/; max-age=${60 * 60 * 8}`;
         setIsAuthenticated(true);
 
         router.push("/");
@@ -98,7 +119,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       localStorage.setItem("stockUser", JSON.stringify(userData));
       setUser(userData);
 
-      document.cookie = `token=${accessToken}; path=/; max-age=${60 * 60}`;
+      document.cookie = `token=${accessToken}; path=/; max-age=${60 * 60 * 8}`;
+      localStorage.setItem("token", accessToken);
       setIsAuthenticated(true);
       router.push("/");
 
@@ -122,6 +144,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     <AuthContext.Provider
       value={{
         isAuthenticated,
+        authLoading,
         user,
         role: user?.role || "",
         isSubscribed: user?.is_subscribed || true,

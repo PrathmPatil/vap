@@ -1,10 +1,14 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import axios from "axios";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import {
+  formatManualJobEvent,
+  useManualJobSocket,
+} from "@/hooks/useManualJobSocket";
 import {
   Accordion,
   AccordionContent,
@@ -128,7 +132,7 @@ function buildCatalog(): ManualApiEndpoint[] {
       method: "POST",
       host: "python",
       description:
-        "Re-run formula engine for days that already have PR data (use after formula timeouts)",
+        "Re-run formula engine for days that already have PR data (use after formula timeouts). Live WebSocket progress.",
       primary: true,
       parameters: [
         { name: "start_date", type: "string", required: true, in: "query", defaultValue: "2026-06-24" },
@@ -137,15 +141,22 @@ function buildCatalog(): ManualApiEndpoint[] {
     },
     {
       id: "fm-engine",
-      name: "Run Formula Engine",
-      path: "/vap/formula/run-formula-engine",
+      name: "Run Formula Engine (one date)",
+      path: "/bhavcopy/run-formulas-for-date/{date}",
       method: "POST",
-      host: "backend",
-      description: "Run all formulas for a trade_date (needs master JWT)",
+      host: "python",
+      description:
+        "Run all formulas for one trade_date via FastAPI (background + WebSocket live progress)",
       primary: true,
       parameters: [
-        { name: "trade_date", type: "string", required: false, in: "body", defaultValue: "2026-07-17", description: "YYYY-MM-DD; omit for latest PR" },
-        { name: "trigger_source", type: "string", required: false, in: "body", defaultValue: "master_manual" },
+        {
+          name: "date",
+          type: "string",
+          required: true,
+          in: "path",
+          defaultValue: "2026-07-20",
+          description: "Trade date YYYY-MM-DD",
+        },
       ],
     },
     {
@@ -273,6 +284,26 @@ export default function CronManualOpsPanel({
     error?: string;
   } | null>(null);
 
+  const {
+    events: liveEvents,
+    connected: wsConnected,
+    clear: clearLiveEvents,
+    wsUrl,
+    lastError,
+    pushLocalEvent,
+  } = useManualJobSocket(pythonBase, jobName, jobGroup);
+
+  const lastHandledFinishRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    const last = liveEvents[0];
+    if (!last || last.type !== "job_finished" || last.status !== "SUCCESS") return;
+    const key = `${last.timestamp}:${last.log_id ?? ""}:${last.job_name ?? ""}`;
+    if (lastHandledFinishRef.current === key) return;
+    lastHandledFinishRef.current = key;
+    void onCompleted?.();
+  }, [liveEvents, onCompleted]);
+
   useEffect(() => {
     const defaults: Record<string, Record<string, string>> = {};
     for (const ep of catalog) {
@@ -294,6 +325,14 @@ export default function CronManualOpsPanel({
   const runEndpoint = async (endpoint: ManualApiEndpoint) => {
     setLoadingId(endpoint.id);
     setResponse(null);
+
+    const startedAt = Date.now();
+    pushLocalEvent({
+      type: "api_started",
+      message: `${endpoint.method} ${endpoint.name}`,
+      job_name: endpoint.id,
+      status: "RUNNING",
+    });
 
     try {
       const values = paramValues[endpoint.id] || {};
@@ -322,6 +361,17 @@ export default function CronManualOpsPanel({
         }
       }
 
+      // Long jobs return immediately; track via WebSocket + Cron Logs.
+      const backgroundJobs = new Set([
+        "bh-date-formulas",
+        "bh-range-formulas",
+        "fm-range-only",
+        "fm-engine",
+      ]);
+      if (backgroundJobs.has(endpoint.id)) {
+        query.background = true;
+      }
+
       const base = endpoint.host === "python" ? pythonBase : backendBase;
       const url = `${base}${path.startsWith("/") ? path : `/${path}`}`;
       const headers = getAuthHeaders();
@@ -338,7 +388,11 @@ export default function CronManualOpsPanel({
           res = await axios.get(url, { params: query, headers, timeout: 900000 });
           break;
         case "POST":
-          res = await axios.post(url, body, { params: query, headers, timeout: 900000 });
+          res = await axios.post(url, body, {
+            params: query,
+            headers,
+            timeout: query.background ? 30000 : 900000,
+          });
           break;
         case "PUT":
           res = await axios.put(url, body, { params: query, headers, timeout: 900000 });
@@ -350,6 +404,21 @@ export default function CronManualOpsPanel({
           throw new Error("Unsupported method");
       }
 
+      const elapsedSec = Math.round((Date.now() - startedAt) / 1000);
+      const isBackground =
+        backgroundJobs.has(endpoint.id) &&
+        (res.data?.status === "STARTED" || query.background === true);
+
+      pushLocalEvent({
+        type: isBackground ? "api_ack" : "api_finished",
+        message: isBackground
+          ? `${endpoint.name} started — watch Live progress below`
+          : `${endpoint.name} OK (${elapsedSec}s)`,
+        job_name: endpoint.id,
+        status: isBackground ? "STARTED" : "SUCCESS",
+        duration_seconds: elapsedSec,
+      });
+
       setResponse({
         id: endpoint.id,
         success: true,
@@ -358,6 +427,13 @@ export default function CronManualOpsPanel({
       });
       await onCompleted?.();
     } catch (error: any) {
+      pushLocalEvent({
+        type: "api_finished",
+        message: `${endpoint.name} failed: ${error.message}`,
+        job_name: endpoint.id,
+        status: "FAILED",
+        error: error.message,
+      });
       setResponse({
         id: endpoint.id,
         success: false,
@@ -379,11 +455,69 @@ export default function CronManualOpsPanel({
         <AlertDescription>
           Manual APIs for{" "}
           <strong>{jobName || "all jobs"}</strong>
-          {jobGroup ? ` (${jobGroup})` : ""}. For missing bhavcopy days use{" "}
-          <strong>Fetch Date / Range + Run Formulas</strong> — that matches the daily cron
-          (fetch PR → run formula engine).
+          {jobGroup ? ` (${jobGroup})` : ""}. Heavy jobs (
+          <strong>Fetch + Formulas</strong>, <strong>Run Formulas for Range</strong>) start in
+          the background and return immediately — watch <strong>Live progress</strong> below
+          for fetch/formula updates
+          {wsConnected ? (
+            <Badge className="ml-2 bg-green-600">Live</Badge>
+          ) : (
+            <Badge variant="outline" className="ml-2">
+              Offline
+            </Badge>
+          )}
+          . Cron Logs also keep history (
+          <code className="mx-1">bhavcopy_manual</code>,{" "}
+          <code className="mx-1">bhavcopy_manual_range</code>,{" "}
+          <code className="mx-1">formula_manual_range</code>).
         </AlertDescription>
       </Alert>
+
+      <div className="rounded border border-slate-200 bg-slate-50 p-3">
+        <div className="mb-2 flex items-center justify-between gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <h3 className="text-sm font-semibold text-slate-700">Live progress</h3>
+            {wsConnected ? (
+              <Badge className="bg-green-600">Connected</Badge>
+            ) : (
+              <Badge variant="destructive">Disconnected</Badge>
+            )}
+          </div>
+          <Button type="button" variant="ghost" size="sm" onClick={clearLiveEvents}>
+            Clear
+          </Button>
+        </div>
+        {wsUrl && (
+          <p className="mb-2 break-all font-mono text-[11px] text-slate-500">{wsUrl}</p>
+        )}
+        {lastError && !wsConnected && (
+          <p className="mb-2 text-xs text-red-600">{lastError}</p>
+        )}
+        {liveEvents.length === 0 ? (
+          <p className="text-xs text-slate-500">
+            Waiting for events… Run a Fetch + Formulas job to see phases here.
+          </p>
+        ) : (
+          <ul className="max-h-56 space-y-1 overflow-y-auto font-mono text-xs text-slate-700">
+            {liveEvents.map((ev, i) => (
+              <li
+                key={`${ev.timestamp}-${ev.type}-${i}`}
+                className={
+                  ev.type === "job_finished" && ev.status === "FAILED"
+                    ? "text-red-700"
+                    : ev.type === "formula_failed"
+                      ? "text-amber-700"
+                      : ev.type === "job_finished" || ev.type === "formula_completed"
+                        ? "text-green-700"
+                        : undefined
+                }
+              >
+                {formatManualJobEvent(ev)}
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
 
       {primary.length > 0 && (
         <div className="space-y-3">

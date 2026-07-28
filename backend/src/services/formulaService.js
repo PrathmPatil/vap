@@ -71,8 +71,13 @@ export const resolveTradeDate = async (targetDate = null) => {
   await PR.sync();
 
   const requested = targetDate ? normalizeTradeDate(targetDate) : null;
-  if (requested && (await prExistsForDate(requested))) {
-    return requested;
+  if (requested) {
+    if (await prExistsForDate(requested)) {
+      return requested;
+    }
+    // Do not fall back to latest PR date when a specific day was requested —
+    // that silently runs formulas for the wrong day.
+    return null;
   }
 
   const latestRow = await PR.findOne({
@@ -268,13 +273,35 @@ export const generateRallyAttemptService = async ({
     const companyNames = [...companyMap.keys()];
 
     /* --------------------------------
-       GET LAST 2 DAYS DATA
+       GET LAST 2 TRADE DAYS OF PR DATA
+       (scoped — full-history scan hangs under parallel formula runs)
     -------------------------------- */
+
+    const recentDates = await PR.findAll({
+      attributes: [[fn('DISTINCT', col('source_date')), 'source_date']],
+      where: {
+        source_date: { [Op.lte]: latestDate }
+      },
+      order: [['source_date', 'DESC']],
+      limit: 2,
+      raw: true
+    });
+    const dateList = recentDates
+      .map((row) => normalizeTradeDate(row.source_date))
+      .filter(Boolean);
+
+    if (dateList.length < 2) {
+      return {
+        success: false,
+        message: `Need at least 2 PR trade dates ending at ${latestDate}`
+      };
+    }
 
     const stockData = await PR.findAll({
       attributes: ['SECURITY', 'CLOSE_PRICE', 'source_date'],
       where: {
-        SECURITY: { [Op.in]: companyNames }
+        SECURITY: { [Op.in]: companyNames },
+        source_date: { [Op.in]: dateList }
       },
       order: [
         ['SECURITY', 'ASC'],
@@ -370,10 +397,24 @@ export const generateFollowThroughDayService = async ({
 
     /* --------------------------------
        GET RALLY ATTEMPT STOCKS
+       (scoped when targetDate is set — FTD window is days 4–7 after rally)
     -------------------------------- */
+
+    const tradeDate = normalizeTradeDate(targetDate);
+    const rallyWhere = {};
+    if (tradeDate) {
+      const windowStart = new Date(`${tradeDate}T00:00:00`);
+      windowStart.setDate(windowStart.getDate() - 20);
+      const startStr = windowStart.toISOString().slice(0, 10);
+      rallyWhere.rally_date = {
+        [Op.gte]: startStr,
+        [Op.lte]: tradeDate
+      };
+    }
 
     const rallyStocks = await RallyAttemptDayModel.findAll({
       attributes: ['symbol', 'rally_date'],
+      where: rallyWhere,
       raw: true
     });
 
@@ -385,90 +426,109 @@ export const generateFollowThroughDayService = async ({
       };
     }
 
-    const insertedFTD = [];
     const { symbolToName } = await loadListedCompanyMaps();
 
-    /* --------------------------------
-       LOOP RALLY STOCKS
-    -------------------------------- */
+    const rallyJobs = [];
+    const securitySet = new Set();
+    let minRallyDate = null;
 
     for (const rally of rallyStocks) {
-      const symbol = rally.symbol;
-      const rallyDate = rally.rally_date;
-      const securityName = resolveSecurityForSymbol(symbol, symbolToName);
-
-      /* --------------------------------
-         GET STOCK DATA AFTER RALLY DATE
-      -------------------------------- */
-
-      const rallyDateStr = normalizeTradeDate(rallyDate);
+      const rallyDateStr = normalizeTradeDate(rally.rally_date);
       if (!rallyDateStr) continue;
-
-      const stockData = await PR.findAll({
-        where: {
-          SECURITY: securityName,
-          source_date: {
-            [Op.gte]: rallyDateStr
-          }
-        },
-        order: [['source_date', 'ASC']],
-        raw: true
+      const securityName = resolveSecurityForSymbol(rally.symbol, symbolToName);
+      if (!securityName) continue;
+      securitySet.add(securityName);
+      if (!minRallyDate || rallyDateStr < minRallyDate) minRallyDate = rallyDateStr;
+      rallyJobs.push({
+        symbol: rally.symbol,
+        rallyDateStr,
+        securityName
       });
+    }
 
+    const existingRows = await FollowThroughDayModel.findAll({
+      attributes: ['symbol', 'rally_date'],
+      raw: true
+    });
+    const existingKeys = new Set(
+      existingRows.map(
+        (row) => `${row.symbol}|${normalizeTradeDate(row.rally_date) || ''}`
+      )
+    );
+
+    const prRows =
+      securitySet.size && minRallyDate
+        ? await PR.findAll({
+            attributes: [
+              'SECURITY',
+              'source_date',
+              'CLOSE_PRICE',
+              'NET_TRDQTY'
+            ],
+            where: {
+              SECURITY: { [Op.in]: [...securitySet] },
+              source_date: { [Op.gte]: minRallyDate }
+            },
+            order: [
+              ['SECURITY', 'ASC'],
+              ['source_date', 'ASC']
+            ],
+            raw: true
+          })
+        : [];
+
+    const prBySecurity = new Map();
+    for (const row of prRows) {
+      const key = row.SECURITY;
+      if (!prBySecurity.has(key)) prBySecurity.set(key, []);
+      prBySecurity.get(key).push(row);
+    }
+
+    const insertedFTD = [];
+
+    for (const rally of rallyJobs) {
+      const stockData = prBySecurity.get(rally.securityName) || [];
       if (stockData.length < 7) continue;
 
-      /* --------------------------------
-         FIND RALLY INDEX
-      -------------------------------- */
-
       const rallyIndex = stockData.findIndex(
-        (row) => normalizeTradeDate(row.source_date) === rallyDateStr
+        (row) => normalizeTradeDate(row.source_date) === rally.rallyDateStr
       );
-
       if (rallyIndex === -1) continue;
-
-      /* --------------------------------
-         CHECK DAY 4 → DAY 7
-      -------------------------------- */
 
       for (let i = rallyIndex + 3; i <= rallyIndex + 6; i++) {
         if (!stockData[i]) continue;
 
         const today = Number(stockData[i].CLOSE_PRICE);
         const prev = Number(stockData[i - 1].CLOSE_PRICE);
+        if (!prev) continue;
 
         const percent = ((today - prev) / prev) * 100;
-
         const volumeToday = Number(stockData[i].NET_TRDQTY);
         const volumePrev = Number(stockData[i - 1].NET_TRDQTY);
 
         if (percent >= 1.5 && volumeToday > volumePrev) {
           const ftdDateStr = normalizeTradeDate(stockData[i].source_date);
-          const exists = await FollowThroughDayModel.count({
-            where: {
-              symbol,
-              rally_date: rallyDateStr
-            }
-          });
-
-          if (!exists) {
-            const record = {
-              symbol,
-              rally_date: rallyDateStr,
+          const dedupeKey = `${rally.symbol}|${rally.rallyDateStr}`;
+          if (!existingKeys.has(dedupeKey)) {
+            existingKeys.add(dedupeKey);
+            insertedFTD.push({
+              symbol: rally.symbol,
+              rally_date: rally.rallyDateStr,
               ftd_date: ftdDateStr,
               change_percent: percent,
               volume: volumeToday,
               status: 'ftd_detected'
-            };
-
-            await FollowThroughDayModel.create(record);
-
-            insertedFTD.push(record);
+            });
           }
-
           break;
         }
       }
+    }
+
+    if (insertedFTD.length) {
+      await FollowThroughDayModel.bulkCreate(insertedFTD, {
+        ignoreDuplicates: true
+      });
     }
 
     /* --------------------------------
@@ -539,10 +599,24 @@ export const generateBuyDayService = async ({
 
     /* --------------------------------
        GET FOLLOW THROUGH DAY STOCKS
+       (scoped when targetDate is set — buy window is next 10 sessions after FTD)
     -------------------------------- */
+
+    const tradeDate = normalizeTradeDate(targetDate);
+    const ftdWhere = {};
+    if (tradeDate) {
+      const windowStart = new Date(`${tradeDate}T00:00:00`);
+      windowStart.setDate(windowStart.getDate() - 20);
+      const startStr = windowStart.toISOString().slice(0, 10);
+      ftdWhere.ftd_date = {
+        [Op.gte]: startStr,
+        [Op.lte]: tradeDate
+      };
+    }
 
     const ftdStocks = await FollowThroughDayModel.findAll({
       attributes: ['symbol', 'rally_date', 'ftd_date'],
+      where: ftdWhere,
       raw: true
     });
 
@@ -556,49 +630,79 @@ export const generateBuyDayService = async ({
 
     console.log('📊 FTD Stocks:', ftdStocks.length);
 
-    const insertedBuyDays = [];
     const { symbolToName } = await loadListedCompanyMaps();
 
-    /* --------------------------------
-       LOOP THROUGH FTD STOCKS
-    -------------------------------- */
+    const ftdJobs = [];
+    const securitySet = new Set();
+    let minFtdDate = null;
 
     for (const ftd of ftdStocks) {
-      const symbol = ftd.symbol;
       const rallyDateStr = normalizeTradeDate(ftd.rally_date);
       const ftdDateStr = normalizeTradeDate(ftd.ftd_date);
       if (!rallyDateStr || !ftdDateStr) continue;
-      const securityName = resolveSecurityForSymbol(symbol, symbolToName);
-
-      /* --------------------------------
-         FETCH STOCK DATA
-      -------------------------------- */
-
-      const stockData = await PR.findAll({
-        where: {
-          SECURITY: securityName
-        },
-        order: [['source_date', 'ASC']],
-        raw: true
+      const securityName = resolveSecurityForSymbol(ftd.symbol, symbolToName);
+      if (!securityName) continue;
+      securitySet.add(securityName);
+      if (!minFtdDate || ftdDateStr < minFtdDate) minFtdDate = ftdDateStr;
+      ftdJobs.push({
+        symbol: ftd.symbol,
+        rallyDateStr,
+        ftdDateStr,
+        securityName
       });
+    }
 
+    const existingRows = await BuyDayModel.findAll({
+      attributes: ['symbol', 'ftd_date'],
+      raw: true
+    });
+    const existingKeys = new Set(
+      existingRows.map(
+        (row) => `${row.symbol}|${normalizeTradeDate(row.ftd_date) || ''}`
+      )
+    );
+
+    const prRows =
+      securitySet.size && minFtdDate
+        ? await PR.findAll({
+            attributes: [
+              'SECURITY',
+              'source_date',
+              'CLOSE_PRICE',
+              'HIGH_PRICE',
+              'NET_TRDQTY'
+            ],
+            where: {
+              SECURITY: { [Op.in]: [...securitySet] },
+              source_date: { [Op.gte]: minFtdDate }
+            },
+            order: [
+              ['SECURITY', 'ASC'],
+              ['source_date', 'ASC']
+            ],
+            raw: true
+          })
+        : [];
+
+    const prBySecurity = new Map();
+    for (const row of prRows) {
+      const key = row.SECURITY;
+      if (!prBySecurity.has(key)) prBySecurity.set(key, []);
+      prBySecurity.get(key).push(row);
+    }
+
+    const insertedBuyDays = [];
+
+    for (const ftd of ftdJobs) {
+      const stockData = prBySecurity.get(ftd.securityName) || [];
       if (!stockData.length) continue;
 
-      /* --------------------------------
-         FIND FTD INDEX
-      -------------------------------- */
-
       const ftdIndex = stockData.findIndex(
-        (row) => normalizeTradeDate(row.source_date) === ftdDateStr
+        (row) => normalizeTradeDate(row.source_date) === ftd.ftdDateStr
       );
-
       if (ftdIndex === -1) continue;
 
       const ftdHigh = Number(stockData[ftdIndex].HIGH_PRICE);
-
-      /* --------------------------------
-         CHECK NEXT 10 DAYS
-      -------------------------------- */
 
       for (let i = ftdIndex + 1; i <= ftdIndex + 10; i++) {
         if (!stockData[i]) continue;
@@ -609,31 +713,27 @@ export const generateBuyDayService = async ({
 
         if (price > ftdHigh && volume > prevVolume) {
           const buyDateStr = normalizeTradeDate(stockData[i].source_date);
-          const exists = await BuyDayModel.count({
-            where: {
-              symbol,
-              ftd_date: ftdDateStr
-            }
-          });
-
-          if (!exists) {
-            const record = {
-              symbol,
-              rally_date: rallyDateStr,
-              ftd_date: ftdDateStr,
+          const dedupeKey = `${ftd.symbol}|${ftd.ftdDateStr}`;
+          if (!existingKeys.has(dedupeKey)) {
+            existingKeys.add(dedupeKey);
+            insertedBuyDays.push({
+              symbol: ftd.symbol,
+              rally_date: ftd.rallyDateStr,
+              ftd_date: ftd.ftdDateStr,
               buy_date: buyDateStr,
               breakout_price: price,
               status: 'ready_to_buy'
-            };
-
-            await BuyDayModel.create(record);
-
-            insertedBuyDays.push(record);
+            });
           }
-
           break;
         }
       }
+    }
+
+    if (insertedBuyDays.length) {
+      await BuyDayModel.bulkCreate(insertedBuyDays, {
+        ignoreDuplicates: true
+      });
     }
 
     /* --------------------------------
@@ -769,7 +869,28 @@ const runFormulaStep = async ({ key, label, dependsOn, execute, completedSteps }
   }
 };
 
+// Queue concurrent formula-engine HTTP calls (daily + manual + range).
+let formulaEngineTail = Promise.resolve();
+
 export const runFormulaEngineService = async ({
+  targetDate = null,
+  triggerSource = null
+} = {}) => {
+  let releaseQueue = () => {};
+  const previous = formulaEngineTail;
+  formulaEngineTail = new Promise((resolve) => {
+    releaseQueue = resolve;
+  });
+  await previous;
+
+  try {
+    return await runFormulaEngineServiceLocked({ targetDate, triggerSource });
+  } finally {
+    releaseQueue();
+  }
+};
+
+const runFormulaEngineServiceLocked = async ({
   targetDate = null,
   triggerSource = null
 } = {}) => {
@@ -779,7 +900,12 @@ export const runFormulaEngineService = async ({
   const tradeDate = await resolveTradeDate(targetDate);
 
   if (!tradeDate) {
-    throw new Error('No PR bhavcopy data available to run formulas');
+    const requested = targetDate ? normalizeTradeDate(targetDate) : null;
+    throw new Error(
+      requested
+        ? `No PR bhavcopy data for trade_date=${requested}. Fetch bhavcopy for that date first (force_refresh=true if needed).`
+        : 'No PR bhavcopy data available to run formulas'
+    );
   }
 
   logger.info(
@@ -787,7 +913,8 @@ export const runFormulaEngineService = async ({
   );
 
   const completedSteps = new Set();
-  const formulaResults = [];
+  const processedSteps = new Set();
+  const resultsByKey = {};
 
   const steps = [
     {
@@ -961,24 +1088,75 @@ export const runFormulaEngineService = async ({
     }
   ];
 
-  for (const step of steps) {
-    console.log(`\n🚀 Running formula: ${step.label}`);
+  const pending = [...steps];
+  const FORMULA_CONCURRENCY = Math.max(
+    1,
+    Number(process.env.FORMULA_ENGINE_CONCURRENCY || 2)
+  );
 
-    const stepResult = await runFormulaStep({
-      ...step,
-      completedSteps
-    });
+  // Run ready formulas in parallel batches (not all 14 at once — that starves MySQL).
+  // FTD→Buy still wait via dependsOn.
+  while (pending.length > 0) {
+    const ready = pending.filter((step) =>
+      step.dependsOn.every((dep) => processedSteps.has(dep))
+    );
 
-    formulaResults.push(stepResult);
-
-    if (!shouldBlockDependentFormulas(stepResult)) {
-      completedSteps.add(step.key);
+    if (!ready.length) {
+      for (const step of pending) {
+        resultsByKey[step.key] = {
+          key: step.key,
+          label: step.label,
+          status: 'skipped',
+          depends_on: step.dependsOn,
+          skipped_reason: 'Unresolved dependencies',
+          passed_count: 0,
+          records_stored: 0
+        };
+      }
+      break;
     }
 
+    const batch = ready.slice(0, FORMULA_CONCURRENCY);
+
     console.log(
-      `✅ ${step.label} | status=${stepResult.status} | passed=${stepResult.passed_count}`
+      `\n🚀 Running ${batch.length} formula(s) in parallel: ${batch
+        .map((step) => step.label)
+        .join(', ')}`
     );
+
+    const waveResults = await Promise.all(
+      batch.map((step) =>
+        runFormulaStep({
+          ...step,
+          completedSteps
+        })
+      )
+    );
+
+    for (const stepResult of waveResults) {
+      resultsByKey[stepResult.key] = stepResult;
+      processedSteps.add(stepResult.key);
+
+      if (!shouldBlockDependentFormulas(stepResult)) {
+        completedSteps.add(stepResult.key);
+      }
+
+      console.log(
+        `✅ ${stepResult.label} | status=${stepResult.status} | passed=${stepResult.passed_count}`
+      );
+    }
+
+    const batchKeys = new Set(batch.map((step) => step.key));
+    for (let i = pending.length - 1; i >= 0; i -= 1) {
+      if (batchKeys.has(pending[i].key)) {
+        pending.splice(i, 1);
+      }
+    }
   }
+
+  const formulaResults = steps
+    .map((step) => resultsByKey[step.key])
+    .filter(Boolean);
 
   const totalProcessed = formulaResults.reduce(
     (sum, item) => sum + (item.passed_count || 0),
@@ -1177,37 +1355,52 @@ export const generateVolumeBreakoutService = async ({
   });
 
   if (existingCount === 0) {
-    const dayRows = await PR.findAll({
-      where: where(fn('DATE', col('source_date')), latestDate),
-      raw: true,
-    });
-
-    const securities = [...new Set(dayRows.map((row) => row.SECURITY).filter(Boolean))];
+    // Single bulk query: for each security, rank rows by source_date DESC and pick latest 11.
+    // This replaces N per-security queries with one SQL window-function query.
+    const sequelize = PR.sequelize;
     const breakoutStocks = [];
 
-    for (const security of securities) {
-      const history = await PR.findAll({
-        where: { SECURITY: security },
-        order: [['source_date', 'DESC']],
-        limit: 11,
-        raw: true,
-      });
+    const { QueryTypes } = await import('sequelize');
+    // QueryTypes.SELECT returns the rows array directly (not [rows, metadata]).
+    const rows = await sequelize.query(
+      `
+      SELECT *
+      FROM (
+        SELECT
+          SECURITY, source_date, CLOSE_PRICE, NET_TRDQTY,
+          ROW_NUMBER() OVER (PARTITION BY SECURITY ORDER BY source_date DESC) AS rn
+        FROM \`pr\`
+        WHERE SECURITY IS NOT NULL
+          AND DATE(source_date) <= :latestDate
+          AND DATE(source_date) >= DATE_SUB(:latestDate, INTERVAL 45 DAY)
+      ) ranked
+      WHERE rn <= 11
+      `,
+      { replacements: { latestDate }, type: QueryTypes.SELECT }
+    );
 
+    // Group by security
+    const bySecurity = {};
+    for (const row of rows || []) {
+      if (!bySecurity[row.SECURITY]) bySecurity[row.SECURITY] = [];
+      bySecurity[row.SECURITY].push(row);
+    }
+
+    for (const [security, history] of Object.entries(bySecurity)) {
       if (history.length < 11) continue;
-
+      // Already sorted DESC by rn
       const today = history[0];
       const prev = history[1];
       const todayDate = normalizeTradeDate(today.source_date);
-
       if (todayDate !== latestDate) continue;
 
       const avgVolume =
         history.slice(1).reduce((sum, row) => sum + Number(row.NET_TRDQTY), 0) / 10;
       const todayVolume = Number(today.NET_TRDQTY);
 
-      if (todayVolume >= avgVolume * 2 && today.CLOSE_PRICE > prev.CLOSE_PRICE) {
+      if (todayVolume >= avgVolume * 2 && Number(today.CLOSE_PRICE) > Number(prev.CLOSE_PRICE)) {
         breakoutStocks.push({
-          security: today.SECURITY,
+          security,
           trade_date: todayDate,
           close_price: today.CLOSE_PRICE,
           volume: todayVolume,
@@ -1300,37 +1493,76 @@ export const detectTweezerBottomPatterns = async (options = {}) => {
     }
   }
 
-  // Fetch all stocks
-  const stocks = await PR.findAll({
-    where: {
-      source_date: {
-        [Op.lte]: `${analysisDateStr} 23:59:59`,
-      },
-    },
+  // Bulk load: only securities that traded on analysisDate, plus ~30 days history.
+  const tradedToday = await PR.findAll({
     attributes: ['SECURITY'],
+    where: where(fn('DATE', col('source_date')), analysisDateStr),
     group: ['SECURITY'],
-    raw: true,
+    raw: true
   });
+
+  const securities = tradedToday
+    .map((row) => row.SECURITY)
+    .filter(Boolean);
+
+  if (!securities.length) {
+    return {
+      success: true,
+      message: `No PR securities for ${analysisDateStr}`,
+      signals: [],
+      total_signals: 0,
+      analysis_date: analysisDateStr
+    };
+  }
+
+  const windowStart = new Date(`${analysisDateStr}T00:00:00`);
+  windowStart.setDate(windowStart.getDate() - 45);
+  const startStr = windowStart.toISOString().slice(0, 10);
+
+  const historyRows = await PR.findAll({
+    attributes: [
+      'SECURITY',
+      'source_date',
+      'OPEN_PRICE',
+      'HIGH_PRICE',
+      'LOW_PRICE',
+      'CLOSE_PRICE',
+      'NET_TRDQTY'
+    ],
+    where: {
+      SECURITY: { [Op.in]: securities },
+      source_date: {
+        [Op.gte]: startStr,
+        [Op.lte]: `${analysisDateStr} 23:59:59`
+      }
+    },
+    order: [
+      ['SECURITY', 'ASC'],
+      ['source_date', 'DESC']
+    ],
+    raw: true
+  });
+
+  const historyBySecurity = new Map();
+  for (const row of historyRows) {
+    if (!historyBySecurity.has(row.SECURITY)) {
+      historyBySecurity.set(row.SECURITY, []);
+    }
+    const list = historyBySecurity.get(row.SECURITY);
+    if (list.length < 22) list.push(row);
+  }
 
   const signals = [];
   const errors = [];
 
-  // Process each stock
-  for (const stock of stocks) {
+  for (const security of securities) {
     try {
-      const history = await PR.findAll({
-        where: { SECURITY: stock.SECURITY },
-        order: [['source_date', 'DESC']],
-        limit: 22,
-        raw: true
-      });
-
+      const history = historyBySecurity.get(security) || [];
       if (history.length < 22) continue;
 
       const today = history[0];
       const prev = history[1];
 
-      // Skip if not the target date
       const todayDateStr = normalizeTradeDate(today.source_date);
       if (todayDateStr !== analysisDateStr) continue;
 
@@ -1424,7 +1656,7 @@ export const detectTweezerBottomPatterns = async (options = {}) => {
       }
     } catch (error) {
       errors.push({
-        security: stock.SECURITY,
+        security,
         error: error.message
       });
     }
@@ -1440,7 +1672,7 @@ export const detectTweezerBottomPatterns = async (options = {}) => {
   return {
     success: true,
     analysis_date: analysisDateStr,
-    total_stocks_analyzed: stocks.length,
+    total_stocks_analyzed: securities.length,
     total_signals: signals.length,
     signals: signals,
     errors: errors,

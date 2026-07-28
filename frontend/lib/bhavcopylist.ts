@@ -248,6 +248,7 @@ const bcColumns = [
   { key: 'status', label: 'Status', type: 'text' as const }
 ];
 const prColumns = [
+  { key: 'source_date', label: 'Source Date', type: 'date' as const },
   { key: 'MKT', label: 'Market', type: 'text' as const },
   { key: 'SECURITY', label: 'Security', type: 'text' as const },
   { key: 'PREV_CL_PR', label: 'Prev Close', type: 'currency' as const },
@@ -261,7 +262,8 @@ const prColumns = [
   { key: 'CORP_IND', label: 'Industry', type: 'text' as const },
   { key: 'TRADES', label: 'Trades', type: 'number' as const },
   { key: 'HI_52_WK', label: '52W High', type: 'currency' as const },
-  { key: 'LO_52_WK', label: '52W Low', type: 'currency' as const }
+  { key: 'LO_52_WK', label: '52W Low', type: 'currency' as const },
+  { key: 'status', label: 'Status', type: 'text' as const },
 ];
 
 // =================== Lookup Object ===================

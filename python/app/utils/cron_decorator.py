@@ -79,6 +79,7 @@ class CronJobContext:
     
     def __enter__(self):
         self.log_id = cron_logger.start_job(self.job_name, self.job_group)
+        self._emit("job_started", status="RUNNING")
         return self
     
     def __exit__(self, exc_type, exc_val, exc_tb):
@@ -93,6 +94,11 @@ class CronJobContext:
             error=exc_val if exc_type else None,
             additional_data=self.additional_data
         )
+        self._emit(
+            "job_finished",
+            status=status,
+            error=str(exc_val) if exc_val else None,
+        )
         
         return False  # Don't suppress exceptions
     
@@ -105,3 +111,35 @@ class CronJobContext:
     def set_data(self, **kwargs):
         """Set additional data"""
         self.additional_data.update(kwargs)
+
+    def flush_progress(self, **kwargs):
+        """Write current counters/data to DB while still RUNNING (for Manual API tracking)."""
+        if kwargs:
+            self.additional_data.update(kwargs)
+        if not self.log_id:
+            return False
+        ok = cron_logger.update_running_job(
+            self.log_id,
+            records_processed=self.records_processed,
+            records_inserted=self.records_inserted,
+            records_updated=self.records_updated,
+            additional_data=self.additional_data,
+        )
+        if ok:
+            self._emit("job_progress", status="RUNNING", **kwargs)
+        return ok
+
+    def _emit(self, event_type: str, **extra):
+        from app.services.manual_job_hub import manual_job_hub
+
+        manual_job_hub.emit(
+            event_type,
+            job_name=self.job_name,
+            job_group=self.job_group,
+            log_id=self.log_id,
+            records_processed=self.records_processed,
+            records_inserted=self.records_inserted,
+            records_updated=self.records_updated,
+            additional_data=self.additional_data,
+            **extra,
+        )

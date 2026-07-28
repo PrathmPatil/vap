@@ -139,7 +139,18 @@ def refresh_formula_cache(
     trade_date: Optional[str] = None,
 ):
     """Refresh formula tables in formula DB for a PR trade date."""
-    result = trigger_backend_formula_refresh(trigger_source, trade_date=trade_date)
+    job_meta = {}
+    if context is not None:
+        job_meta = {
+            "log_id": context.log_id,
+            "job_name": context.job_name,
+            "job_group": context.job_group,
+        }
+    result = trigger_backend_formula_refresh(
+        trigger_source,
+        trade_date=trade_date,
+        job_meta=job_meta,
+    )
 
     if context is not None:
         context.set_data(formula_refresh=result, formula_trade_date=trade_date)
@@ -184,7 +195,9 @@ def run_formulas_for_bhavcopy_results(
     if len(trade_dates) == 1:
         return refresh_formula_cache(trigger_source, context, trade_date=trade_dates[0])
 
-    formula_results = trigger_backend_formula_refresh_for_dates(trigger_source, trade_dates)
+    formula_results = trigger_backend_formula_refresh_for_dates(
+        trigger_source, trade_dates, context=context
+    )
 
     if context is not None:
         context.set_data(formula_refresh=formula_results, formula_trade_dates=trade_dates)
@@ -378,29 +391,56 @@ def manual_fetch_bhavcopy(date_str: str, force_refresh: bool = False):
 def manual_fetch_date_with_formulas(date_str: str, force_refresh: bool = False):
     """Fetch one trade date then run the backend formula engine (same as cron)."""
     with CronJobContext("bhavcopy_manual", "bhavcopy") as context:
+        context.flush_progress(phase="fetching_bhavcopy", target_date=date_str)
         result = manual_fetch_bhavcopy(date_str, force_refresh)
         context.set_data(result=result, target_date=date_str)
+        context.add_record(processed=result.get("files_processed", 0) or 0)
+        context.flush_progress(
+            phase="bhavcopy_done",
+            bhavcopy_status=result.get("status"),
+        )
 
         formula_result = None
         if should_run_formulas(result):
-            context.add_record(processed=result.get("files_processed", 0) or 0)
+            context.flush_progress(phase="running_formulas", trade_date=date_str)
             formula_result = refresh_formula_cache(
                 "bhavcopy_manual", context, trade_date=date_str
             )
         elif result.get("status") == "SUCCESS":
             # Data may already exist — still refresh formulas for that date
+            context.flush_progress(phase="running_formulas", trade_date=date_str)
             formula_result = refresh_formula_cache(
                 "bhavcopy_manual_existing", context, trade_date=date_str
             )
-            context.add_record(processed=1)
+            if not (result.get("files_processed") or 0):
+                context.add_record(processed=1)
+        elif result.get("status") in ("ALREADY_EXISTS", "SKIPPED"):
+            # Prefer DB truth: if PR exists, still run formulas
+            from datetime import datetime as _dt
+            from app.services.bhavcopy_service import bhavcopy_service
+
+            date_obj = _dt.strptime(date_str, "%Y-%m-%d")
+            if bhavcopy_service.is_trade_date_processed(date_obj):
+                context.flush_progress(phase="running_formulas", trade_date=date_str)
+                formula_result = refresh_formula_cache(
+                    "bhavcopy_manual_existing", context, trade_date=date_str
+                )
+                context.add_record(processed=1)
+            else:
+                context.set_data(
+                    status="NO_PR_DATA",
+                    message=f"No PR bhavcopy in DB for {date_str}; re-fetch with force_refresh=true",
+                )
         else:
             context.set_data(status=result.get("status"), message=result.get("message"))
 
+        context.flush_progress(phase="done", formula_refresh=formula_result)
         return {
             "status": result.get("status"),
             "date": date_str,
             "bhavcopy": result,
             "formula_refresh": formula_result,
+            "log_id": context.log_id,
         }
 
 
@@ -409,6 +449,11 @@ def manual_fetch_range_with_formulas(
 ):
     """Fetch a date range, then run formulas for each successful PR day."""
     with CronJobContext("bhavcopy_manual_range", "bhavcopy") as context:
+        context.flush_progress(
+            phase="fetching_bhavcopy_range",
+            start_date=start_date,
+            end_date=end_date,
+        )
         result = manual_fetch_range(start_date, end_date, force_refresh)
         results = result.get("results") or []
         context.set_data(
@@ -418,27 +463,42 @@ def manual_fetch_range_with_formulas(
             failed=result.get("failed"),
         )
         context.add_record(processed=result.get("successful", 0) or 0)
-
-        formula_results = run_formulas_for_bhavcopy_results(
-            "bhavcopy_manual_range",
-            context,
-            primary_result={"status": "SUCCESS", "date": None, "data": {}},
-            backfill_results=results,
+        context.flush_progress(
+            phase="bhavcopy_done",
+            successful=result.get("successful"),
+            failed=result.get("failed"),
         )
 
-        # Also run formulas for ALREADY_EXISTS / SUCCESS dates that extract might miss
-        trade_dates = extract_trade_dates_from_bhavcopy_results(results)
-        for item in results:
-            if item.get("status") == "SUCCESS" and item.get("date"):
-                if item["date"] not in trade_dates:
-                    trade_dates.append(item["date"])
+        # Prefer DB truth for the requested range (covers SUCCESS / ALREADY_EXISTS skips).
+        trade_dates = list_pr_trade_dates_in_range(start_date, end_date)
+        if not trade_dates:
+            trade_dates = extract_trade_dates_from_bhavcopy_results(results)
+            for item in results:
+                if item.get("status") == "SUCCESS" and item.get("date"):
+                    if item["date"] not in trade_dates:
+                        trade_dates.append(item["date"])
 
-        if not formula_results and trade_dates:
-            formula_results = trigger_backend_formula_refresh_for_dates(
-                "bhavcopy_manual_range", trade_dates
+        formula_results = None
+        if trade_dates:
+            context.flush_progress(
+                phase="running_formulas",
+                trade_dates=trade_dates,
+                formula_total=len(trade_dates),
             )
-            context.set_data(formula_refresh=formula_results, formula_trade_dates=trade_dates)
+            formula_results = trigger_backend_formula_refresh_for_dates(
+                "bhavcopy_manual_range", trade_dates, context=context
+            )
+            context.set_data(
+                formula_refresh=formula_results,
+                formula_trade_dates=trade_dates,
+            )
+        else:
+            context.set_data(
+                status="NO_PR_DATES",
+                message=f"No PR bhavcopy in DB for {start_date}..{end_date}",
+            )
 
+        context.flush_progress(phase="done", formula_refresh=formula_results)
         return {
             "status": "SUCCESS" if (result.get("successful") or 0) > 0 else result.get("status", "DONE"),
             "start_date": start_date,
@@ -446,6 +506,7 @@ def manual_fetch_range_with_formulas(
             "bhavcopy": result,
             "formula_trade_dates": sorted(set(trade_dates)),
             "formula_refresh": formula_results,
+            "log_id": context.log_id,
         }
 
 
@@ -485,6 +546,7 @@ def manual_run_formulas_for_range(start_date: str, end_date: str):
             end_date=end_date,
             trade_dates=trade_dates,
         )
+        context.flush_progress(phase="listed_trade_dates", trade_date_count=len(trade_dates))
         if not trade_dates:
             context.set_data(status="NO_PR_DATA")
             return {
@@ -494,11 +556,13 @@ def manual_run_formulas_for_range(start_date: str, end_date: str):
                 "trade_dates": [],
                 "formula_refresh": [],
                 "message": "No PR bhavcopy dates found in range",
+                "log_id": context.log_id,
             }
 
         context.add_record(processed=len(trade_dates))
+        context.flush_progress(phase="running_formulas")
         formula_results = trigger_backend_formula_refresh_for_dates(
-            "formula_manual_range", trade_dates
+            "formula_manual_range", trade_dates, context=context
         )
         ok = sum(1 for r in formula_results if r.get("success"))
         failed = len(formula_results) - ok
@@ -507,6 +571,7 @@ def manual_run_formulas_for_range(start_date: str, end_date: str):
             formula_ok=ok,
             formula_failed=failed,
         )
+        context.flush_progress(phase="done")
         return {
             "status": "SUCCESS" if failed == 0 else "PARTIAL",
             "start_date": start_date,
@@ -515,7 +580,13 @@ def manual_run_formulas_for_range(start_date: str, end_date: str):
             "formula_ok": ok,
             "formula_failed": failed,
             "formula_refresh": formula_results,
+            "log_id": context.log_id,
         }
+
+
+def manual_run_formulas_for_date(date_str: str):
+    """Run formula engine for a single PR trade date (WebSocket + cron log tracked)."""
+    return manual_run_formulas_for_range(date_str, date_str)
 
 
 def clear_stuck_cron_logs(older_than_minutes: int = 120):

@@ -15,6 +15,13 @@ const baseOptions = {
   dialect: 'mysql',
   port: process.env.DB_PORT || 3306,
   logging: false,
+  // Formula engine runs many formulas in parallel; default pool (5) bottlenecks hard.
+  pool: {
+    max: Number(process.env.DB_POOL_MAX || 25),
+    min: Number(process.env.DB_POOL_MIN || 2),
+    acquire: Number(process.env.DB_POOL_ACQUIRE || 60000),
+    idle: Number(process.env.DB_POOL_IDLE || 10000)
+  }
 };
 
 const connect = (database) =>

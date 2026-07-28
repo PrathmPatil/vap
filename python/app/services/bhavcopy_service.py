@@ -524,13 +524,30 @@ class BhavcopyService:
         result_data = {}
         date_key = date_obj.date()
 
-        if date_key in self.processed_dates and not force_refresh:
-            self._info(f"⏭ Date {date_key} already processed in this run, skipping")
+        # In-memory skip only when DB already has this trade date (session cache alone is unsafe).
+        if (
+            date_key in self.processed_dates
+            and not force_refresh
+            and self.is_trade_date_processed(date_obj)
+        ):
+            self._info(f"⏭ Date {date_key} already in DB for this session, skipping download")
             return self._with_duration(started_at, {
                 "date": str(date_key),
-                "status": "SKIPPED",
-                "message": "Already processed in this session"
+                "status": "SUCCESS",
+                "message": "Already present in database",
+                "files_processed": 0,
+                "data": {
+                    "pr": {"status": "ALREADY_EXISTS"},
+                    "eq": {"status": "ALREADY_EXISTS"},
+                },
             })
+
+        # Stale session marker with no DB rows — clear and re-fetch
+        if date_key in self.processed_dates and not self.is_trade_date_processed(date_obj):
+            self._info(
+                f"⚠ Date {date_key} was marked processed in-memory but missing in DB — re-fetching"
+            )
+            self.processed_dates.discard(date_key)
 
         try:
             self._info(f"📥 Fetching Bhavcopy for {date_key}")

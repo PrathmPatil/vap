@@ -389,12 +389,20 @@ export const getDynamicData = async (
   dynamicURL: string,
   page = 1,
   limit = 10,
-  searchTerm = ''
+  searchTerm = '',
+  filters: { date?: string; start_date?: string; end_date?: string } = {}
 ): Promise<any> => {
   return callApi<any>({
     url: `${dynamicURL}`,
     method: 'GET',
-    params: { page, limit, search: searchTerm }
+    params: {
+      page,
+      limit,
+      search: searchTerm,
+      ...(filters.date ? { date: filters.date } : {}),
+      ...(filters.start_date ? { start_date: filters.start_date } : {}),
+      ...(filters.end_date ? { end_date: filters.end_date } : {}),
+    }
   });
 }
 

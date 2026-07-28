@@ -9,7 +9,7 @@ export const generateAccessToken = (user) => {
       role: user.role,
     },
     process.env.JWT_SECRET,
-    { expiresIn: process.env.JWT_EXPIRY || "1h" }
+    { expiresIn: process.env.JWT_EXPIRY || "8h" }
   );
 };
 

@@ -229,6 +229,75 @@ class CronLoggerService:
                 cursor.close()
             if conn:
                 conn.close()
+
+    def update_running_job(
+        self,
+        log_id: int,
+        records_processed: int = None,
+        records_inserted: int = None,
+        records_updated: int = None,
+        additional_data: Dict = None,
+    ):
+        """Update a RUNNING job mid-flight so Manual API progress is visible in the UI."""
+        if not self.table_created or log_id is None:
+            return False
+
+        conn = None
+        cursor = None
+        try:
+            conn = db_manager.get_connection(self.db_name)
+            cursor = conn.cursor()
+
+            merged = additional_data
+            if additional_data:
+                cursor.execute(
+                    "SELECT additional_data FROM cron_job_logs WHERE id = %s",
+                    (log_id,),
+                )
+                existing = cursor.fetchone()
+                if existing and existing[0]:
+                    try:
+                        existing_dict = (
+                            json.loads(existing[0])
+                            if isinstance(existing[0], str)
+                            else (existing[0] or {})
+                        )
+                        existing_dict.update(additional_data)
+                        merged = existing_dict
+                    except Exception:
+                        merged = additional_data
+
+            additional_json = (
+                json.dumps(_json_safe(merged)) if merged is not None else None
+            )
+
+            sets = ["additional_data = COALESCE(%s, additional_data)"]
+            params = [additional_json]
+            if records_processed is not None:
+                sets.append("records_processed = %s")
+                params.append(records_processed)
+            if records_inserted is not None:
+                sets.append("records_inserted = %s")
+                params.append(records_inserted)
+            if records_updated is not None:
+                sets.append("records_updated = %s")
+                params.append(records_updated)
+            params.append(log_id)
+
+            cursor.execute(
+                f"UPDATE cron_job_logs SET {', '.join(sets)} WHERE id = %s AND status = 'RUNNING'",
+                params,
+            )
+            conn.commit()
+            return cursor.rowcount > 0
+        except Exception as e:
+            logger.error(f"Failed to update running job {log_id}: {e}")
+            return False
+        finally:
+            if cursor:
+                cursor.close()
+            if conn:
+                conn.close()
     
     def get_job_history(self, job_name: str = None, days: int = 7, limit: int = 100):
         """Get job execution history"""
