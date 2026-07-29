@@ -20,10 +20,22 @@ RUN npm ci --legacy-peer-deps || npm install --legacy-peer-deps
 
 COPY . .
 
+# NEXT_PUBLIC_* must be present at build time (baked into the JS bundle).
+# Runtime env_file alone will NOT fix login / API calls.
+ARG NEXT_PUBLIC_API_URL
+ARG NEXT_PUBLIC_PYTHON_API_URL
+ARG NEXT_PUBLIC_BACKEND_API
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL \
+    NEXT_PUBLIC_PYTHON_API_URL=$NEXT_PUBLIC_PYTHON_API_URL \
+    NEXT_PUBLIC_BACKEND_API=$NEXT_PUBLIC_BACKEND_API
+
 ENV NODE_OPTIONS="--max-old-space-size=1536"
-# next build expects production env
 ENV NODE_ENV=production
-RUN npm run build
+RUN if [ -z "$NEXT_PUBLIC_API_URL" ] && [ -z "$NEXT_PUBLIC_BACKEND_API" ]; then \
+      echo "ERROR: NEXT_PUBLIC_API_URL (or NEXT_PUBLIC_BACKEND_API) must be set as a build-arg" >&2; \
+      exit 1; \
+    fi \
+ && npm run build
 
 EXPOSE 3000
 CMD ["npm", "start"]

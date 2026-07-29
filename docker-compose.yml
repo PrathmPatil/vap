@@ -52,7 +52,13 @@ services:
         condition: service_started
 
   frontend:
-    build: ./frontend
+    build:
+      context: ./frontend
+      args:
+        # Baked into the Next.js client bundle — required for login/API calls.
+        # Override in .env / shell before rebuild if needed.
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-https://trendtraders.in/vap}
+        NEXT_PUBLIC_PYTHON_API_URL: ${NEXT_PUBLIC_PYTHON_API_URL:-https://trendtraders.in/ml}
     container_name: frontend
     restart: always
     ports:
