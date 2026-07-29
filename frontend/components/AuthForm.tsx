@@ -145,7 +145,7 @@ export default function AuthForm() {
         setTouched({});
       }
     } catch (error: any) {
-      toast({ title: "Authentication Error", description: error?.response?.data?.message || "Something went wrong.", variant: "destructive" });
+      toast({ title: "Authentication Error", description: error?.response?.data?.message || error?.message || "Something went wrong.", variant: "destructive" });
     } finally {
       setLoading(false);
     }
