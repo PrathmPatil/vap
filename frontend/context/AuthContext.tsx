@@ -5,7 +5,6 @@ import {
   useState,
   ReactNode,
 } from "react";
-import { useRouter } from "next/router";
 import { loginUser, registerUser } from "@/utils";
 
 interface User {
@@ -32,13 +31,18 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
+const navigateClient = (path: string) => {
+  if (typeof window !== "undefined") {
+    window.location.assign(path);
+  }
+};
+
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   // Stays true until the first client-side token check completes.
   // Prevents pages from redirecting to /login during SSR/hydration flash.
   const [authLoading, setAuthLoading] = useState(true);
-  const router = useRouter();
 
   useEffect(() => {
     const storedUser = localStorage.getItem("stockUser");
@@ -79,7 +83,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         document.cookie = `token=${accessToken}; path=/; max-age=${60 * 60 * 8}`;
         setIsAuthenticated(true);
 
-        router.push("/");
+        navigateClient("/");
 
         setUser(userData);
         localStorage.setItem("stockUser", JSON.stringify(userData));
@@ -122,7 +126,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       document.cookie = `token=${accessToken}; path=/; max-age=${60 * 60 * 8}`;
       localStorage.setItem("token", accessToken);
       setIsAuthenticated(true);
-      router.push("/");
+      navigateClient("/");
 
       return { message };
     } catch (error) {
@@ -137,7 +141,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setUser(null);
     document.cookie = "token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
     setIsAuthenticated(false);
-    router.push("/login");
+    navigateClient("/login");
   };
 
   return (

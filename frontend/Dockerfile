@@ -14,19 +14,16 @@ RUN npm config set registry "$NPM_REGISTRY" \
 
 COPY package*.json ./
 
-# CRITICAL: do NOT set NODE_ENV=production before install.
-# Production mode omits devDependencies (typescript), then `next build`
-# tries to auto-install typescript without --legacy-peer-deps and fails
-# on React 19 / cmdk peer conflicts.
-ENV NODE_ENV=development
-
+# Do NOT set NODE_ENV=production before install — that omits many build tools.
+# typescript is also in dependencies as a safety net for Next builds.
 RUN npm ci --legacy-peer-deps || npm install --legacy-peer-deps
 
 COPY . .
 
 ENV NODE_OPTIONS="--max-old-space-size=1536"
+# next build expects production env
+ENV NODE_ENV=production
 RUN npm run build
 
-ENV NODE_ENV=production
 EXPOSE 3000
 CMD ["npm", "start"]
