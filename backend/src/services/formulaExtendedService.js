@@ -1,4 +1,4 @@
-import { Op } from 'sequelize';
+import { Op, literal, fn, col, where } from 'sequelize';
 import {
   PR,
   GL,
@@ -33,10 +33,33 @@ async function getListedCompanyMap() {
     raw: true
   });
 
-  return new Map(rows.map((row) => [row.name.trim(), row.symbol]));
+  // Case-insensitive — PR.SECURITY casing often differs from listed_companies.name
+  return new Map(
+    rows
+      .map((row) => [String(row.name || '').trim().toLowerCase(), row.symbol])
+      .filter(([name]) => name)
+  );
 }
 
-async function loadPrRows(tradeDate, securities) {
+function resolveSymbol(security, companyMap) {
+  const key = String(security || '').trim().toLowerCase();
+  return companyMap.get(key) || String(security || '').trim();
+}
+
+const usableStatusOr = {
+  [Op.or]: [
+    { status: { [Op.is]: null } },
+    { status: '' },
+    { status: 'OK' },
+    { status: { [Op.ne]: 'MISSING' } },
+  ],
+};
+
+async function loadPrRows(tradeDate) {
+  // Do not filter by listed company names — exact-name IN (...) matched 0 rows on prod
+  // while PR still had thousands of securities. Also treat NULL status as usable
+  // (MySQL `status != 'MISSING'` excludes NULL rows).
+  // source_date is TEXT ('YYYY-MM-DD') on prod — use DATE() equality, not datetime ranges.
   return PR.findAll({
     attributes: [
       'SECURITY',
@@ -51,12 +74,12 @@ async function loadPrRows(tradeDate, securities) {
       'source_date'
     ],
     where: {
-      SECURITY: { [Op.in]: securities },
-      source_date: {
-        [Op.gte]: `${tradeDate} 00:00:00`,
-        [Op.lte]: `${tradeDate} 23:59:59`
-      },
-      status: { [Op.ne]: 'MISSING' }
+      [Op.and]: [
+        where(fn('DATE', col('source_date')), tradeDate),
+        literal(
+          `(status IS NULL OR TRIM(status) = '' OR UPPER(TRIM(status)) = 'OK' OR UPPER(TRIM(status)) <> 'MISSING')`
+        )
+      ]
     },
     raw: true
   });
@@ -78,7 +101,7 @@ export const generateBearishCandleService = async ({
   }
 
   const companyMap = await getListedCompanyMap();
-  const stocks = await loadPrRows(tradeDate, [...companyMap.keys()]);
+  const stocks = await loadPrRows(tradeDate);
   const rows = [];
 
   for (const stock of stocks) {
@@ -90,7 +113,7 @@ export const generateBearishCandleService = async ({
     if (changePercent <= -base_percent) {
       rows.push({
         security: stock.SECURITY,
-        symbol: companyMap.get(stock.SECURITY.trim()) || stock.SECURITY,
+        symbol: resolveSymbol(stock.SECURITY, companyMap),
         open_price: open,
         close_price: close,
         change_percent: changePercent,
@@ -120,7 +143,7 @@ export const generateGapUpService = async ({
   }
 
   const companyMap = await getListedCompanyMap();
-  const stocks = await loadPrRows(tradeDate, [...companyMap.keys()]);
+  const stocks = await loadPrRows(tradeDate);
   const rows = [];
 
   for (const stock of stocks) {
@@ -132,7 +155,7 @@ export const generateGapUpService = async ({
     if (gapPercent >= gap_threshold) {
       rows.push({
         security: stock.SECURITY,
-        symbol: companyMap.get(stock.SECURITY.trim()) || stock.SECURITY,
+        symbol: resolveSymbol(stock.SECURITY, companyMap),
         prev_close: prevClose,
         open_price: open,
         gap_percent: gapPercent,
@@ -162,7 +185,7 @@ export const generateGapDownService = async ({
   }
 
   const companyMap = await getListedCompanyMap();
-  const stocks = await loadPrRows(tradeDate, [...companyMap.keys()]);
+  const stocks = await loadPrRows(tradeDate);
   const rows = [];
 
   for (const stock of stocks) {
@@ -174,7 +197,7 @@ export const generateGapDownService = async ({
     if (gapPercent <= -gap_threshold) {
       rows.push({
         security: stock.SECURITY,
-        symbol: companyMap.get(stock.SECURITY.trim()) || stock.SECURITY,
+        symbol: resolveSymbol(stock.SECURITY, companyMap),
         prev_close: prevClose,
         open_price: open,
         gap_percent: gapPercent,
@@ -201,7 +224,7 @@ export const generateFiftyTwoWeekHighService = async ({ targetDate = null }) => 
   }
 
   const companyMap = await getListedCompanyMap();
-  const stocks = await loadPrRows(tradeDate, [...companyMap.keys()]);
+  const stocks = await loadPrRows(tradeDate);
   const rows = [];
 
   for (const stock of stocks) {
@@ -212,7 +235,7 @@ export const generateFiftyTwoWeekHighService = async ({ targetDate = null }) => 
     if (close >= hi52 * 0.995) {
       rows.push({
         security: stock.SECURITY,
-        symbol: companyMap.get(stock.SECURITY.trim()) || stock.SECURITY,
+        symbol: resolveSymbol(stock.SECURITY, companyMap),
         close_price: close,
         hi_52_wk: hi52,
         distance_from_high_pct: ((hi52 - close) / hi52) * 100,
@@ -243,12 +266,9 @@ export const generateTopGainerService = async ({
   const companyMap = await getListedCompanyMap();
   const glRows = await GL.findAll({
     where: {
-      source_date: {
-        [Op.gte]: `${tradeDate} 00:00:00`,
-        [Op.lte]: `${tradeDate} 23:59:59`
-      },
+      [Op.and]: [where(fn('DATE', col('source_date')), tradeDate)],
       GAIN_LOSS: 'G',
-      status: { [Op.ne]: 'MISSING' }
+      ...usableStatusOr
     },
     raw: true
   });
@@ -261,7 +281,7 @@ export const generateTopGainerService = async ({
     const security = String(row.SECURITY || '').trim();
     rows.push({
       security,
-      symbol: companyMap.get(security) || security,
+      symbol: resolveSymbol(security, companyMap),
       close_price: parseNum(row.CLOSE_PRIC),
       prev_close: parseNum(row.PREV_CL_PR),
       change_percent: changePercent,
@@ -286,11 +306,8 @@ export const generateBandHit52wService = async ({ targetDate = null }) => {
 
   const bhRows = await BH.findAll({
     where: {
-      source_date: {
-        [Op.gte]: `${tradeDate} 00:00:00`,
-        [Op.lte]: `${tradeDate} 23:59:59`
-      },
-      status: { [Op.ne]: 'MISSING' }
+      [Op.and]: [where(fn('DATE', col('source_date')), tradeDate)],
+      ...usableStatusOr
     },
     raw: true
   });
@@ -331,12 +348,9 @@ export const generateTopLoserService = async ({
   const companyMap = await getListedCompanyMap();
   const glRows = await GL.findAll({
     where: {
-      source_date: {
-        [Op.gte]: `${tradeDate} 00:00:00`,
-        [Op.lte]: `${tradeDate} 23:59:59`
-      },
+      [Op.and]: [where(fn('DATE', col('source_date')), tradeDate)],
       GAIN_LOSS: 'L',
-      status: { [Op.ne]: 'MISSING' }
+      ...usableStatusOr
     },
     raw: true
   });
@@ -349,7 +363,7 @@ export const generateTopLoserService = async ({
     const security = String(row.SECURITY || '').trim();
     rows.push({
       security,
-      symbol: companyMap.get(security) || security,
+      symbol: resolveSymbol(security, companyMap),
       close_price: parseNum(row.CLOSE_PRIC),
       prev_close: parseNum(row.PREV_CL_PR),
       change_percent: changePercent,
@@ -375,7 +389,7 @@ export const generateFiftyTwoWeekLowService = async ({ targetDate = null }) => {
   }
 
   const companyMap = await getListedCompanyMap();
-  const stocks = await loadPrRows(tradeDate, [...companyMap.keys()]);
+  const stocks = await loadPrRows(tradeDate);
   const rows = [];
 
   for (const stock of stocks) {
@@ -386,7 +400,7 @@ export const generateFiftyTwoWeekLowService = async ({ targetDate = null }) => {
     if (close <= lo52 * 1.005) {
       rows.push({
         security: stock.SECURITY,
-        symbol: companyMap.get(stock.SECURITY.trim()) || stock.SECURITY,
+        symbol: resolveSymbol(stock.SECURITY, companyMap),
         close_price: close,
         lo_52_wk: lo52,
         distance_from_low_pct: ((close - lo52) / lo52) * 100,
@@ -415,7 +429,7 @@ export const generateDailyMoverUpService = async ({
   }
 
   const companyMap = await getListedCompanyMap();
-  const stocks = await loadPrRows(tradeDate, [...companyMap.keys()]);
+  const stocks = await loadPrRows(tradeDate);
   const rows = [];
 
   for (const stock of stocks) {
@@ -427,7 +441,7 @@ export const generateDailyMoverUpService = async ({
     if (changePercent >= min_percent) {
       rows.push({
         security: stock.SECURITY,
-        symbol: companyMap.get(stock.SECURITY.trim()) || stock.SECURITY,
+        symbol: resolveSymbol(stock.SECURITY, companyMap),
         close_price: close,
         prev_close: prevClose,
         change_percent: changePercent,
@@ -457,7 +471,7 @@ export const generateDailyMoverDownService = async ({
   }
 
   const companyMap = await getListedCompanyMap();
-  const stocks = await loadPrRows(tradeDate, [...companyMap.keys()]);
+  const stocks = await loadPrRows(tradeDate);
   const rows = [];
 
   for (const stock of stocks) {
@@ -469,7 +483,7 @@ export const generateDailyMoverDownService = async ({
     if (changePercent <= -min_percent) {
       rows.push({
         security: stock.SECURITY,
-        symbol: companyMap.get(stock.SECURITY.trim()) || stock.SECURITY,
+        symbol: resolveSymbol(stock.SECURITY, companyMap),
         close_price: close,
         prev_close: prevClose,
         change_percent: changePercent,

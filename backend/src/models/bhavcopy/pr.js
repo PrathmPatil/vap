@@ -58,7 +58,7 @@ export default function PRModel(sequelize, DataTypes) {
       allowNull: true,
     },
     source_date: {
-      type: DataTypes.DATE,
+      type: DataTypes.STRING,
       allowNull: true,
     },
     status: {

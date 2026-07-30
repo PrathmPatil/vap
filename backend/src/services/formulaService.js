@@ -34,11 +34,32 @@ import {
 
 import logger from '../config/logger.js';
 import { performance } from 'node:perf_hooks';
-import { fn, col, where, Op } from 'sequelize';
+import { fn, col, where, Op, literal } from 'sequelize';
 
 /* =========================================================
    TRADE DATE + LISTED COMPANY HELPERS
 ========================================================= */
+
+/** Exclude MISSING placeholders without dropping real rows where status is NULL/OK. */
+export const prUsableStatusWhere = () =>
+  literal(
+    `(status IS NULL OR TRIM(status) = '' OR UPPER(TRIM(status)) = 'OK' OR UPPER(TRIM(status)) <> 'MISSING')`
+  );
+
+/**
+ * Prod stores source_date as TEXT ('YYYY-MM-DD'), not DATETIME.
+ * Comparing to 'YYYY-MM-DD 00:00:00'..'23:59:59' excludes those rows in MySQL string compare.
+ */
+export const prSourceDateWhere = (tradeDate) => ({
+  [Op.and]: [
+    where(fn('DATE', col('source_date')), tradeDate),
+    prUsableStatusWhere(),
+  ],
+});
+
+export const bhSourceDateWhere = (tradeDate) => ({
+  [Op.and]: [where(fn('DATE', col('source_date')), tradeDate)],
+});
 
 export const normalizeTradeDate = (value) => {
   if (!value) return null;
@@ -61,7 +82,13 @@ const prExistsForDate = async (dateStr) => {
   if (!dateStr) return false;
 
   const count = await PR.count({
-    where: where(fn('DATE', col('source_date')), dateStr),
+    where: {
+      [Op.and]: [
+        where(fn('DATE', col('source_date')), dateStr),
+        prUsableStatusWhere(),
+        { SECURITY: { [Op.ne]: null } },
+      ],
+    },
   });
 
   return count > 0;
@@ -108,11 +135,20 @@ const loadListedCompanyMaps = async () => {
   for (const company of listedCompanies) {
     const name = String(company.name || '').trim();
     const symbol = String(company.symbol || '').trim();
-    if (name) nameToSymbol.set(name, symbol);
-    if (symbol) symbolToName.set(symbol, name);
+    // Case-insensitive keys — PR.SECURITY often differs only by case from listed names.
+    if (name) nameToSymbol.set(name.toLowerCase(), symbol);
+    if (symbol) {
+      symbolToName.set(symbol, name);
+      symbolToName.set(symbol.toLowerCase(), name);
+    }
   }
 
   return { nameToSymbol, symbolToName };
+};
+
+const resolveListedSymbol = (security, nameToSymbol) => {
+  const key = String(security || '').trim().toLowerCase();
+  return nameToSymbol.get(key) || String(security || '').trim();
 };
 
 const resolveSecurityForSymbol = (symbol, symbolToName) => {
@@ -260,17 +296,7 @@ export const generateRallyAttemptService = async ({
        GET LISTED COMPANIES
     -------------------------------- */
 
-    const listedCompanies = await ListedCompanies.findAll({
-      attributes: ['name', 'symbol'],
-      where: { series: 'EQ' },
-      raw: true
-    });
-
-    const companyMap = new Map(
-      listedCompanies.map((c) => [c.name.trim(), c.symbol])
-    );
-
-    const companyNames = [...companyMap.keys()];
+    const { nameToSymbol } = await loadListedCompanyMaps();
 
     /* --------------------------------
        GET LAST 2 TRADE DAYS OF PR DATA
@@ -280,7 +306,8 @@ export const generateRallyAttemptService = async ({
     const recentDates = await PR.findAll({
       attributes: [[fn('DISTINCT', col('source_date')), 'source_date']],
       where: {
-        source_date: { [Op.lte]: latestDate }
+        source_date: { [Op.lte]: latestDate },
+        [Op.and]: [prUsableStatusWhere()],
       },
       order: [['source_date', 'DESC']],
       limit: 2,
@@ -297,11 +324,14 @@ export const generateRallyAttemptService = async ({
       };
     }
 
+    // Do not require PR.SECURITY ∈ listed_companies.name — names often diverge and
+    // produced 0 matches while PR still had thousands of rows.
     const stockData = await PR.findAll({
       attributes: ['SECURITY', 'CLOSE_PRICE', 'source_date'],
       where: {
-        SECURITY: { [Op.in]: companyNames },
-        source_date: { [Op.in]: dateList }
+        source_date: { [Op.in]: dateList },
+        [Op.and]: [prUsableStatusWhere()],
+        SECURITY: { [Op.ne]: null },
       },
       order: [
         ['SECURITY', 'ASC'],
@@ -343,7 +373,7 @@ export const generateRallyAttemptService = async ({
 
       if (todayClose > prevClose) {
         rallyStocks.push({
-          symbol: companyMap.get(security) || security,
+          symbol: resolveListedSymbol(security, nameToSymbol),
           security: security,
           rally_date: latestDate,
           close_price: todayClose,
@@ -1217,32 +1247,13 @@ export const generateStrongBullishService = async ({
     -------------------------------- */
 
     if (existingCount === 0) {
-      /* -------- GET LISTED COMPANIES -------- */
-
-      const listedCompanies = await ListedCompanies.findAll({
-        attributes: ['name', 'symbol'],
-        where: { series: 'EQ' },
-        raw: true
-      });
-
-      // Convert to map for O(1) lookup
-      const companyMap = new Map(
-        listedCompanies.map((c) => [c.name.trim(), c.symbol])
-      );
-
-      const companyNames = [...companyMap.keys()];
+      const { nameToSymbol } = await loadListedCompanyMaps();
 
       /* -------- FETCH PR DATA -------- */
 
       const stocks = await PR.findAll({
         attributes: ['SECURITY', 'OPEN_PRICE', 'CLOSE_PRICE', 'source_date'],
-        where: {
-          SECURITY: { [Op.in]: companyNames },
-          source_date: {
-            [Op.gte]: `${latestDate} 00:00:00`,
-            [Op.lte]: `${latestDate} 23:59:59`
-          }
-        },
+        where: prSourceDateWhere(latestDate),
         raw: true
       });
 
@@ -1258,7 +1269,7 @@ export const generateStrongBullishService = async ({
         if (percent >= base_percent) {
           bullishStocks.push({
             security: stock.SECURITY,
-            symbol: companyMap.get(stock.SECURITY) || stock.SECURITY,
+            symbol: resolveListedSymbol(stock.SECURITY, nameToSymbol),
             trade_date: latestDate,
             open_price: open,
             close_price: close,
@@ -1371,6 +1382,7 @@ export const generateVolumeBreakoutService = async ({
           ROW_NUMBER() OVER (PARTITION BY SECURITY ORDER BY source_date DESC) AS rn
         FROM \`pr\`
         WHERE SECURITY IS NOT NULL
+          AND (status IS NULL OR TRIM(status) = '' OR UPPER(TRIM(status)) = 'OK' OR UPPER(TRIM(status)) <> 'MISSING')
           AND DATE(source_date) <= :latestDate
           AND DATE(source_date) >= DATE_SUB(:latestDate, INTERVAL 45 DAY)
       ) ranked
@@ -1531,10 +1543,11 @@ export const detectTweezerBottomPatterns = async (options = {}) => {
     ],
     where: {
       SECURITY: { [Op.in]: securities },
-      source_date: {
-        [Op.gte]: startStr,
-        [Op.lte]: `${analysisDateStr} 23:59:59`
-      }
+      [Op.and]: [
+        where(fn('DATE', col('source_date')), { [Op.gte]: startStr }),
+        where(fn('DATE', col('source_date')), { [Op.lte]: analysisDateStr }),
+        prUsableStatusWhere(),
+      ],
     },
     order: [
       ['SECURITY', 'ASC'],
