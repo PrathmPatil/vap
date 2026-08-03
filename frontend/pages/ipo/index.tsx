@@ -2,7 +2,7 @@ import IpoTable from "@/components/IpoTables";
 import Navigation from "@/components/Navigation";
 import { Badge } from "@/components/ui/badge";
 import CustomPagination from "@/components/ui/custom-pagination";
-import { Skeleton } from "@/components/ui/skeleton";
+import { PageLoader } from "@/components/ui/PageLoader";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getNseIpoCounts, getNseIpoData } from "@/utils";
 import { useEffect, useState } from "react";
@@ -192,13 +192,7 @@ const Index = () => {
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
         <Navigation />
         <main className="container mx-auto px-4 py-8">
-          <div className="space-y-8 text-center">
-            <Skeleton className="h-10 w-64 mx-auto mb-2" />
-            <Skeleton className="h-6 w-96 mx-auto" />
-            {[...Array(3)].map((_, index) => (
-              <Skeleton key={index} className="h-32" />
-            ))}
-          </div>
+          <PageLoader inline message="Loading IPO data…" />
         </main>
       </div>
     );

@@ -7,7 +7,7 @@ import {
   SelectValue,
   SelectContent,
 } from "@/components/ui/select";
-import { Skeleton } from "@/components/ui/skeleton";
+import { PageLoader } from "@/components/ui/PageLoader";
 import { Input } from "@/components/ui/input";
 import { useMarketSignalsData } from "@/hooks/use-market-formulas";
 
@@ -44,14 +44,7 @@ export default function Home() {
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
         <Navigation />
         <main className="container mx-auto px-4 py-8">
-          <div className="space-y-8">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {[...Array(3)].map((_, i) => (
-                <Skeleton key={i} className="h-32 rounded-xl" />
-              ))}
-            </div>
-            <Skeleton className="h-96 rounded-xl" />
-          </div>
+          <PageLoader inline message="Loading formulas…" />
         </main>
       </div>
     );

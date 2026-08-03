@@ -7,6 +7,7 @@ import { bhavcopyCategories, bhavcopyColumns } from "@/lib/bhavcopylist";
 import { getCompanyData } from "@/utils";
 import { callApi } from "@/utils/apis";
 import { ArrowLeft } from "lucide-react";
+import { PageLoader } from "@/components/ui/PageLoader";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import React, { useEffect, useState } from "react";
@@ -111,7 +112,7 @@ const Index = () => {
       <Navigation />
       <main className="container mx-auto px-4 py-8">
         {!companyStr ? (
-          <p className="text-center text-gray-500">Loading company data...</p>
+          <PageLoader inline message="Loading company data…" />
         ) : (
           <div className="space-y-6">
             <div className="flex items-center space-x-4">

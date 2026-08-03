@@ -1,8 +1,14 @@
 import React, { useEffect, useState } from "react";
 import Navigation from "@/components/Navigation";
-import { getListedDailyData } from "@/utils";
+import {
+  addToWatchlist,
+  getListedDailyData,
+  getUserWatchlist,
+  removeFromWatchlist,
+} from "@/utils";
 import { useAuth } from "@/context/AuthContext";
 import { Pagination } from "@/components/ui/custom-pagination";
+import { PageLoader } from "@/components/ui/PageLoader";
 import { Bookmark } from "lucide-react";
 
 type ListedRow = {
@@ -31,27 +37,25 @@ type ListedDailyResponse = {
 };
 
 export default function ListedCompaniesPage() {
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated } = useAuth();
 
   const [date, setDate] = useState("");
   const [search, setSearch] = useState("");
 
   const [data, setData] = useState<ListedDailyResponse | null>(null);
   const [loading, setLoading] = useState(false);
+  const [watchlistBusy, setWatchlistBusy] = useState<string | null>(null);
 
-  const [stocks, setStocks] = useState<string[]>([]);
-  const [stocksReady, setStocksReady] = useState(false);
+  const [watchlistSymbols, setWatchlistSymbols] = useState<string[]>([]);
 
-  // Pagination
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
 
-  const stocksStorageKey = user?.email
-    ? `listed-companies-stocks:${user.email}`
-    : "listed-companies-stocks:guest";
-
   const formatSymbol = (symbol?: string) =>
     symbol?.replace(/\.NS$/i, "") || "-";
+
+  const normalizeSymbol = (symbol?: string) =>
+    String(symbol || "").trim().toUpperCase();
 
   const listedCompanies = data?.listed_companies;
 
@@ -62,9 +66,40 @@ export default function ListedCompaniesPage() {
   const totalRecords = listedCompanies?.total || 0;
 
   const totalPages =
-    listedCompanies?.pages ||
-    Math.ceil(totalRecords / itemsPerPage) ||
-    1;
+    listedCompanies?.pages || Math.ceil(totalRecords / itemsPerPage) || 1;
+
+  const isInWatchlist = (symbol?: string) => {
+    const key = normalizeSymbol(symbol);
+    if (!key) return false;
+    return watchlistSymbols.some((item) => {
+      const normalized = normalizeSymbol(item);
+      return (
+        normalized === key ||
+        normalized === `${key}.NS` ||
+        key === `${normalized}.NS`
+      );
+    });
+  };
+
+  const loadWatchlist = async () => {
+    if (!isAuthenticated) {
+      setWatchlistSymbols([]);
+      return;
+    }
+
+    try {
+      const response = await getUserWatchlist();
+      const items = Array.isArray(response?.data) ? response.data : [];
+      setWatchlistSymbols(
+        items
+          .map((item: { symbol?: string }) => item?.symbol)
+          .filter(Boolean) as string[]
+      );
+    } catch (error) {
+      console.error("watchlist fetch failed", error);
+      setWatchlistSymbols([]);
+    }
+  };
 
   const loadData = async (
     nextDate = date,
@@ -96,30 +131,8 @@ export default function ListedCompaniesPage() {
   }, [isAuthenticated, currentPage, itemsPerPage]);
 
   useEffect(() => {
-    if (typeof window === "undefined") {
-      return;
-    }
-
-    setStocksReady(false);
-
-    const storedStocks = window.localStorage.getItem(stocksStorageKey);
-
-    try {
-      setStocks(storedStocks ? JSON.parse(storedStocks) : []);
-    } catch {
-      setStocks([]);
-    }
-
-    setStocksReady(true);
-  }, [stocksStorageKey]);
-
-  useEffect(() => {
-    if (typeof window === "undefined" || !stocksReady) {
-      return;
-    }
-
-    window.localStorage.setItem(stocksStorageKey, JSON.stringify(stocks));
-  }, [stocks, stocksStorageKey, stocksReady]);
+    loadWatchlist();
+  }, [isAuthenticated]);
 
   const handleLoadData = () => {
     setCurrentPage(1);
@@ -136,7 +149,6 @@ export default function ListedCompaniesPage() {
 
   const handlePageChange = (page: number) => {
     if (page < 1 || page > totalPages) return;
-
     setCurrentPage(page);
   };
 
@@ -145,21 +157,44 @@ export default function ListedCompaniesPage() {
     setCurrentPage(1);
   };
 
-  const handleAction = async (symbol?: string, action?: string) => {
-    if (!symbol || !action) return;
+  const handleWatchlistToggle = async (symbol?: string) => {
+    if (!symbol || !isAuthenticated || watchlistBusy) return;
 
-    if (!isAuthenticated) {
-      return;
-    }
+    const inList = isInWatchlist(symbol);
+    setWatchlistBusy(symbol);
+
+    // Optimistic UI
+    setWatchlistSymbols((prev) => {
+      if (inList) {
+        return prev.filter((item) => {
+          const normalized = normalizeSymbol(item);
+          const key = normalizeSymbol(symbol);
+          return !(
+            normalized === key ||
+            normalized === `${key}.NS` ||
+            key === `${normalized}.NS`
+          );
+        });
+      }
+      return prev.includes(symbol) ? prev : [...prev, symbol];
+    });
 
     try {
-      if (action === "add") {
-        setStocks((prev) => (prev.includes(symbol) ? prev : [...prev, symbol]));
-      } else if (action === "remove") {
-        setStocks((prev) => prev.filter((item) => item !== symbol));
+      const result = inList
+        ? await removeFromWatchlist(symbol)
+        : await addToWatchlist(symbol);
+
+      if (result?.unauthorized) {
+        await loadWatchlist();
+        return;
       }
+
+      await loadWatchlist();
     } catch (error) {
-      console.error("stock action failed", error);
+      console.error("watchlist action failed", error);
+      await loadWatchlist();
+    } finally {
+      setWatchlistBusy(null);
     }
   };
 
@@ -211,30 +246,12 @@ export default function ListedCompaniesPage() {
         </div>
 
         {loading && (
-          <div className="rounded-lg bg-white p-6 shadow">
-            Loading data...
-          </div>
+          <PageLoader inline message="Loading listed companies…" />
         )}
 
         {!loading && data && (
           <div className="space-y-8">
             <section className="overflow-hidden rounded-xl bg-white shadow">
-              <div className="flex items-center justify-between border-b px-6 py-4">
-                <div>
-                  <h2 className="text-lg font-semibold text-slate-900">
-                    Listed Companies
-                  </h2>
-
-                  <p className="text-sm text-slate-500">
-                    {totalRecords} rows available
-                  </p>
-                </div>
-
-                <div className="text-sm text-slate-500">
-                  listed_companies table
-                </div>
-              </div>
-
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead className="bg-slate-50 text-xs uppercase text-slate-600">
@@ -264,9 +281,8 @@ export default function ListedCompaniesPage() {
                     ) : (
                       rows.map((row: ListedRow, idx: number) => {
                         const symbol = row.symbol || "";
-                        const inStocks = symbol
-                          ? stocks.includes(symbol)
-                          : false;
+                        const inWatchlist = isInWatchlist(symbol);
+                        const busy = watchlistBusy === symbol;
 
                         return (
                           <tr
@@ -308,34 +324,29 @@ export default function ListedCompaniesPage() {
                             <td className="px-4 py-3 text-center">
                               <button
                                 type="button"
-                                onClick={() =>
-                                  handleAction(
-                                    symbol,
-                                    inStocks ? "remove" : "add"
-                                  )
-                                }
-                                disabled={!isAuthenticated}
-                                className="inline-flex items-center justify-center transition-transform hover:scale-110 disabled:cursor-not-allowed disabled:opacity-50"
+                                onClick={() => handleWatchlistToggle(symbol)}
+                                disabled={!isAuthenticated || busy}
+                                className="inline-flex items-center justify-center rounded p-1 transition-transform hover:scale-110 disabled:cursor-not-allowed disabled:opacity-50"
                                 title={
                                   isAuthenticated
-                                    ? inStocks
-                                      ? "Remove from stocks"
-                                      : "Add to stocks"
-                                    : "Login to add"
+                                    ? inWatchlist
+                                      ? "Remove from watchlist"
+                                      : "Add to watchlist"
+                                    : "Login to manage watchlist"
+                                }
+                                aria-label={
+                                  inWatchlist
+                                    ? "Remove from watchlist"
+                                    : "Add to watchlist"
                                 }
                               >
-                                {/* <svg
-                                  className={`h-6 w-6 ${
-                                    inStocks
-                                      ? "fill-red-500"
-                                      : "fill-white stroke-slate-400"
-                                  } stroke-2`}
-                                  xmlns="http://www.w3.org/2000/svg"
-                                  viewBox="0 0 24 24"
-                                >
-                                  <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
-                                </svg> */}
-                                <Bookmark height={10} width={10}  />
+                                <Bookmark
+                                  className={`h-5 w-5 ${
+                                    inWatchlist
+                                      ? "fill-blue-600 text-blue-600"
+                                      : "text-slate-400"
+                                  }`}
+                                />
                               </button>
                             </td>
                           </tr>

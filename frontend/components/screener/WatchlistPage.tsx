@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Star, TrendingDown, TrendingUp, Plus, Trash2, Search, Eye } from 'lucide-react';
 import { addToWatchlist, getListedCompaniesData, getUserWatchlist, removeFromWatchlist } from '@/utils';
 import { useAuth } from '@/context/AuthContext';
+import { PageLoader } from '@/components/ui/PageLoader';
 
 type WatchlistItem = {
   symbol: string;
@@ -158,7 +159,7 @@ const WatchlistPage = () => {
         </div>
 
         {loadingWatchlist ? (
-          <div className="py-10 text-center text-slate-500">Loading watchlist...</div>
+          <PageLoader inline message="Loading watchlist…" />
         ) : filteredWatchlist.length > 0 ? (
           <div className="rounded-lg border bg-card text-card-foreground shadow-sm overflow-x-auto">
             <table className="w-full">
@@ -248,7 +249,7 @@ const WatchlistPage = () => {
               <h3 className="text-lg font-semibold text-gray-900 mb-4">Add Stock to Watchlist</h3>
               <div className="space-y-3 max-h-80 overflow-y-auto">
                 {loadingCompanies ? (
-                  <div className="py-10 text-center text-slate-500">Loading companies...</div>
+                  <PageLoader inline message="Loading companies…" />
                 ) : (
                   availableCompanies
                     .filter((company) => !watchlist.some((item) => item.symbol === company.symbol))

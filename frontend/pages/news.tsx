@@ -5,6 +5,7 @@ import Navigation from "@/components/Navigation";
 import NewsTableView from "@/components/news/NewsTableView";
 import NewsComponent from "@/components/news/NewsComponent";
 import { getBseAnnouncements, getGovNews } from "@/utils";
+import { PageLoader } from "@/components/ui/PageLoader";
 
 /* -------------------- TYPES -------------------- */
 
@@ -195,7 +196,9 @@ export default function News() {
         )}
 
         {/* States */}
-        {loading && <p className="text-center">Loading...</p>}
+        {loading && (
+          <PageLoader inline message="Loading news…" />
+        )}
 
         {error && (
           <p className="text-center text-red-600 font-medium">{error}</p>

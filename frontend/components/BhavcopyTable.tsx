@@ -7,7 +7,7 @@ import { Input } from './ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
 import { Button } from './ui/button';
 import { formatCellValue } from '@/lib/utils';
-import { Skeleton } from './ui/skeleton';
+import { PageLoader } from './ui/PageLoader';
 import { getDynamicData } from '@/utils';
 import Pagination from './ui/custom-pagination';
 
@@ -157,11 +157,7 @@ export function BhavcopyTable({
 
         <CardContent>
           {loading ? (
-            <div className="space-y-4">
-              {[...Array(limit)].map((_, i) => (
-                <Skeleton key={i} className="h-8 w-full" />
-              ))}
-            </div>
+            <PageLoader inline message="Loading market data…" />
           ) : rows.length === 0 ? (
             <div className="py-8 text-center text-slate-500">
               No data found

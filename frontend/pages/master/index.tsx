@@ -49,6 +49,7 @@ import { cn } from "@/lib/utils";
 import { Pagination } from "@/components/ui/custom-pagination";
 import Navigation from "@/components/Navigation";
 import CronManualOpsPanel from "@/components/CronManualOpsPanel";
+import { PageLoader } from "@/components/ui/PageLoader";
 
 interface LogEntry {
   id: number;
@@ -666,11 +667,11 @@ const MasterIndex = () => {
   };
 
   if (authLoading) {
-    return null; // Still checking token — don't redirect yet
+    return <PageLoader fullScreen message="Checking access…" />;
   }
 
   if (!isAuthenticated || !isMaster) {
-    return null;
+    return <PageLoader fullScreen message="Redirecting…" />;
   }
 
   return (
@@ -943,12 +944,8 @@ const MasterIndex = () => {
           )}
         </div>
 
-        {/* Loading Indicator */}
         {loading && (
-          <div className="py-8 text-center">
-            <div className="inline-block h-8 w-8 animate-spin rounded-full border-b-2 border-gray-900"></div>
-            <p className="mt-2">Loading logs...</p>
-          </div>
+          <PageLoader inline message="Loading logs…" />
         )}
 
         {/* Summary Cards */}

@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Search, Building2, Calendar, DollarSign } from "lucide-react";
+import { Search, Building2, Calendar } from "lucide-react";
+import { PageLoader } from "@/components/ui/PageLoader";
 import {
   Card,
   CardContent,
@@ -10,7 +11,6 @@ import {
   CardTitle,
 } from "./ui/card";
 import { Input } from "./ui/input";
-import { Skeleton } from "./ui/skeleton";
 import {
   Table,
   TableBody,
@@ -148,21 +148,7 @@ export function CompaniesTable() {
 
         <CardContent>
           {loading ? (
-            <div className="space-y-4">
-              {[...Array(limit)].map((_, i) => (
-                <div key={i} className="flex items-center space-x-4">
-                  <Skeleton className="h-8 w-24" />
-                  <Skeleton className="h-8 w-48" />
-                  <Skeleton className="h-8 w-64" />
-                  <Skeleton className="h-8 w-40" />
-                  <Skeleton className="h-8 w-64" />
-                  <Skeleton className="h-8 w-24" />
-                  <Skeleton className="h-8 w-32" />
-                  <Skeleton className="h-8 w-48" />
-                  <Skeleton className="h-8 w-40" />
-                </div>
-              ))}
-            </div>
+            <PageLoader inline message="Loading companies…" />
           ) : (
             <>
               <div className="rounded-lg border">
@@ -223,15 +209,12 @@ export function CompaniesTable() {
                           </TableCell>
 
                           <TableCell>
-                            <div className="flex items-center space-x-1">
-                              <DollarSign className="h-3 w-3 text-green-600" />
-                              <span>
-                                ₹
-                                {company?.face_value ??
-                                  company?.paid_up_value ??
-                                  "-"}
-                              </span>
-                            </div>
+                            <span>
+                              ₹
+                              {company?.face_value ??
+                                company?.paid_up_value ??
+                                "-"}
+                            </span>
                           </TableCell>
 
                           <TableCell>
