@@ -158,8 +158,21 @@ const Index = () => {
   const fetchCounts = async () => {
     try {
       const response = await getNseIpoCounts();
-      if (response.success) {
-        setCounts(response.counts);
+      if (response.success && response.counts) {
+        const emptyBoard = { all: 0, mainboard: 0, sme: 0 };
+        setCounts({
+          current: response.counts.current ?? 0,
+          upcoming: response.counts.upcoming ?? 0,
+          past: response.counts.past ?? 0,
+          mainboard: response.counts.mainboard ?? 0,
+          sme: response.counts.sme ?? 0,
+          total: response.counts.total ?? 0,
+          byStatus: response.counts.byStatus ?? {
+            current: emptyBoard,
+            upcoming: emptyBoard,
+            past: emptyBoard,
+          },
+        });
       }
     } catch (err) {
       console.error("Error fetching IPO counts:", err);
