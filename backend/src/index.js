@@ -30,6 +30,7 @@ import govNewsRouter from './routes/govNewsRouter.js';
 import indicesRoute from './routes/ingestRoutes.js';
 import finnhubRoute from './routes/finnhubRoutes.js';
 import formulaRoutes from './routes/formulaRoutes.js';
+import userScanRoutes from './routes/userScanRoutes.js';
 import userRoutes from './routes/userRoutes.js';
 import holidayRoutes from './routes/marketHolidayRoutes.js';
 import syncRoutes from './routes/syncRoutes.js';
@@ -65,7 +66,10 @@ import {
   DailyMoverUpModel,
   DailyMoverDownModel,
   MarketHolidayModel,
-  CronLogModel
+  CronLogModel,
+  UserFormula,
+  UserScan,
+  UserScanAlert
 } from './models/index.js';
 
 // Init app
@@ -210,6 +214,15 @@ export const startServer = async () => {
       logger.info('✅ MarketHoliday table synced.');
       console.log('✅ MarketHoliday table synced.');
 
+      await UserFormula.sync();
+      logger.info('✅ UserFormula table synced.');
+      console.log('✅ UserFormula table synced.');
+
+      await UserScan.sync();
+      await UserScanAlert.sync();
+      logger.info('✅ UserScan tables synced.');
+      console.log('✅ UserScan tables synced.');
+
       const [holidayCount, nseMainboardCount, nseSmeCount] = await Promise.all([
         MarketHolidayModel.count({ where: { is_active: 1 } }),
         MainboardData.count({ where: { data_source: 'nse' } }),
@@ -296,6 +309,7 @@ app.use('/vap/gov-news', govNewsRouter);
 app.use('/vap/indices', indicesRoute);
 app.use('/vap/finnhub', finnhubRoute);
 app.use('/vap/formula', formulaRoutes);
+app.use('/vap/scans', userScanRoutes);
 app.use('/vap/user', userRoutes);
 app.use('/vap/holiday', holidayRoutes);
 app.use('/vap/sync', syncRoutes);

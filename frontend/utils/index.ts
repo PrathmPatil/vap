@@ -112,6 +112,11 @@ type NseIpoCountsResponse = {
     mainboard: number;
     sme: number;
     total: number;
+    byStatus?: {
+      current: { all: number; mainboard: number; sme: number };
+      upcoming: { all: number; mainboard: number; sme: number };
+      past: { all: number; mainboard: number; sme: number };
+    };
   };
 };
 
@@ -302,17 +307,26 @@ export const getListedCompaniesData = async (
   });
 };
 
-// New: get combined daily listing (bhavcopy PR + all companies data)
+// Combined daily listing — stocks date filters listed_companies.date_of_listing by default
 export const getListedDailyData = async (
   date = '',
   page = 1,
   limit = 50,
-  search = ''
+  search = '',
+  instrument: 'stocks' | 'etfs' | 'indices' = 'stocks',
+  dateField: 'trade' | 'listing' = 'listing'
 ): Promise<any> => {
   return callApi<any>({
     url: 'company-data/listed-daily',
     method: 'GET',
-    params: { date, page, limit, search }
+    params: {
+      date: date || undefined,
+      page,
+      limit,
+      search: search || undefined,
+      instrument,
+      date_field: dateField,
+    },
   });
 };
 
@@ -430,6 +444,9 @@ export const getFormulaData = async (
     basePercent?: number;
     targetDate?: string | null;
     symbol?: string | null;
+    changePercentMin?: number | null;
+    changePercentMax?: number | null;
+    changeSort?: 'asc' | 'desc';
   }
 ): Promise<any> => {
   return callApi<any>({
@@ -445,8 +462,61 @@ export const getFormulaData = async (
       date: options?.targetDate || undefined,
       targetDate: options?.targetDate || undefined,
       symbol: options?.symbol || undefined,
+      changePercentMin: options?.changePercentMin,
+      changePercentMax: options?.changePercentMax,
+      changeSort: options?.changeSort,
     },
   });
+};
+
+export const exportFormulaXlsx = async (
+  formulaType: string,
+  options?: {
+    searchTerm?: string;
+    basePercent?: number;
+    targetDate?: string | null;
+    symbol?: string | null;
+    changePercentMin?: number | null;
+    changePercentMax?: number | null;
+    changeSort?: 'asc' | 'desc';
+    filename?: string;
+  }
+): Promise<void> => {
+  const { getApiBaseUrl, getAuthToken } = await import('./apis');
+  const axios = (await import('axios')).default;
+  const token = getAuthToken();
+  const response = await axios.request({
+    url: `${getApiBaseUrl()}/formula/export`,
+    method: 'POST',
+    responseType: 'blob',
+    withCredentials: true,
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    data: {
+      formulaType,
+      searchTerm: options?.searchTerm || '',
+      basePercent: options?.basePercent,
+      targetDate: options?.targetDate || undefined,
+      symbol: options?.symbol || undefined,
+      changePercentMin: options?.changePercentMin,
+      changePercentMax: options?.changePercentMax,
+      changeSort: options?.changeSort,
+    },
+  });
+
+  const blob = new Blob([response.data], {
+    type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  });
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = options?.filename || `${formulaType}.xlsx`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  window.URL.revokeObjectURL(url);
 };
 
 export const getFormulaAvailableDates = async (
@@ -523,3 +593,76 @@ export const getCronLogs = async (page: number, limit: number, job_name?: string
     params: { page, limit, job_name, status }
   });
 }
+
+// Custom formula CRUD + run
+export const listCustomFormulas = async (): Promise<any> => {
+  return callApi<any>({ url: 'formula/custom', method: 'GET' });
+};
+
+export const createCustomFormula = async (payload: {
+  name: string;
+  expression: string;
+  description?: string;
+}): Promise<any> => {
+  return callApi<any>({ url: 'formula/custom', method: 'POST', data: payload });
+};
+
+export const updateCustomFormula = async (
+  id: number | string,
+  payload: { name?: string; expression?: string; description?: string; is_active?: boolean }
+): Promise<any> => {
+  return callApi<any>({ url: `formula/custom/${id}`, method: 'PUT', data: payload });
+};
+
+export const deleteCustomFormula = async (id: number | string): Promise<any> => {
+  return callApi<any>({ url: `formula/custom/${id}`, method: 'DELETE' });
+};
+
+export const runCustomFormula = async (
+  id: number | string,
+  options?: { page?: number; pageSize?: number; search?: string; date?: string }
+): Promise<any> => {
+  return callApi<any>({
+    url: `formula/custom/${id}/run`,
+    method: 'POST',
+    data: options || {},
+  });
+};
+
+export const listUserScans = async (): Promise<any> => {
+  return callApi<any>({ url: 'scans', method: 'GET' });
+};
+
+export const createUserScan = async (payload: Record<string, unknown>): Promise<any> => {
+  return callApi<any>({ url: 'scans', method: 'POST', data: payload });
+};
+
+export const updateUserScan = async (
+  id: number | string,
+  payload: Record<string, unknown>
+): Promise<any> => {
+  return callApi<any>({ url: `scans/${id}`, method: 'PUT', data: payload });
+};
+
+export const deleteUserScan = async (id: number | string): Promise<any> => {
+  return callApi<any>({ url: `scans/${id}`, method: 'DELETE' });
+};
+
+export const runUserScan = async (
+  id: number | string,
+  options?: { notify?: boolean }
+): Promise<any> => {
+  return callApi<any>({
+    url: `scans/${id}/run`,
+    method: 'POST',
+    data: { notify: options?.notify !== false },
+  });
+};
+
+export const getTechnicalScreener = async (params: Record<string, unknown> = {}): Promise<any> => {
+  return callApi<any>({
+    url: 'screener/technical',
+    method: 'GET',
+    params,
+  });
+};

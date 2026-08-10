@@ -231,22 +231,15 @@ export function CompaniesTable() {
                 </Table>
               </div>
 
-              <div className="mt-4">
-                <div className="mb-2 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500">
-                  <span>Total Records: {totalCompanies}</span>
-                  <span>
-                    Page {currentPage} of {totalPages}
-                  </span>
-                </div>
-
+              <div className="mt-3 border-t pt-2.5">
                 <Pagination
                   currentPage={currentPage}
                   totalPages={totalPages}
+                  totalRecords={totalCompanies}
                   onPageChange={setCurrentPage}
                   pageSize={limit}
                   onPageSizeChange={handlePageSizeChange}
                   pageSizeOptions={[10, 25, 50, 100]}
-                  className="mt-4"
                 />
               </div>
             </>

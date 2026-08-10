@@ -98,6 +98,11 @@ const Index = () => {
     mainboard: 0,
     sme: 0,
     total: 0,
+    byStatus: {
+      current: { all: 0, mainboard: 0, sme: 0 },
+      upcoming: { all: 0, mainboard: 0, sme: 0 },
+      past: { all: 0, mainboard: 0, sme: 0 },
+    },
   });
 
   const totalPages = ipoData.pages || Math.ceil(ipoData.total / recordsPerPage) || 1;
@@ -205,6 +210,19 @@ const Index = () => {
         ? counts.upcoming
         : counts.past;
 
+  const boardCountsForStatus = counts.byStatus?.[statusFilter] ?? {
+    all: statusCount,
+    mainboard: 0,
+    sme: 0,
+  };
+
+  const filteredStatusCount =
+    boardFilter === "mainboard"
+      ? boardCountsForStatus.mainboard
+      : boardFilter === "sme"
+        ? boardCountsForStatus.sme
+        : statusCount;
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
       <Navigation />
@@ -222,7 +240,9 @@ const Index = () => {
             Showing{" "}
             <span className="font-semibold text-gray-900">{ipoData.total}</span>{" "}
             of{" "}
-            <span className="font-semibold text-gray-900">{statusCount}</span>{" "}
+            <span className="font-semibold text-gray-900">
+              {filteredStatusCount}
+            </span>{" "}
             NSE records
           </div>
         </div>
@@ -251,7 +271,9 @@ const Index = () => {
                 {tab.label}
                 {tab.value !== "all" && (
                   <Badge className="ml-2" variant="outline">
-                    {tab.value === "mainboard" ? counts.mainboard : counts.sme}
+                    {tab.value === "mainboard"
+                      ? boardCountsForStatus.mainboard
+                      : boardCountsForStatus.sme}
                   </Badge>
                 )}
               </TabsTrigger>
@@ -280,26 +302,11 @@ const Index = () => {
             showSubscription={statusFilter === "current"}
           />
 
-          <div className="rounded-xl border bg-white p-4">
-            <div className="mb-3 flex flex-wrap items-center justify-between gap-2 text-xs text-gray-500">
-              <span>
-                Total Records:{" "}
-                <span className="font-semibold text-gray-900">
-                  {ipoData.total || 0}
-                </span>
-              </span>
-
-              <span>
-                Page{" "}
-                <span className="font-semibold text-gray-900">{currentPage}</span>{" "}
-                of{" "}
-                <span className="font-semibold text-gray-900">{totalPages}</span>
-              </span>
-            </div>
-
+          <div className="rounded-xl border bg-white px-4 py-2.5">
             <CustomPagination
               currentPage={currentPage}
               totalPages={totalPages}
+              totalRecords={ipoData.total || 0}
               onPageChange={(page) => {
                 if (page < 1 || page > totalPages) return;
                 setCurrentPage(page);

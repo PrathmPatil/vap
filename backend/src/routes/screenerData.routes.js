@@ -1,10 +1,12 @@
-
 import express from 'express';
 import { CompanyFinancials } from '../models/index.js';
 import { screenerDataController } from '../controllers/screenerController.js';
+import { getTechnicalScreener } from '../controllers/technicalScreenerController.js';
+
 const router = express.Router();
 
-// Get all financial records
+router.get('/technical', getTechnicalScreener);
+
 router.get('/', async (req, res) => {
   try {
     const data = await CompanyFinancials.findAll();
@@ -14,14 +16,13 @@ router.get('/', async (req, res) => {
   }
 });
 
-// Add a new record
 router.post('/', async (req, res) => {
   try {
     const { company, revenue, profit } = req.body;
     const newRecord = await CompanyFinancials.create({
       company,
       revenue,
-      profit
+      profit,
     });
     res.status(201).json(newRecord);
   } catch (err) {
@@ -29,10 +30,10 @@ router.post('/', async (req, res) => {
   }
 });
 
-// screener_data
 router.get('/screener_data/:symbol', screenerDataController);
-// write welcome route
+
 router.get('/welcome', (req, res) => {
   res.send('📂 Welcome to the Screener Data API.');
 });
+
 export default router;

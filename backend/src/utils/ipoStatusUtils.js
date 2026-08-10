@@ -48,40 +48,44 @@ const startOfDay = (date) =>
   new Date(date.getFullYear(), date.getMonth(), date.getDate());
 
 export const deriveIpoStatus = (row = {}) => {
-  const explicit = String(row.issue_status || "").trim();
-  if (explicit) return explicit;
-
   const today = startOfDay(new Date());
   const openDate = parseIpoDate(row._Issue_Open_Date || row.Open_Date);
   const closeDate = parseIpoDate(
     row._Issue_Close_Date || row.Close_Date || row.close_date
   );
   const listingDate = parseIpoDate(row.listing_date);
+  const hasDates = Boolean(openDate || closeDate || listingDate);
 
-  if (listingDate && startOfDay(listingDate) <= today) {
-    return "Listed";
+  // Prefer calendar dates over a stale DB status (e.g. still "Active" after close).
+  if (hasDates) {
+    if (listingDate && startOfDay(listingDate) <= today) {
+      return "Listed";
+    }
+
+    if (closeDate && startOfDay(closeDate) < today) {
+      return "Closed";
+    }
+
+    if (openDate && startOfDay(openDate) > today) {
+      return "Forthcoming";
+    }
+
+    if (
+      openDate &&
+      closeDate &&
+      startOfDay(openDate) <= today &&
+      today <= startOfDay(closeDate)
+    ) {
+      return "Active";
+    }
+
+    if (openDate && !closeDate && startOfDay(openDate) <= today) {
+      return "Active";
+    }
   }
 
-  if (closeDate && startOfDay(closeDate) < today) {
-    return "Closed";
-  }
-
-  if (openDate && startOfDay(openDate) > today) {
-    return "Forthcoming";
-  }
-
-  if (
-    openDate &&
-    closeDate &&
-    startOfDay(openDate) <= today &&
-    today <= startOfDay(closeDate)
-  ) {
-    return "Active";
-  }
-
-  if (openDate && !closeDate && startOfDay(openDate) <= today) {
-    return "Active";
-  }
+  const explicit = String(row.issue_status || "").trim();
+  if (explicit) return explicit;
 
   return "Closed";
 };

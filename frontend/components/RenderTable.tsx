@@ -46,7 +46,7 @@ export const renderTable = (
         >
           {col.key === "symbol" ? (
             <Link
-              href={`/screener/${formatSymbol(stock.symbol)}`}
+              href={`/company/${formatSymbol(stock.symbol)}`}
               className="hover:underline"
             >
               {formatSymbol(stock.symbol)}
@@ -77,7 +77,7 @@ export const renderTable = (
 
       {/* Actions column */}
       <TableCell>
-        <Link href={`/screener/${stock.symbol}`}>
+        <Link href={`/company/${stock.symbol}`}>
           <Button variant="outline" size="sm">
             <Eye className="mr-1 h-3 w-3" />
             Analyze

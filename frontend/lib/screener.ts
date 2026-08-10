@@ -1,26 +1,37 @@
 // ✅ Final StockData interface based on API response
 export interface StockData {
-  id: number;
+  id: number | string;
   symbol: string;
   name: string;
-  sector: string;
-  industry: string;
-  currency: string;
-  exchange: string;
-  marketCap: number;
-  currentPrice: number;
-  previousClose: number;
-  change: number;
-  changePercent: number;
-  volume: number;
-  high52Week: number;
-  low52Week: number;
-  beta: number;
-  dividendYield: number;
-  forwardPE: number;
-  trailingPE: number;
-  website: string;
-  addedAt: string; // ISO date string
+  sector?: string;
+  industry?: string;
+  currency?: string;
+  exchange?: string;
+  marketCap?: number | null;
+  currentPrice?: number | null;
+  previousClose?: number | null;
+  change?: number | null;
+  changePercent?: number | null;
+  volume?: number | null;
+  high52Week?: number | null;
+  low52Week?: number | null;
+  beta?: number | null;
+  dividendYield?: number | null;
+  forwardPE?: number | null;
+  trailingPE?: number | null;
+  website?: string;
+  addedAt?: string;
+  rsi14?: number | null;
+  sma20?: number | null;
+  sma50?: number | null;
+  sma100?: number | null;
+  sma200?: number | null;
+  bbUpper?: number | null;
+  bbMiddle?: number | null;
+  bbLower?: number | null;
+  obv?: number | null;
+  tradeDate?: string;
+  security?: string;
 }
 
 // In @/lib/screener.ts
@@ -44,6 +55,11 @@ export interface FilterCriteria {
   trailingPEMax: number;
   betaMin: number;
   betaMax: number;
+  rsiMin: number;
+  rsiMax: number;
+  obvMin: number;
+  bbPosition: "all" | "below_lower" | "above_upper" | "inside";
+  maTrend: "all" | "above_sma20" | "above_sma50" | "golden_cross";
 }
 
 export const defaultFilters: FilterCriteria = {
@@ -64,6 +80,11 @@ export const defaultFilters: FilterCriteria = {
   trailingPEMax: 100,
   betaMin: 0,
   betaMax: 5,
+  rsiMin: 0,
+  rsiMax: 100,
+  obvMin: -1e15,
+  bbPosition: "all",
+  maTrend: "all",
 };
 
 // Company type for listed companies

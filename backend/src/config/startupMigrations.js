@@ -17,6 +17,7 @@ export async function runStartupMigrations(config) {
   try {
     await ensureScreenerCompaniesTable(connection);
     await ensureVolumeBreakoutIndex(connection);
+    await ensureStrongBullishSymbolColumn(connection);
   } finally {
     await connection.end();
   }
@@ -83,6 +84,17 @@ async function ensureScreenerCompaniesTable(connection) {
     `);
     console.log(`✅ Ensured ${target} table exists`);
   }
+}
+
+async function ensureStrongBullishSymbolColumn(connection) {
+  if (!(await tableExists(connection, 'strong_bullish_candle'))) return;
+  if (await columnExists(connection, 'strong_bullish_candle', 'symbol')) return;
+
+  await connection.execute(`
+    ALTER TABLE \`strong_bullish_candle\`
+    ADD COLUMN \`symbol\` VARCHAR(50) NULL AFTER \`security\`
+  `);
+  console.log('✅ Added strong_bullish_candle.symbol');
 }
 
 async function ensureVolumeBreakoutIndex(connection) {

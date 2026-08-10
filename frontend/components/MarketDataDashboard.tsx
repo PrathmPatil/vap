@@ -492,20 +492,11 @@ const MarketDataDashboard: React.FC = () => {
         <div className="overflow-x-auto">{renderContent()}</div>
 
         {/* Pagination Footer */}
-        <div className="border-t p-4 bg-gray-50">
-          <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-            <p className="text-xs text-gray-500">
-              Total Records: {totalRecords}
-            </p>
-
-            <p className="text-xs text-gray-500">
-              Showing page {page} of {totalPages}
-            </p>
-          </div>
-
+        <div className="border-t bg-white px-4 py-2.5">
           <CustomPagination
             currentPage={page}
             totalPages={totalPages}
+            totalRecords={totalRecords}
             onPageChange={handlePageChange}
             pageSize={limit}
             onPageSizeChange={handlePageSizeChange}

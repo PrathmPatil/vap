@@ -28,16 +28,27 @@ const Ipo = () => {
     key: "Company_Name",
     direction: "asc",
   });
-  const [counts, setCounts] = useState({ current: 0, mainboard: 0, sme: 0 });
+  const [counts, setCounts] = useState({
+    current: 0,
+    mainboard: 0,
+    sme: 0,
+    byStatus: {
+      current: { all: 0, mainboard: 0, sme: 0 },
+    },
+  });
 
   const fetchCounts = async () => {
     try {
       const response = await getNseIpoCounts();
       if (response.success) {
+        const byCurrent = response.counts?.byStatus?.current;
         setCounts({
           current: response.counts?.current ?? 0,
-          mainboard: response.counts?.mainboard ?? 0,
-          sme: response.counts?.sme ?? 0,
+          mainboard: byCurrent?.mainboard ?? 0,
+          sme: byCurrent?.sme ?? 0,
+          byStatus: {
+            current: byCurrent ?? { all: 0, mainboard: 0, sme: 0 },
+          },
         });
       }
     } catch (err) {
@@ -167,6 +178,7 @@ const Ipo = () => {
         <Pagination
           currentPage={currentPage}
           totalPages={totalPages}
+          totalRecords={totalRecords}
           onPageChange={setCurrentPage}
           pageSize={recordsPerPage}
           onPageSizeChange={(limit) => {

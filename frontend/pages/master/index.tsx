@@ -50,6 +50,7 @@ import { Pagination } from "@/components/ui/custom-pagination";
 import Navigation from "@/components/Navigation";
 import CronManualOpsPanel from "@/components/CronManualOpsPanel";
 import { PageLoader } from "@/components/ui/PageLoader";
+import { hasMasterAccess } from "@/lib/authRoles";
 
 interface LogEntry {
   id: number;
@@ -122,15 +123,20 @@ const DEFAULT_STATUS_COUNTS: StatusCounts = {
 const MasterIndex = () => {
   const router = useRouter();
   const { isAuthenticated, authLoading, role } = useAuth();
-  const isMaster = role === "master" || role === "admin";
+  const isMaster =
+    role === "admin" || role === "master" || hasMasterAccess(role);
 
   useEffect(() => {
     // Wait until the client-side token check is done before deciding to redirect.
     // Without this, isAuthenticated is always false on first render (SSR flash)
     // and the user gets kicked to /login immediately.
     if (authLoading) return;
-    if (!isAuthenticated || !isMaster) {
+    if (!isAuthenticated) {
       router.replace("/login");
+      return;
+    }
+    if (!isMaster) {
+      router.replace("/");
     }
   }, [authLoading, isAuthenticated, isMaster, router]);
 
@@ -989,7 +995,6 @@ const MasterIndex = () => {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>ID</TableHead>
                   <TableHead>Job Name</TableHead>
                   <TableHead>Job Group</TableHead>
                   <TableHead>Start Time</TableHead>
@@ -1005,7 +1010,6 @@ const MasterIndex = () => {
                 {!loading && logsData?.length > 0 ? (
                   logsData.map((log: LogEntry, index: number) => (
                     <TableRow key={index}>
-                      <TableCell>{index + 1}</TableCell>
                       <TableCell>{log.job_name}</TableCell>
                       <TableCell>{log.job_group || "-"}</TableCell>
                       <TableCell>{formatDate(log.start_time)}</TableCell>
@@ -1049,35 +1053,11 @@ const MasterIndex = () => {
 
           {/* Custom Pagination */}
           {!loading && (
-            <div className="mt-4 rounded-xl border bg-slate-50 p-4">
-              <div className="mb-3 flex flex-wrap items-center justify-between gap-2 text-sm text-gray-500">
-                <span>
-                  Showing{" "}
-                  <span className="font-semibold text-gray-900">
-                    {logsData.length}
-                  </span>{" "}
-                  of{" "}
-                  <span className="font-semibold text-gray-900">
-                    {pagination.total}
-                  </span>{" "}
-                  entries
-                </span>
-
-                <span>
-                  Page{" "}
-                  <span className="font-semibold text-gray-900">
-                    {pagination.page}
-                  </span>{" "}
-                  of{" "}
-                  <span className="font-semibold text-gray-900">
-                    {totalPages}
-                  </span>
-                </span>
-              </div>
-
+            <div className="mt-4 rounded-xl border bg-white px-4 py-2.5">
               <Pagination
                 currentPage={pagination.page}
                 totalPages={totalPages}
+                totalRecords={pagination.total}
                 onPageChange={handlePageChange}
                 pageSize={pagination.limit}
                 onPageSizeChange={handlePageSizeChange}

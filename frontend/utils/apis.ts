@@ -8,7 +8,7 @@ export interface ApiOptions {
   headers?: Record<string, string>;
 }
 
-const getApiBaseUrl = () => {
+export const getApiBaseUrl = () => {
   const baseUrl =
     process.env.NEXT_PUBLIC_API_URL?.trim() ||
     (process.env.NEXT_PUBLIC_BACKEND_API?.trim()
@@ -22,7 +22,7 @@ const getApiBaseUrl = () => {
   return baseUrl.replace(/\/+$/, '');
 };
 
-const getAuthToken = () => {
+export const getAuthToken = () => {
   if (typeof window === 'undefined') {
     return '';
   }

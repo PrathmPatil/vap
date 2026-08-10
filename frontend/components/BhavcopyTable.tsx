@@ -1,11 +1,11 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { CalendarDays, Search, X } from 'lucide-react';
+import { Search } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Input } from './ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
-import { Button } from './ui/button';
+import { DatePicker } from './ui/date-picker';
 import { formatCellValue } from '@/lib/utils';
 import { PageLoader } from './ui/PageLoader';
 import { getDynamicData } from '@/utils';
@@ -78,11 +78,6 @@ export function BhavcopyTable({
     fetchData();
   }, [dynamicURL, currentPage, searchTerm, limit, dateFilter, baseURL]);
 
-  const clearDateFilter = () => {
-    setDateFilter('');
-    setCurrentPage(1);
-  };
-
   return (
     <section className="space-y-6">
       <Card>
@@ -97,33 +92,17 @@ export function BhavcopyTable({
             </div>
             <div className="flex flex-wrap items-center gap-2">
               {enableDateFilter && (
-                <div className="flex items-center gap-2">
-                  <div className="relative">
-                    <CalendarDays className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                    <Input
-                      type="date"
-                      value={dateFilter}
-                      onChange={(e) => {
-                        setCurrentPage(1);
-                        setDateFilter(e.target.value);
-                      }}
-                      className="w-44 pl-9"
-                      aria-label="Filter by date"
-                    />
-                  </div>
-                  {dateFilter && (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={clearDateFilter}
-                      title="Clear date filter"
-                    >
-                      <X className="mr-1 h-4 w-4" />
-                      Clear date
-                    </Button>
-                  )}
-                </div>
+                <DatePicker
+                  value={dateFilter}
+                  onChange={(next) => {
+                    setCurrentPage(1);
+                    setDateFilter(next);
+                  }}
+                  placeholder="Filter by date"
+                  clearable
+                  className="w-52 min-w-0"
+                  aria-label="Filter by date"
+                />
               )}
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
@@ -137,20 +116,6 @@ export function BhavcopyTable({
                   className="w-64 pl-10"
                 />
               </div>
-              <select
-                value={limit}
-                onChange={(e) => {
-                  setLimit(Number(e.target.value));
-                  setCurrentPage(1);
-                }}
-                className="rounded border p-1"
-              >
-                {[10, 25, 50, 100].map((size) => (
-                  <option key={size} value={size}>
-                    {size} / page
-                  </option>
-                ))}
-              </select>
             </div>
           </div>
         </CardHeader>
@@ -192,9 +157,12 @@ export function BhavcopyTable({
               <Pagination
                 currentPage={currentPage}
                 totalPages={totalPages}
+                totalRecords={totalItems}
                 onPageChange={setCurrentPage}
-                pageSizeLabel={`${limit} per page`}
-                className="mt-4"
+                pageSize={limit}
+                onPageSizeChange={setLimit}
+                pageSizeOptions={[10, 25, 50, 100]}
+                className="mt-3"
               />
             </>
           )}

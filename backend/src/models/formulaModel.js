@@ -171,6 +171,9 @@ export const StrongBullishCandle = (sequelize, DataTypes) => {
       security: {
         type: DataTypes.STRING(255)
       },
+      symbol: {
+        type: DataTypes.STRING(50)
+      },
       open_price: {
         type: DataTypes.DOUBLE
       },

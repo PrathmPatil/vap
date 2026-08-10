@@ -1,26 +1,13 @@
 "use client";
 
-import { useEffect, useState, useRef, useMemo } from "react";
+import { useEffect, useState, useRef } from "react";
 import Navigation from "@/components/Navigation";
 import NewsTableView from "@/components/news/NewsTableView";
 import NewsComponent from "@/components/news/NewsComponent";
-import { getBseAnnouncements, getGovNews } from "@/utils";
+import { getGovNews } from "@/utils";
 import { PageLoader } from "@/components/ui/PageLoader";
 
 /* -------------------- TYPES -------------------- */
-
-interface BseNewsItem {
-  id: number;
-  DT_TM: string;
-  HEADLINE: string;
-  NEWSSUB: string;
-  CATEGORYNAME: string;
-  SUBCATNAME: string;
-  SLONGNAME: string;
-  NSURL: string;
-  MORE?: string;
-  [key: string]: any;
-}
 
 interface NewsTableViewData {
   total_records: {
@@ -55,8 +42,6 @@ export default function News() {
   const [activeTab, setActiveTab] = useState<"Announcements" | "News">(
     "Announcements"
   );
-
-  const [newsSource, setNewsSource] = useState<"ALL" | "BSE">("ALL");
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -124,33 +109,13 @@ export default function News() {
     fetchNewsData();
   }, []);
 
-  /* -------------------- FILTER DATA -------------------- */
-
-  const filteredNewsData = useMemo(() => {
-    if (!newsTableViewData) return null;
-
-    if (newsSource === "BSE") {
-      return {
-        ...newsTableViewData,
-        data: {
-          ...newsTableViewData.data,
-          dd_news: newsTableViewData.data.dd_news.filter(item =>
-            item.source?.toUpperCase().includes("BSE")
-          )
-        }
-      };
-    }
-
-    return newsTableViewData;
-  }, [newsTableViewData, newsSource]);
-
   /* -------------------- UI -------------------- */
 
   return (
     <div className="min-h-screen bg-slate-50">
       <Navigation />
 
-      <main className="container mx-auto px-4 py-8">
+      <main className="mx-auto w-full max-w-7xl px-4 py-8">
         {/* Top Tabs */}
         <div className="flex justify-end gap-2 mb-6">
           {["Announcements", "News"].map(tab => (
@@ -168,33 +133,6 @@ export default function News() {
           ))}
         </div>
 
-        {/* News Filters */}
-        {activeTab === "News" && (
-          <div className="flex gap-3 mb-4">
-            <button
-              onClick={() => setNewsSource("ALL")}
-              className={`px-3 py-1 rounded ${
-                newsSource === "ALL"
-                  ? "bg-blue-600 text-white"
-                  : "bg-gray-200"
-              }`}
-            >
-              All
-            </button>
-
-            <button
-              onClick={() => setNewsSource("BSE")}
-              className={`px-3 py-1 rounded ${
-                newsSource === "BSE"
-                  ? "bg-blue-600 text-white"
-                  : "bg-gray-200"
-              }`}
-            >
-              BSE
-            </button>
-          </div>
-        )}
-
         {/* States */}
         {loading && (
           <PageLoader inline message="Loading news…" />
@@ -205,8 +143,8 @@ export default function News() {
         )}
 
         {/* Content */}
-        {!loading && activeTab === "News" && filteredNewsData && (
-          <NewsTableView data={filteredNewsData} />
+        {!loading && activeTab === "News" && newsTableViewData && (
+          <NewsTableView data={newsTableViewData} />
         )}
 
         {!loading && activeTab === "Announcements" && <NewsComponent />}

@@ -113,16 +113,47 @@ const NewsComponent = () => {
     });
   };
 
+  const escapeRegExp = (value: string) =>
+    value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+  // Strip company/id prefixes that already appear as card fields.
+  const cleanNewsSub = (news: BseNewsItem) => {
+    let text = String(news.NEWSSUB || "").trim();
+    const company = String(news.SLONGNAME || "").trim();
+    const code = String(news.SCRIP_CD || "").trim();
+    const headline = String(news.HEADLINE || "").trim();
+
+    if (company) {
+      const companyRe = escapeRegExp(company);
+      const codeRe = code ? escapeRegExp(code) : "";
+      const patterns = [
+        codeRe
+          ? new RegExp(`^${companyRe}\\s*-\\s*${codeRe}\\s*[-:]\\s*`, "i")
+          : null,
+        new RegExp(`^${companyRe}\\s*-\\s*`, "i"),
+        codeRe ? new RegExp(`^${codeRe}\\s*-\\s*`, "i") : null,
+      ].filter(Boolean) as RegExp[];
+
+      for (const pattern of patterns) {
+        text = text.replace(pattern, "");
+      }
+    }
+
+    text = text.trim();
+    if (!text || text.toLowerCase() === headline.toLowerCase()) return "";
+    return text;
+  };
+
   return (
-    <div className="max-w-6xl mx-auto p-6">
+    <div className="w-full">
       {/* Header */}
-      <div className="mb-8 sticky top-16 bg-gradient-to-br from-slate-50 to-slate-100 py-4 z-10">
+      <div className="mb-8 sticky top-16 bg-slate-50 py-4 z-10">
         <div>
           <h1 className="text-3xl font-bold text-gray-800 mb-2">Latest News</h1>
         </div>
 
         {/* Search */}
-        <div className="mb-6">
+        <div className="mb-2">
           <input
             type="text"
             placeholder="Search news..."
@@ -147,49 +178,51 @@ const NewsComponent = () => {
 
       {/* News Grid */}
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {newsData.map((news, index) => (
+        {newsData.map((news, index) => {
+          const summary = cleanNewsSub(news);
+
+          return (
           <div
             key={index}
             className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300 border"
           >
             <div className="p-4 border-b">
-              <div className="flex justify-between items-start mb-2">
-                <span className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded">
-                  {news.SCRIP_CD}
-                </span>
+              <div className="flex items-start justify-between gap-2 mb-2">
+                <h3 className="text-lg font-semibold line-clamp-2">
+                  {news.HEADLINE}
+                </h3>
 
                 {news.CRITICALNEWS === "1" && (
-                  <span className="bg-red-100 text-red-800 text-xs px-2 py-1 rounded">
+                  <span className="shrink-0 bg-red-100 text-red-800 text-xs px-2 py-1 rounded">
                     Critical
                   </span>
                 )}
               </div>
-              <h3 className="text-lg font-semibold line-clamp-2">
-                {news.HEADLINE}
-              </h3>
             </div>
 
             <div className="p-4">
-              <p className="text-gray-600 text-sm mb-3 line-clamp-3">
-                {news.NEWSSUB}
-              </p>
+              {summary ? (
+                <p className="text-gray-600 text-sm mb-3 line-clamp-3">
+                  {summary}
+                </p>
+              ) : null}
 
               <div className="space-y-2 text-sm">
-                <div className="flex justify-between">
+                <div className="flex justify-between gap-3">
                   <span>Company:</span>
-                  <span className="font-medium">{news.SLONGNAME}</span>
+                  <span className="font-medium text-right">{news.SLONGNAME}</span>
                 </div>
 
-                <div className="flex justify-between">
+                <div className="flex justify-between gap-3">
                   <span>Published:</span>
-                  <span className="font-medium">
+                  <span className="font-medium text-right">
                     {formatDate(news.DissemDT)}
                   </span>
                 </div>
               </div>
             </div>
 
-            <div className="p-4 border-t bg-gray-50 flex justify-between items-center">
+            <div className="p-4 border-t bg-gray-50">
               <a
                 href={news.NSURL}
                 target="_blank"
@@ -198,15 +231,10 @@ const NewsComponent = () => {
               >
                 Read More →
               </a>
-
-              {news.ATTACHMENTNAME && (
-                <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
-                  PDF Available
-                </span>
-              )}
             </div>
           </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* Infinite Scroll Trigger */}

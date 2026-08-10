@@ -122,15 +122,38 @@ export const resolveTradeDate = async (targetDate = null) => {
   return null;
 };
 
+const EQUITY_SERIES = ['EQ', 'BE', 'BZ'];
+
+const equitySecurityLiteral = () =>
+  literal(`(
+    (
+      symbol IS NOT NULL
+      AND symbol IN (
+        SELECT symbol FROM listed_companies
+        WHERE UPPER(TRIM(IFNULL(series, ''))) IN ('EQ', 'BE', 'BZ')
+      )
+    )
+    OR (
+      security IS NOT NULL
+      AND LOWER(security) IN (
+        SELECT LOWER(name) FROM listed_companies
+        WHERE UPPER(TRIM(IFNULL(series, ''))) IN ('EQ', 'BE', 'BZ')
+      )
+    )
+  )`);
+
 const loadListedCompanyMaps = async () => {
   const listedCompanies = await ListedCompanies.findAll({
-    attributes: ['name', 'symbol'],
-    where: { series: 'EQ' },
+    attributes: ['name', 'symbol', 'series'],
+    where: {
+      series: { [Op.in]: EQUITY_SERIES },
+    },
     raw: true,
   });
 
   const nameToSymbol = new Map();
   const symbolToName = new Map();
+  const listedSymbols = new Set();
 
   for (const company of listedCompanies) {
     const name = String(company.name || '').trim();
@@ -138,17 +161,47 @@ const loadListedCompanyMaps = async () => {
     // Case-insensitive keys — PR.SECURITY often differs only by case from listed names.
     if (name) nameToSymbol.set(name.toLowerCase(), symbol);
     if (symbol) {
+      listedSymbols.add(symbol);
+      listedSymbols.add(symbol.toUpperCase());
       symbolToName.set(symbol, name);
       symbolToName.set(symbol.toLowerCase(), name);
     }
   }
 
-  return { nameToSymbol, symbolToName };
+  return { nameToSymbol, symbolToName, listedSymbols };
 };
 
-const resolveListedSymbol = (security, nameToSymbol) => {
+const resolveListedSymbol = (security, nameToSymbol, { equityOnly = false } = {}) => {
   const key = String(security || '').trim().toLowerCase();
-  return nameToSymbol.get(key) || String(security || '').trim();
+  const mapped = nameToSymbol.get(key);
+  if (mapped) return mapped;
+  if (equityOnly) return null;
+  return String(security || '').trim();
+};
+
+const normalizeChangePercentRange = (minValue, maxValue) => {
+  const minNum = minValue === '' || minValue == null ? null : Number(minValue);
+  const maxNum = maxValue === '' || maxValue == null ? null : Number(maxValue);
+  const hasMin = Number.isFinite(minNum);
+  const hasMax = Number.isFinite(maxNum);
+
+  if (!hasMin && !hasMax) return null;
+  if (hasMin && !hasMax) return { min: minNum, max: minNum };
+  if (!hasMin && hasMax) return { min: maxNum, max: maxNum };
+  return {
+    min: Math.min(minNum, maxNum),
+    max: Math.max(minNum, maxNum),
+  };
+};
+
+const applyChangePercentFilter = (where, range) => {
+  if (!range) return where;
+  where.change_percent = {
+    ...(where.change_percent || {}),
+    [Op.gte]: range.min,
+    [Op.lte]: range.max,
+  };
+  return where;
 };
 
 const resolveSecurityForSymbol = (symbol, symbolToName) => {
@@ -1265,11 +1318,16 @@ export const generateStrongBullishService = async ({
 
         if (!open || !close) continue;
 
+        const symbol = resolveListedSymbol(stock.SECURITY, nameToSymbol, {
+          equityOnly: true,
+        });
+        if (!symbol) continue;
+
         const percent = ((close - open) / open) * 100;
         if (percent >= base_percent) {
           bullishStocks.push({
             security: stock.SECURITY,
-            symbol: resolveListedSymbol(stock.SECURITY, nameToSymbol),
+            symbol,
             trade_date: latestDate,
             open_price: open,
             close_price: close,
@@ -1787,6 +1845,19 @@ const applyCompanyValueFilter = (where, model, value, preferredFields) => {
   where[Op.and] = [...(where[Op.and] || []), clause];
 };
 
+const EQUITY_ONLY_FORMULAS = new Set([
+  'strong-bullish-candle',
+  'bearish-candle',
+]);
+
+const withEquityFilter = (where = {}, formulaType) => {
+  if (!EQUITY_ONLY_FORMULAS.has(formulaType)) return where;
+  return {
+    ...where,
+    [Op.and]: [...(where[Op.and] || []), equitySecurityLiteral()],
+  };
+};
+
 const buildFormulaQuery = async ({
   model,
   dateField,
@@ -1799,7 +1870,10 @@ const buildFormulaQuery = async ({
   extraWhere = {},
   order = null,
   latestDateWhere = {},
-  includeLatestDate = true
+  includeLatestDate = true,
+  changePercentMin = null,
+  changePercentMax = null,
+  changeSort = null,
 }) => {
   let selectedDate = targetDate ? toDateString(targetDate) : null;
 
@@ -1822,6 +1896,10 @@ const buildFormulaQuery = async ({
   }
 
   const where = { ...extraWhere };
+  applyChangePercentFilter(
+    where,
+    normalizeChangePercentRange(changePercentMin, changePercentMax)
+  );
 
   if (includeLatestDate) {
     where[dateField] = selectedDate;
@@ -1844,10 +1922,14 @@ const buildFormulaQuery = async ({
     ];
   }
 
-  const finalOrder = order || [
-    [dateField, 'DESC'],
-    ['id', 'DESC']
-  ];
+  const sortDir =
+    String(changeSort || '').toLowerCase() === 'asc' ? 'ASC' : 'DESC';
+  const finalOrder = order || (model.rawAttributes?.change_percent
+    ? [['change_percent', sortDir], ['id', 'DESC']]
+    : [
+        [dateField, 'DESC'],
+        ['id', 'DESC']
+      ]);
   const offset = (currentPage - 1) * itemsPerPage;
 
   const { count, rows } = await model.findAndCountAll({
@@ -2141,11 +2223,17 @@ export const getStrongBullishRecordsService = async ({
   searchTerm = '',
   symbol = '',
   targetDate = null,
-  basePercent = 2
+  basePercent = 2,
+  changePercentMin = null,
+  changePercentMax = null,
+  changeSort = 'desc',
 }) => {
   await StrongBullishCandleModel.sync();
 
-  const percentFilter = { base_percent: basePercent };
+  const percentFilter = withEquityFilter(
+    { base_percent: basePercent },
+    'strong-bullish-candle'
+  );
 
   return buildFormulaQuery({
     model: StrongBullishCandleModel,
@@ -2157,7 +2245,10 @@ export const getStrongBullishRecordsService = async ({
     targetDate,
     searchFields: ['security', 'symbol'],
     extraWhere: percentFilter,
-    latestDateWhere: percentFilter
+    latestDateWhere: { base_percent: basePercent },
+    changePercentMin,
+    changePercentMax,
+    changeSort,
   });
 };
 
@@ -2453,10 +2544,12 @@ export const getFormulaCompaniesService = async (
   const config = getFormulaConfig(formulaType);
   await config.model.sync();
 
-  const extraWhere =
+  const extraWhere = withEquityFilter(
     typeof config.extraWhere === 'function'
       ? config.extraWhere(basePercent)
-      : config.extraWhere || {};
+      : config.extraWhere || {},
+    formulaType
+  );
 
   let selectedDate = targetDate ? toDateString(targetDate) : null;
 
@@ -2508,20 +2601,35 @@ export const getFormulaCompaniesService = async (
     limit
   });
 
+  let companies = rows
+    .filter((row) => attributes.some((field) => row[field]))
+    .map((row) => ({
+      symbol: row.symbol || row.security,
+      security: row.security || row.symbol,
+      label:
+        row.symbol && row.security && row.symbol !== row.security
+          ? `${row.symbol} — ${row.security}`
+          : row.symbol || row.security
+    }));
+
+  if (EQUITY_ONLY_FORMULAS.has(formulaType)) {
+    const { listedSymbols, nameToSymbol } = await loadListedCompanyMaps();
+    companies = companies.filter((company) => {
+      const symbol = String(company.symbol || '').trim();
+      const security = String(company.security || '').trim().toLowerCase();
+      return (
+        listedSymbols.has(symbol) ||
+        listedSymbols.has(symbol.toUpperCase()) ||
+        nameToSymbol.has(security)
+      );
+    });
+  }
+
   return {
     success: true,
     formula_type: formulaType,
     trade_date: selectedDate,
-    companies: rows
-      .filter((row) => attributes.some((field) => row[field]))
-      .map((row) => ({
-        symbol: row.symbol || row.security,
-        security: row.security || row.symbol,
-        label:
-          row.symbol && row.security && row.symbol !== row.security
-            ? `${row.symbol} — ${row.security}`
-            : row.symbol || row.security
-      }))
+    companies
   };
 };
 
@@ -2533,16 +2641,21 @@ export const getFormulaRecordsService = async (
     searchTerm = '',
     symbol = '',
     targetDate = null,
-    basePercent = 2
+    basePercent = 2,
+    changePercentMin = null,
+    changePercentMax = null,
+    changeSort = null,
   } = {}
 ) => {
   const config = getFormulaConfig(formulaType);
   await config.model.sync();
 
-  const extraWhere =
+  const extraWhere = withEquityFilter(
     typeof config.extraWhere === 'function'
       ? config.extraWhere(basePercent)
-      : config.extraWhere || {};
+      : config.extraWhere || {},
+    formulaType
+  );
 
   const latestDateWhere =
     typeof config.latestDateWhere === 'function'
@@ -2560,7 +2673,10 @@ export const getFormulaRecordsService = async (
     searchFields: config.searchFields || ['symbol', 'security'],
     extraWhere,
     latestDateWhere,
-    order: config.order || null
+    order: config.order || null,
+    changePercentMin,
+    changePercentMax,
+    changeSort,
   });
 };
 
@@ -2572,7 +2688,10 @@ export const queryFormulaService = async (
     searchTerm = '',
     symbol = '',
     targetDate = null,
-    basePercent = 2
+    basePercent = 2,
+    changePercentMin = null,
+    changePercentMax = null,
+    changeSort = null,
   } = {}
 ) => {
   const config = getFormulaConfig(formulaType);
@@ -2604,7 +2723,10 @@ export const queryFormulaService = async (
     searchTerm,
     symbol,
     targetDate: ensureMeta?.trade_date || targetDate,
-    basePercent
+    basePercent,
+    changePercentMin,
+    changePercentMax,
+    changeSort,
   });
 
   return {

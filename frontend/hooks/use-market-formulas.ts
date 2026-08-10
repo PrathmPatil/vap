@@ -1,9 +1,41 @@
 import {
-  getFormulaAvailableDates,
+  exportFormulaXlsx,
   getFormulaCompanies,
   getFormulaData,
 } from "@/utils";
+import { FORMULA_CATALOG } from "@/lib/formulaCatalog";
 import { useCallback, useEffect, useState } from "react";
+
+function slugForFilename(value: string) {
+  return (
+    String(value || "formula")
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+      .slice(0, 80) || "formula"
+  );
+}
+
+const CURRENT_DAY_FORMULAS = new Set([
+  "strong-bullish-candle",
+  "bearish-candle",
+  "gap-up-day",
+  "gap-down-day",
+  "top-gainer-day",
+  "top-loser-day",
+  "daily-mover-up",
+  "daily-mover-down",
+]);
+
+const CHANGE_PERCENT_FORMULAS = new Set([
+  "strong-bullish-candle",
+  "bearish-candle",
+  "top-gainer-day",
+  "top-loser-day",
+  "daily-mover-up",
+  "daily-mover-down",
+]);
 
 export type FormulaCompanyOption = {
   symbol: string;
@@ -11,15 +43,18 @@ export type FormulaCompanyOption = {
   label?: string;
 };
 
+const clampPageSize = (value: number) =>
+  Math.min(50, Math.max(1, Math.trunc(Number(value) || 10)));
+
 export const useMarketSignalsData = () => {
   const [data, setData] = useState<any[]>([]);
   const [columns, setColumns] = useState<any>(null);
   const [currentPage, setCurrentPage] = useState<number>(1);
-  const [itemsPerPage, setItemsPerPage] = useState<number>(10);
+  const [itemsPerPage, setItemsPerPageState] = useState<number>(10);
   const [totalPages, setTotalPages] = useState<number>(1);
   const [totalItems, setTotalItems] = useState<number>(0);
   const [selectedFilters, setSelectedFilters] = useState<string[]>([
-    "follow-through-day",
+    "strong-bullish-candle",
   ]);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
@@ -27,12 +62,25 @@ export const useMarketSignalsData = () => {
   const [basePercent, setBasePercent] = useState<number>(2);
   const [selectedDate, setSelectedDate] = useState<string>("");
   const [selectedSymbol, setSelectedSymbol] = useState<string>("");
-  const [availableDates, setAvailableDates] = useState<string[]>([]);
-  const [datesLoaded, setDatesLoaded] = useState(false);
   const [companies, setCompanies] = useState<FormulaCompanyOption[]>([]);
   const [tradeDate, setTradeDate] = useState<string | null>(null);
+  const [changePercentMin, setChangePercentMin] = useState<string>("");
+  const [changePercentMax, setChangePercentMax] = useState<string>("");
+  const [changeSort, setChangeSort] = useState<"asc" | "desc">("desc");
 
   const formulaType = selectedFilters[0];
+  const usesCurrentDay = CURRENT_DAY_FORMULAS.has(formulaType);
+  const usesChangePercent = CHANGE_PERCENT_FORMULAS.has(formulaType);
+
+  const setItemsPerPage = (value: number) => {
+    setItemsPerPageState(clampPageSize(value));
+    setCurrentPage(1);
+  };
+
+  const parsedChangeMin =
+    changePercentMin === "" ? null : Number(changePercentMin);
+  const parsedChangeMax =
+    changePercentMax === "" ? null : Number(changePercentMax);
 
   const buildColumns = useCallback((rows: any[]) => {
     if (!rows?.length) {
@@ -40,81 +88,39 @@ export const useMarketSignalsData = () => {
       return;
     }
 
-    const generatedColumns = Object.keys(rows[0]).map((key) => ({
-      key,
-      label: key.replace(/_/g, " ").toUpperCase(),
-      sortable: true,
-      searchable: true,
-      format: (value: any) => {
-        if (key.includes("price")) return `₹${value}`;
-        if (key.includes("percent")) return `${Number(value).toFixed(2)}%`;
-        return value;
-      },
-    }));
+    const hiddenKeys = new Set([
+      "id",
+      "trade_date",
+      "tradedate",
+      "created_at",
+      "updated_at",
+      "createdat",
+      "updatedat",
+      "base_percent",
+    ]);
+
+    const generatedColumns = Object.keys(rows[0])
+      .filter((key) => !hiddenKeys.has(key.toLowerCase()))
+      .map((key) => ({
+        key,
+        label: key.replace(/_/g, " ").toUpperCase(),
+        sortable: true,
+        searchable: true,
+        format: (value: any) => {
+          if (key.includes("price")) return `₹${Number(value).toFixed(2)}`;
+          if (key.includes("percent")) return `${Number(value).toFixed(2)}%`;
+          return value;
+        },
+      }));
 
     setColumns(generatedColumns);
   }, []);
 
-  const loadFilterOptions = useCallback(async () => {
-    if (!formulaType) return;
-
-    try {
-      setDatesLoaded(false);
-
-      const datesResponse = await getFormulaAvailableDates(
-        formulaType,
-        basePercent
-      );
-
-      const dates = datesResponse.dates || [];
-      setAvailableDates(dates);
-      setDatesLoaded(true);
-
-      const nextDate =
-        selectedDate && dates.includes(selectedDate)
-          ? selectedDate
-          : datesResponse.latest_date || dates[0] || "";
-
-      if (nextDate !== selectedDate) {
-        setSelectedDate(nextDate);
-      }
-
-      if (!dates.length) {
-        setCompanies([]);
-        return;
-      }
-
-      const companiesResponse = await getFormulaCompanies(formulaType, {
-        targetDate: nextDate || null,
-        basePercent,
-      });
-
-      setCompanies(companiesResponse.companies || []);
-    } catch (filterError) {
-      console.error("Failed to load formula filters:", filterError);
-      setAvailableDates([]);
-      setCompanies([]);
-      setDatesLoaded(true);
-      setSelectedDate("");
-    }
-  }, [formulaType, basePercent, selectedDate]);
-
   const fetchFormulaRows = useCallback(async () => {
     if (!formulaType) return;
 
-    if (datesLoaded && availableDates.length === 0) {
-      setLoading(false);
-      setError(null);
-      setData([]);
-      setColumns(null);
-      setTradeDate(null);
-      setTotalPages(1);
-      setTotalItems(0);
-      return;
-    }
-
     if (
-      basePercent <= 1 &&
+      basePercent <= 0 &&
       (formulaType === "strong-bullish-candle" ||
         formulaType === "bearish-candle")
     ) {
@@ -133,8 +139,11 @@ export const useMarketSignalsData = () => {
         {
           searchTerm,
           basePercent,
-          targetDate: selectedDate || null,
+          targetDate: usesCurrentDay ? null : selectedDate || null,
           symbol: selectedSymbol || null,
+          changePercentMin: usesChangePercent ? parsedChangeMin : null,
+          changePercentMax: usesChangePercent ? parsedChangeMax : null,
+          changeSort: usesChangePercent ? changeSort : undefined,
         }
       );
 
@@ -178,26 +187,25 @@ export const useMarketSignalsData = () => {
     basePercent,
     selectedDate,
     selectedSymbol,
-    availableDates,
-    datesLoaded,
+    usesCurrentDay,
+    usesChangePercent,
+    parsedChangeMin,
+    parsedChangeMax,
+    changeSort,
     buildColumns,
   ]);
-
-  useEffect(() => {
-    loadFilterOptions();
-  }, [formulaType, basePercent]);
 
   useEffect(() => {
     if (!formulaType) return;
 
     getFormulaCompanies(formulaType, {
-      targetDate: selectedDate || null,
+      targetDate: usesCurrentDay ? null : selectedDate || null,
       searchTerm,
       basePercent,
     })
       .then((response) => setCompanies(response.companies || []))
       .catch(() => setCompanies([]));
-  }, [formulaType, selectedDate, searchTerm, basePercent]);
+  }, [formulaType, selectedDate, searchTerm, basePercent, usesCurrentDay]);
 
   useEffect(() => {
     fetchFormulaRows();
@@ -206,6 +214,7 @@ export const useMarketSignalsData = () => {
   const handleSearch = async (term: string, nextBasePercent = basePercent) => {
     setSearchTerm(term);
     setBasePercent(nextBasePercent);
+    if (usesCurrentDay) setSelectedDate("");
     setCurrentPage(1);
   };
 
@@ -214,9 +223,10 @@ export const useMarketSignalsData = () => {
     setSelectedSymbol("");
     setSearchTerm("");
     setSelectedDate("");
-    setAvailableDates([]);
-    setDatesLoaded(false);
     setCurrentPage(1);
+    setChangePercentMin("");
+    setChangePercentMax("");
+    setChangeSort("desc");
     if (value === "gap-up-day" || value === "gap-down-day") {
       setBasePercent(1);
     } else if (
@@ -242,8 +252,27 @@ export const useMarketSignalsData = () => {
     setCurrentPage(1);
   };
 
-  const handleExport = () => {
-    console.log("Exporting data:", data);
+  const handleExport = async () => {
+    const formulaLabel =
+      FORMULA_CATALOG.find((f) => f.value === formulaType)?.label ||
+      formulaType ||
+      "formula";
+    const datePart =
+      tradeDate || selectedDate || new Date().toISOString().slice(0, 10);
+    const filename = `${slugForFilename(formulaLabel)}_${slugForFilename(
+      String(datePart).slice(0, 10)
+    )}.xlsx`;
+
+    await exportFormulaXlsx(formulaType, {
+      searchTerm,
+      basePercent,
+      targetDate: usesCurrentDay ? null : selectedDate || null,
+      symbol: selectedSymbol || null,
+      changePercentMin: usesChangePercent ? parsedChangeMin : null,
+      changePercentMax: usesChangePercent ? parsedChangeMax : null,
+      changeSort: usesChangePercent ? changeSort : undefined,
+      filename,
+    });
   };
 
   return {
@@ -268,9 +297,23 @@ export const useMarketSignalsData = () => {
     setSelectedDate: handleDateChange,
     selectedSymbol,
     setSelectedSymbol: handleSymbolChange,
-    availableDates,
-    datesLoaded,
     companies,
     tradeDate,
+    changePercentMin,
+    setChangePercentMin: (value: string) => {
+      setChangePercentMin(value);
+      setCurrentPage(1);
+    },
+    changePercentMax,
+    setChangePercentMax: (value: string) => {
+      setChangePercentMax(value);
+      setCurrentPage(1);
+    },
+    changeSort,
+    setChangeSort: (value: "asc" | "desc") => {
+      setChangeSort(value);
+      setCurrentPage(1);
+    },
+    usesChangePercent,
   };
 };

@@ -2,6 +2,7 @@ import cron from 'node-cron';
 import logger from '../config/logger.js';
 import { CronLogModel } from '../models/index.js';
 import { runFormulaEngineService } from '../services/formulaService.js';
+import { dispatchActiveScanAlerts } from '../services/userScanService.js';
 
 /**
  * ============================================================
@@ -85,6 +86,18 @@ export const startFormulaCron = () => {
         console.log(
           `✅ Formula Engine completed: ${processedCount} rows processed`
         );
+
+        try {
+          const alertSummary = await dispatchActiveScanAlerts();
+          executedFormulas.push({
+            formula: 'Scan Alerts',
+            status: CRON_STATUS.SUCCESS,
+            processed: alertSummary.length,
+          });
+          logger.info(`Scan alerts dispatched: ${alertSummary.length}`);
+        } catch (alertError) {
+          logger.warn(`Scan alert dispatch failed: ${alertError.message}`);
+        }
       } catch (error) {
         console.error('❌ Formula Engine Error:', error.message);
 

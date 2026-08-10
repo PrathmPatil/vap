@@ -1,8 +1,7 @@
 "use client";
 
-import { ChevronsLeft, ChevronsRight } from "lucide-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
-import { Badge } from "./badge";
 import { Button } from "./button";
 
 type PaginationItem = number | "ellipsis-left" | "ellipsis-right";
@@ -12,6 +11,7 @@ export interface PaginationProps {
   totalPages: number;
   onPageChange: (page: number) => void;
 
+  totalRecords?: number;
   pageSize?: number;
   pageSizeOptions?: number[];
   onPageSizeChange?: (pageSize: number) => void;
@@ -67,18 +67,15 @@ export function Pagination({
   currentPage,
   totalPages,
   onPageChange,
-
+  totalRecords,
   pageSize = 10,
   pageSizeOptions = [10, 25, 50, 100],
   onPageSizeChange,
-
-  pageSizeLabel,
   maxNumbers = 5,
   className = "",
 }: PaginationProps) {
   const safeTotalPages = Math.max(totalPages || 1, 1);
   const safeCurrentPage = Math.min(Math.max(currentPage || 1, 1), safeTotalPages);
-
   const showPageButtons = safeTotalPages > 1;
   const showPageSizeSelect = Boolean(onPageSizeChange);
 
@@ -86,131 +83,113 @@ export function Pagination({
     ? getPaginationItems(safeCurrentPage, safeTotalPages, maxNumbers)
     : [];
 
-  if (!showPageButtons && !showPageSizeSelect && !pageSizeLabel) {
+  if (!showPageButtons && !showPageSizeSelect && totalRecords == null) {
     return null;
   }
 
   return (
-    <div className={`rounded-xl border bg-muted/20 p-3 ${className}`.trim()}>
-      <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-        <span className="text-xs text-muted-foreground">
-          Page {safeCurrentPage} of {safeTotalPages}
+    <div
+      className={`flex flex-wrap items-center justify-between gap-x-3 gap-y-2 ${className}`.trim()}
+    >
+      <div className="flex items-center gap-2 text-xs text-slate-500">
+        {totalRecords != null ? (
+          <>
+            <span>
+              <span className="font-medium text-slate-800">
+                {totalRecords.toLocaleString()}
+              </span>{" "}
+              records
+            </span>
+            <span className="text-slate-300">·</span>
+          </>
+        ) : null}
+        <span>
+          Page {safeCurrentPage}/{safeTotalPages}
         </span>
-
-        <div className="flex items-center gap-2">
-          {showPageSizeSelect ? (
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-muted-foreground">
-                Records per page
-              </span>
-
-              <select
-                value={pageSize}
-                onChange={(event) => {
-                  const newPageSize = Number(event.target.value);
-
-                  onPageSizeChange?.(newPageSize);
-                  onPageChange(1);
-                }}
-                className="h-8 rounded-md border border-input bg-background px-2 text-xs outline-none focus:ring-2 focus:ring-ring"
-              >
-                {pageSizeOptions.map((size) => (
-                  <option key={size} value={size}>
-                    {size}
-                  </option>
-                ))}
-              </select>
-            </div>
-          ) : pageSizeLabel ? (
-            <Badge variant="outline" className="text-[10px]">
-              {pageSizeLabel}
-            </Badge>
-          ) : null}
-        </div>
       </div>
 
-      {showPageButtons ? (
-        <div className="flex flex-wrap items-center justify-center gap-1.5">
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            className="h-8 px-2"
-            onClick={() => onPageChange(1)}
-            disabled={safeCurrentPage <= 1}
-            aria-label="Go to first page"
-          >
-            <ChevronsLeft className="h-3.5 w-3.5" />
-          </Button>
+      <div className="flex flex-wrap items-center gap-1.5">
+        {showPageButtons ? (
+          <>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-7 px-2"
+              onClick={() => onPageChange(Math.max(1, safeCurrentPage - 1))}
+              disabled={safeCurrentPage <= 1}
+            >
+              <ChevronLeft className="h-3.5 w-3.5" />
+            </Button>
 
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            className="h-8 px-3"
-            onClick={() => onPageChange(Math.max(1, safeCurrentPage - 1))}
-            disabled={safeCurrentPage <= 1}
-          >
-            Prev
-          </Button>
+            {items.map((item) => {
+              if (typeof item !== "number") {
+                return (
+                  <span
+                    key={`${item}-${safeCurrentPage}-${safeTotalPages}`}
+                    className="px-0.5 text-xs text-slate-400"
+                  >
+                    …
+                  </span>
+                );
+              }
 
-          {items.map((item) => {
-            if (typeof item !== "number") {
+              const isActive = item === safeCurrentPage;
+
               return (
-                <span
-                  key={`${item}-${safeCurrentPage}-${safeTotalPages}`}
-                  className="px-1 text-xs text-muted-foreground"
+                <Button
+                  key={`page-${item}`}
+                  type="button"
+                  size="sm"
+                  variant={isActive ? "default" : "outline"}
+                  className={`h-7 min-w-7 px-1.5 text-xs ${
+                    isActive ? "bg-slate-900 text-white hover:bg-slate-800" : ""
+                  }`}
+                  onClick={() => onPageChange(item)}
+                  aria-current={isActive ? "page" : undefined}
                 >
-                  ...
-                </span>
+                  {item}
+                </Button>
               );
-            }
+            })}
 
-            const isActive = item === safeCurrentPage;
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-7 px-2"
+              onClick={() =>
+                onPageChange(Math.min(safeTotalPages, safeCurrentPage + 1))
+              }
+              disabled={safeCurrentPage >= safeTotalPages}
+            >
+              <ChevronRight className="h-3.5 w-3.5" />
+            </Button>
+          </>
+        ) : null}
 
-            return (
-              <Button
-                key={`page-${item}`}
-                type="button"
-                size="sm"
-                variant={isActive ? "default" : "outline"}
-                className={`h-8 min-w-8 px-2 font-semibold ${
-                  isActive ? "shadow-sm" : "hover:bg-muted"
-                }`}
-                onClick={() => onPageChange(item)}
-                aria-current={isActive ? "page" : undefined}
-              >
-                {item}
-              </Button>
-            );
-          })}
-
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            className="h-8 px-3"
-            onClick={() =>
-              onPageChange(Math.min(safeTotalPages, safeCurrentPage + 1))
-            }
-            disabled={safeCurrentPage >= safeTotalPages}
-          >
-            Next
-          </Button>
-
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            className="h-8 px-2"
-            onClick={() => onPageChange(safeTotalPages)}
-            disabled={safeCurrentPage >= safeTotalPages}
-            aria-label="Go to last page"
-          >
-            <ChevronsRight className="h-3.5 w-3.5" />
-          </Button>
-        </div>
-      ) : null}
+        {showPageSizeSelect ? (
+          <label className="ml-1 inline-flex items-center gap-1.5 text-xs text-slate-500">
+            <span className="sr-only">Records per page</span>
+            <select
+              value={pageSize}
+              onChange={(event) => {
+                const newPageSize = Number(event.target.value);
+                onPageSizeChange?.(newPageSize);
+                onPageChange(1);
+              }}
+              className="h-7 rounded-md border border-slate-300 bg-white px-1.5 text-xs text-slate-700 outline-none focus:ring-2 focus:ring-slate-300"
+              aria-label="Records per page"
+            >
+              {pageSizeOptions.map((size) => (
+                <option key={size} value={size}>
+                  {size}/page
+                </option>
+              ))}
+            </select>
+          </label>
+        ) : null}
+      </div>
     </div>
   );
 }

@@ -55,7 +55,13 @@ import {
   generateDailyMoverDownService
 } from "../services/formulaExtendedService.js";
 
-const parseFormulaFilters = (body = {}) => {
+const clampPageSize = (value, { max = 50 } = {}) => {
+  const num = Number(value);
+  if (!Number.isFinite(num)) return 10;
+  return Math.min(Math.max(Math.trunc(num), 1), max);
+};
+
+const parseFormulaFilters = (body = {}, { forExport = false } = {}) => {
   const {
     currentPage = 1,
     itemsPerPage = 10,
@@ -64,16 +70,25 @@ const parseFormulaFilters = (body = {}) => {
     date,
     targetDate,
     base_percent,
-    basePercent
+    basePercent,
+    changePercentMin,
+    change_percent_min,
+    changePercentMax,
+    change_percent_max,
+    changeSort,
+    change_sort,
   } = body;
 
   return {
     currentPage: Number(currentPage) || 1,
-    itemsPerPage: Number(itemsPerPage) || 10,
+    itemsPerPage: clampPageSize(itemsPerPage, { max: forExport ? 10000 : 50 }),
     searchTerm: String(searchTerm || "").trim(),
     symbol: String(symbol || "").trim(),
     targetDate: date || targetDate || null,
-    basePercent: basePercent ?? base_percent ?? 2
+    basePercent: basePercent ?? base_percent ?? 2,
+    changePercentMin: changePercentMin ?? change_percent_min ?? null,
+    changePercentMax: changePercentMax ?? change_percent_max ?? null,
+    changeSort: changeSort || change_sort || "desc",
   };
 };
 
@@ -154,6 +169,84 @@ export const queryFormula = async (req, res) => {
     return res.status(400).json({
       success: false,
       message: error.message
+    });
+  }
+};
+
+export const exportFormulaXlsx = async (req, res) => {
+  try {
+    const { formulaType, formula_type, ...rest } = req.body || {};
+    const type = formulaType || formula_type;
+
+    if (!type) {
+      return res.status(400).json({
+        success: false,
+        message: "formulaType is required",
+      });
+    }
+
+    const filters = parseFormulaFilters(
+      { ...rest, currentPage: 1, itemsPerPage: 10000 },
+      { forExport: true }
+    );
+    const result = await queryFormulaService(type, filters);
+
+    if (!result?.success) {
+      return res.status(400).json(result);
+    }
+
+    const ExcelJS = (await import("exceljs")).default;
+    const workbook = new ExcelJS.Workbook();
+    const sheet = workbook.addWorksheet("Results");
+    const rows = Array.isArray(result.data) ? result.data : [];
+    const hidden = new Set([
+      "id",
+      "created_at",
+      "updated_at",
+      "createdAt",
+      "updatedAt",
+    ]);
+    const keys = rows.length
+      ? Object.keys(rows[0]).filter((key) => !hidden.has(key) && key.toLowerCase() !== "id")
+      : ["security", "symbol", "open_price", "close_price", "change_percent"];
+
+    sheet.columns = keys.map((key) => ({
+      header: key.replace(/_/g, " ").toUpperCase(),
+      key,
+      width: Math.max(14, key.length + 6),
+    }));
+
+    rows.forEach((row) => {
+      const values = {};
+      keys.forEach((key) => {
+        values[key] = row[key];
+      });
+      sheet.addRow(values);
+    });
+
+    sheet.getRow(1).font = { bold: true };
+    sheet.views = [{ state: "frozen", ySplit: 1 }];
+
+    keys.forEach((key, index) => {
+      const col = sheet.getColumn(index + 1);
+      if (key.includes("percent")) col.numFmt = "0.00";
+      if (key.includes("price")) col.numFmt = "#,##0.00";
+    });
+
+    const buffer = await workbook.xlsx.writeBuffer();
+    const datePart = String(result.trade_date || result.latest_date || "latest").slice(0, 10);
+    const filename = `${type}_${datePart}.xlsx`;
+
+    res.setHeader(
+      "Content-Type",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    );
+    res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+    return res.send(Buffer.from(buffer));
+  } catch (error) {
+    return res.status(400).json({
+      success: false,
+      message: error.message,
     });
   }
 };

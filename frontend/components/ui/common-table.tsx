@@ -60,6 +60,9 @@ interface CommonTableProps {
   onRowClick?: (row: any) => void;
   onExport?: () => void;
   showExport?: boolean;
+  exportLabel?: string;
+  pageSizeMin?: number;
+  pageSizeMax?: number;
   showSearch?: boolean;
   searchPlaceholder?: string;
   onSearch?: (searchTerm: string) => void;
@@ -85,6 +88,9 @@ export default function CommonTable({
   onRowClick,
   onExport,
   showExport = false,
+  exportLabel = "Export",
+  pageSizeMin,
+  pageSizeMax,
   showSearch = false,
   searchPlaceholder = "Search...",
   onSearch,
@@ -101,22 +107,37 @@ export default function CommonTable({
   const safeData = Array.isArray(data) ? data : [];
   const total = totalItems || safeData.length;
 
-  // Generate columns from data if not provided
+  // Generate columns from data if not provided (never show id / audit dates in UI)
   const columns = React.useMemo(() => {
+    const hideKey = (key: string) => {
+      const k = key.toLowerCase();
+      return (
+        k === "id" ||
+        k === "trade_date" ||
+        k === "tradedate" ||
+        k === "created_at" ||
+        k === "updated_at" ||
+        k === "createdat" ||
+        k === "updatedat"
+      );
+    };
+
     if (customColumns && customColumns.length > 0) {
-      return customColumns;
+      return customColumns.filter((col) => !hideKey(col.key));
     }
     
     if (!safeData.length) return [];
     
-    return Object.keys(safeData[0]).map(key => ({
-      key,
-      label: key.replace(/_/g, ' '),
-      sortable: true,
-      searchable: true,
-      className: undefined,
-      hideOnMobile: undefined,
-    }));
+    return Object.keys(safeData[0])
+      .filter((key) => !hideKey(key))
+      .map(key => ({
+        key,
+        label: key.replace(/_/g, ' '),
+        sortable: true,
+        searchable: true,
+        className: undefined,
+        hideOnMobile: undefined,
+      }));
   }, [customColumns, safeData]);
 
   const handleSort = (columnKey: string) => {
@@ -224,11 +245,32 @@ export default function CommonTable({
             {showExport && onExport && (
               <Button variant="outline" size="sm" onClick={onExport}>
                 <Download className="h-4 w-4 mr-2" />
-                Export
+                {exportLabel}
               </Button>
             )}
             
-            {setItemsPerPage && (
+            {setItemsPerPage && pageSizeMin != null && pageSizeMax != null ? (
+              <label className="inline-flex items-center gap-2 text-xs text-slate-500">
+                <span>Per page</span>
+                <Input
+                  type="number"
+                  min={pageSizeMin}
+                  max={pageSizeMax}
+                  value={itemsPerPage}
+                  className="h-8 w-16 px-2 text-xs"
+                  onChange={(event) => {
+                    const next = Number(event.target.value);
+                    if (!Number.isFinite(next)) return;
+                    const clamped = Math.min(
+                      pageSizeMax,
+                      Math.max(pageSizeMin, Math.trunc(next))
+                    );
+                    setItemsPerPage(clamped);
+                    setCurrentPage(1);
+                  }}
+                />
+              </label>
+            ) : setItemsPerPage ? (
               <Select
                 value={itemsPerPage.toString()}
                 onValueChange={handleItemsPerPageChange}
@@ -244,7 +286,7 @@ export default function CommonTable({
                   ))}
                 </SelectContent>
               </Select>
-            )}
+            ) : null}
           </div>
         </div>
       )}
@@ -325,16 +367,13 @@ export default function CommonTable({
       </div>
 
       {totalPages > 1 && (
-        <div className="flex flex-col gap-3">
-          <div className="text-sm text-gray-500">
-            Showing {((currentPage - 1) * itemsPerPage) + 1} to{' '}
-            {Math.min(currentPage * itemsPerPage, total)} of {total} results
-          </div>
+        <div className="border-t px-1 py-2.5">
           <Pagination
             currentPage={currentPage}
             totalPages={totalPages}
+            totalRecords={total}
             onPageChange={handlePageChange}
-            pageSizeLabel={`${itemsPerPage} per page`}
+            pageSize={itemsPerPage}
           />
         </div>
       )}

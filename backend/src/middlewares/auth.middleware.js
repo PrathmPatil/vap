@@ -49,12 +49,12 @@ export const authenticate = (req, res, next) => {
 };
 
 export const requireMaster = (req, res, next) => {
-  const role = req.user?.role;
+  const role = String(req.user?.role || "").trim().toLowerCase();
 
   if (role !== "master" && role !== "admin") {
     return res.status(403).json({
       success: false,
-      message: "Master access required",
+      message: "Master or admin access required",
     });
   }
 
@@ -90,7 +90,7 @@ export const authenticateMasterOrInternal = (req, res, next) => {
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     req.user = decoded;
-    const role = decoded?.role;
+    const role = String(decoded?.role || "").trim().toLowerCase();
     if (role !== "master" && role !== "admin") {
       return res.status(403).json({
         success: false,

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import Navigation from "@/components/Navigation";
 import {
   addToWatchlist,
@@ -9,7 +9,13 @@ import {
 import { useAuth } from "@/context/AuthContext";
 import { Pagination } from "@/components/ui/custom-pagination";
 import { PageLoader } from "@/components/ui/PageLoader";
-import { Bookmark } from "lucide-react";
+import { Bookmark, Download } from "lucide-react";
+import { exportRowsToCsv } from "@/lib/exportData";
+import { DatePicker } from "@/components/ui/date-picker";
+
+const SEARCH_DEBOUNCE_MS = 400;
+
+type InstrumentTab = "stocks" | "etfs" | "indices";
 
 type ListedRow = {
   id?: number | string;
@@ -22,6 +28,15 @@ type ListedRow = {
   isin?: string;
   face_value?: number | null;
   source?: string;
+  close_price?: number | null;
+  previous_close?: number | null;
+  last?: string | number | null;
+  percent_change?: string | number | null;
+  high?: string | number | null;
+  low?: string | number | null;
+  volume?: number | null;
+  underlying?: string | null;
+  instrument_type?: string;
 };
 
 type ListedCompaniesResponse = {
@@ -33,14 +48,24 @@ type ListedCompaniesResponse = {
 
 type ListedDailyResponse = {
   listed_companies?: ListedCompaniesResponse;
+  as_of?: string | null;
+  instrument?: string;
   [key: string]: any;
 };
+
+const TABS: { id: InstrumentTab; label: string }[] = [
+  { id: "stocks", label: "Stocks" },
+  { id: "etfs", label: "ETFs" },
+  { id: "indices", label: "Indices" },
+];
 
 export default function ListedCompaniesPage() {
   const { isAuthenticated } = useAuth();
 
   const [date, setDate] = useState("");
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [instrument, setInstrument] = useState<InstrumentTab>("stocks");
 
   const [data, setData] = useState<ListedDailyResponse | null>(null);
   const [loading, setLoading] = useState(false);
@@ -105,7 +130,8 @@ export default function ListedCompaniesPage() {
     nextDate = date,
     nextSearch = search,
     page = currentPage,
-    limit = itemsPerPage
+    limit = itemsPerPage,
+    nextInstrument = instrument
   ) => {
     setLoading(true);
 
@@ -114,7 +140,9 @@ export default function ListedCompaniesPage() {
         nextDate || "",
         page,
         limit,
-        nextSearch || ""
+        nextSearch || "",
+        nextInstrument,
+        "listing"
       );
 
       setData(res || null);
@@ -127,16 +155,24 @@ export default function ListedCompaniesPage() {
   };
 
   useEffect(() => {
-    loadData(date, search, currentPage, itemsPerPage);
-  }, [isAuthenticated, currentPage, itemsPerPage]);
+    const timer = window.setTimeout(() => {
+      setDebouncedSearch(search.trim());
+      setCurrentPage(1);
+    }, SEARCH_DEBOUNCE_MS);
+    return () => window.clearTimeout(timer);
+  }, [search]);
+
+  useEffect(() => {
+    loadData(date, debouncedSearch, currentPage, itemsPerPage, instrument);
+  }, [isAuthenticated, currentPage, itemsPerPage, instrument, debouncedSearch, date]);
 
   useEffect(() => {
     loadWatchlist();
   }, [isAuthenticated]);
 
-  const handleLoadData = () => {
+  const handleInstrumentChange = (next: InstrumentTab) => {
+    setInstrument(next);
     setCurrentPage(1);
-    loadData(date, search, 1, itemsPerPage);
   };
 
   const handleSearchChange = (value: string) => {
@@ -145,6 +181,7 @@ export default function ListedCompaniesPage() {
 
   const handleDateChange = (value: string) => {
     setDate(value);
+    setCurrentPage(1);
   };
 
   const handlePageChange = (page: number) => {
@@ -157,13 +194,52 @@ export default function ListedCompaniesPage() {
     setCurrentPage(1);
   };
 
+  const handleExport = () => {
+    const columns =
+      instrument === "stocks"
+        ? [
+            { key: "symbol", label: "Symbol" },
+            { key: "name", label: "Name" },
+            { key: "series", label: "Series" },
+            { key: "date_of_listing", label: "Listing Date" },
+            { key: "face_value", label: "Face Value" },
+            { key: "paid_up_value", label: "Paid-up Value" },
+            { key: "market_lot", label: "Market Lot" },
+            { key: "isin", label: "ISIN" },
+          ]
+        : instrument === "etfs"
+          ? [
+              { key: "symbol", label: "Symbol" },
+              { key: "name", label: "Name" },
+              { key: "series", label: "Series" },
+              { key: "close_price", label: "Close" },
+              { key: "previous_close", label: "Prev Close" },
+              { key: "volume", label: "Volume" },
+              { key: "underlying", label: "Underlying" },
+            ]
+          : [
+              { key: "symbol", label: "Symbol" },
+              { key: "name", label: "Name" },
+              { key: "series", label: "Category" },
+              { key: "last", label: "Last" },
+              { key: "previous_close", label: "Prev Close" },
+              { key: "percent_change", label: "Change %" },
+              { key: "high", label: "High" },
+              { key: "low", label: "Low" },
+            ];
+
+    exportRowsToCsv(rows as Record<string, unknown>[], {
+      columns,
+      filename: `${instrument}-export.csv`,
+    });
+  };
+
   const handleWatchlistToggle = async (symbol?: string) => {
     if (!symbol || !isAuthenticated || watchlistBusy) return;
 
     const inList = isInWatchlist(symbol);
     setWatchlistBusy(symbol);
 
-    // Optimistic UI
     setWatchlistSymbols((prev) => {
       if (inList) {
         return prev.filter((item) => {
@@ -198,6 +274,24 @@ export default function ListedCompaniesPage() {
     }
   };
 
+  const subtitle = useMemo(() => {
+    if (instrument === "etfs") {
+      return data?.as_of
+        ? `ETF bhavcopy as of ${String(data.as_of).slice(0, 10)}`
+        : "Browse ETF market data";
+    }
+    if (instrument === "indices") {
+      return "NSE indices from all_indices";
+    }
+    if (date) {
+      const total = data?.listed_companies?.total ?? 0;
+      return total
+        ? `Companies with listing date ${date} (${total})`
+        : `No companies listed on ${date}`;
+    }
+    return "Browse listed equities, then add any stock to your watchlist.";
+  }, [instrument, data?.as_of, data?.listed_companies?.total, date]);
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
       <Navigation />
@@ -206,48 +300,60 @@ export default function ListedCompaniesPage() {
         <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div>
             <h1 className="text-3xl font-bold text-slate-900">
-              Listed Companies Daily Data
+              Market Instruments
             </h1>
-
-            <p className="text-slate-600">
-              Browse bhavcopy and PR data, then add any stock to your watchlist.
-            </p>
+            <p className="text-slate-600">{subtitle}</p>
           </div>
 
           <div className="flex flex-col gap-3 md:flex-row md:items-center">
-            <input
-              type="date"
-              value={date}
-              onChange={(e) => handleDateChange(e.target.value)}
-              className="rounded-lg border border-slate-300 bg-white px-3 py-2"
-            />
+            {instrument === "stocks" && (
+              <DatePicker
+                value={date}
+                onChange={handleDateChange}
+                placeholder="Listing date"
+                aria-label="Filter by listing date"
+                clearable
+              />
+            )}
 
             <input
               type="text"
               value={search}
               onChange={(e) => handleSearchChange(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  handleLoadData();
-                }
-              }}
-              placeholder="Search symbol or company"
+              placeholder="Search symbol or name"
               className="rounded-lg border border-slate-300 bg-white px-3 py-2 md:w-72"
             />
 
             <button
               type="button"
-              onClick={handleLoadData}
-              className="rounded-lg bg-blue-600 px-4 py-2 text-white hover:bg-blue-700"
+              onClick={handleExport}
+              disabled={!rows.length}
+              className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2 text-slate-700 hover:bg-slate-50 disabled:opacity-50"
             >
-              Load Data
+              <Download className="h-4 w-4" />
+              Export
             </button>
           </div>
         </div>
 
-        {loading && (
-          <PageLoader inline message="Loading listed companies…" />
-        )}
+        <div className="mb-4 flex flex-wrap gap-2">
+          {TABS.map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => handleInstrumentChange(tab.id)}
+              className={`rounded-full px-4 py-2 text-sm font-medium transition ${
+                instrument === tab.id
+                  ? "bg-slate-900 text-white"
+                  : "bg-white text-slate-700 ring-1 ring-slate-200 hover:bg-slate-50"
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        {loading && <PageLoader inline message="Loading market data…" />}
 
         {!loading && data && (
           <div className="space-y-8">
@@ -258,13 +364,37 @@ export default function ListedCompaniesPage() {
                     <tr>
                       <th className="px-4 py-3 text-left">Symbol</th>
                       <th className="px-4 py-3 text-left">Name</th>
-                      <th className="px-4 py-3 text-left">Series</th>
-                      <th className="px-4 py-3 text-left">Listing Date</th>
-                      <th className="px-4 py-3 text-right">Face Value</th>
-                      <th className="px-4 py-3 text-right">Paid-up Value</th>
-                      <th className="px-4 py-3 text-right">Market Lot</th>
-                      <th className="px-4 py-3 text-left">ISIN</th>
-                      <th className="px-4 py-3 text-center">Watchlist</th>
+                      <th className="px-4 py-3 text-left">
+                        {instrument === "indices" ? "Category" : "Series"}
+                      </th>
+                      {instrument === "stocks" && (
+                        <>
+                          <th className="px-4 py-3 text-left">Listing Date</th>
+                          <th className="px-4 py-3 text-right">Face Value</th>
+                          <th className="px-4 py-3 text-right">Paid-up Value</th>
+                          <th className="px-4 py-3 text-right">Market Lot</th>
+                          <th className="px-4 py-3 text-left">ISIN</th>
+                          <th className="px-4 py-3 text-center">Watchlist</th>
+                        </>
+                      )}
+                      {instrument === "etfs" && (
+                        <>
+                          <th className="px-4 py-3 text-right">Close</th>
+                          <th className="px-4 py-3 text-right">Prev Close</th>
+                          <th className="px-4 py-3 text-right">Volume</th>
+                          <th className="px-4 py-3 text-left">Underlying</th>
+                          <th className="px-4 py-3 text-center">Watchlist</th>
+                        </>
+                      )}
+                      {instrument === "indices" && (
+                        <>
+                          <th className="px-4 py-3 text-right">Last</th>
+                          <th className="px-4 py-3 text-right">Prev Close</th>
+                          <th className="px-4 py-3 text-right">Change %</th>
+                          <th className="px-4 py-3 text-right">High</th>
+                          <th className="px-4 py-3 text-right">Low</th>
+                        </>
+                      )}
                     </tr>
                   </thead>
 
@@ -272,7 +402,7 @@ export default function ListedCompaniesPage() {
                     {rows.length === 0 ? (
                       <tr>
                         <td
-                          colSpan={9}
+                          colSpan={10}
                           className="px-4 py-8 text-center text-slate-500"
                         >
                           No records found.
@@ -292,63 +422,112 @@ export default function ListedCompaniesPage() {
                             <td className="px-4 py-3 font-medium text-slate-900">
                               {formatSymbol(symbol)}
                             </td>
-
                             <td className="px-4 py-3 text-slate-700">
                               {row.name || "-"}
                             </td>
-
                             <td className="px-4 py-3 text-slate-700">
                               {row.series || "-"}
                             </td>
 
-                            <td className="px-4 py-3 text-slate-700">
-                              {row.date_of_listing || "-"}
-                            </td>
+                            {instrument === "stocks" && (
+                              <>
+                                <td className="px-4 py-3 text-slate-700">
+                                  {row.date_of_listing || "-"}
+                                </td>
+                                <td className="px-4 py-3 text-right">
+                                  {row.face_value ?? "-"}
+                                </td>
+                                <td className="px-4 py-3 text-right">
+                                  {row.paid_up_value ?? "-"}
+                                </td>
+                                <td className="px-4 py-3 text-right">
+                                  {row.market_lot ?? "-"}
+                                </td>
+                                <td className="px-4 py-3 text-slate-700">
+                                  {row.isin || "-"}
+                                </td>
+                                <td className="px-4 py-3 text-center">
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      handleWatchlistToggle(symbol)
+                                    }
+                                    disabled={!isAuthenticated || busy}
+                                    className="inline-flex items-center justify-center rounded p-1 transition-transform hover:scale-110 disabled:cursor-not-allowed disabled:opacity-50"
+                                    title={
+                                      isAuthenticated
+                                        ? inWatchlist
+                                          ? "Remove from watchlist"
+                                          : "Add to watchlist"
+                                        : "Login to manage watchlist"
+                                    }
+                                  >
+                                    <Bookmark
+                                      className={`h-5 w-5 ${
+                                        inWatchlist
+                                          ? "fill-blue-600 text-blue-600"
+                                          : "text-slate-400"
+                                      }`}
+                                    />
+                                  </button>
+                                </td>
+                              </>
+                            )}
 
-                            <td className="px-4 py-3 text-right">
-                              {row.face_value ?? "-"}
-                            </td>
+                            {instrument === "etfs" && (
+                              <>
+                                <td className="px-4 py-3 text-right">
+                                  {row.close_price ?? "-"}
+                                </td>
+                                <td className="px-4 py-3 text-right">
+                                  {row.previous_close ?? "-"}
+                                </td>
+                                <td className="px-4 py-3 text-right">
+                                  {row.volume ?? "-"}
+                                </td>
+                                <td className="px-4 py-3 text-slate-700">
+                                  {row.underlying || "-"}
+                                </td>
+                                <td className="px-4 py-3 text-center">
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      handleWatchlistToggle(symbol)
+                                    }
+                                    disabled={!isAuthenticated || busy}
+                                    className="inline-flex items-center justify-center rounded p-1 disabled:opacity-50"
+                                  >
+                                    <Bookmark
+                                      className={`h-5 w-5 ${
+                                        inWatchlist
+                                          ? "fill-blue-600 text-blue-600"
+                                          : "text-slate-400"
+                                      }`}
+                                    />
+                                  </button>
+                                </td>
+                              </>
+                            )}
 
-                            <td className="px-4 py-3 text-right">
-                              {row.paid_up_value ?? "-"}
-                            </td>
-
-                            <td className="px-4 py-3 text-right">
-                              {row.market_lot ?? "-"}
-                            </td>
-
-                            <td className="px-4 py-3 text-slate-700">
-                              {row.isin || "-"}
-                            </td>
-
-                            <td className="px-4 py-3 text-center">
-                              <button
-                                type="button"
-                                onClick={() => handleWatchlistToggle(symbol)}
-                                disabled={!isAuthenticated || busy}
-                                className="inline-flex items-center justify-center rounded p-1 transition-transform hover:scale-110 disabled:cursor-not-allowed disabled:opacity-50"
-                                title={
-                                  isAuthenticated
-                                    ? inWatchlist
-                                      ? "Remove from watchlist"
-                                      : "Add to watchlist"
-                                    : "Login to manage watchlist"
-                                }
-                                aria-label={
-                                  inWatchlist
-                                    ? "Remove from watchlist"
-                                    : "Add to watchlist"
-                                }
-                              >
-                                <Bookmark
-                                  className={`h-5 w-5 ${
-                                    inWatchlist
-                                      ? "fill-blue-600 text-blue-600"
-                                      : "text-slate-400"
-                                  }`}
-                                />
-                              </button>
-                            </td>
+                            {instrument === "indices" && (
+                              <>
+                                <td className="px-4 py-3 text-right">
+                                  {row.last ?? "-"}
+                                </td>
+                                <td className="px-4 py-3 text-right">
+                                  {row.previous_close ?? "-"}
+                                </td>
+                                <td className="px-4 py-3 text-right">
+                                  {row.percent_change ?? "-"}
+                                </td>
+                                <td className="px-4 py-3 text-right">
+                                  {row.high ?? "-"}
+                                </td>
+                                <td className="px-4 py-3 text-right">
+                                  {row.low ?? "-"}
+                                </td>
+                              </>
+                            )}
                           </tr>
                         );
                       })
@@ -357,30 +536,11 @@ export default function ListedCompaniesPage() {
                 </table>
               </div>
 
-              <div className="border-t bg-slate-50 px-6 py-4">
-                <div className="mb-3 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500">
-                  <span>
-                    Total Records:{" "}
-                    <span className="font-semibold text-slate-900">
-                      {totalRecords}
-                    </span>
-                  </span>
-
-                  <span>
-                    Page{" "}
-                    <span className="font-semibold text-slate-900">
-                      {currentPage}
-                    </span>{" "}
-                    of{" "}
-                    <span className="font-semibold text-slate-900">
-                      {totalPages}
-                    </span>
-                  </span>
-                </div>
-
+              <div className="border-t bg-white px-4 py-2.5">
                 <Pagination
                   currentPage={currentPage}
                   totalPages={totalPages}
+                  totalRecords={totalRecords}
                   onPageChange={handlePageChange}
                   pageSize={itemsPerPage}
                   onPageSizeChange={handlePageSizeChange}

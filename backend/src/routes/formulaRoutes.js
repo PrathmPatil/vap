@@ -27,13 +27,23 @@ import {
   getFormulaAvailableDates,
   getFormulaCompanies,
   getFormulaMeta,
-  queryFormula
+  queryFormula,
+  exportFormulaXlsx,
 } from "../controllers/formulaController.js";
+
+import {
+  listCustomFormulas,
+  createCustomFormula,
+  updateCustomFormula,
+  deleteCustomFormula,
+  getCustomFormula,
+  runCustomFormula,
+  validateCustomExpression,
+} from "../controllers/customFormulaController.js";
 
 const router = express.Router();
 const adminOnly = [authenticate, requireMaster];
 
-// Python bhavcopy cron uses INTERNAL_API_KEY; master UI uses JWT
 router.post(
   "/run-formula-engine",
   authenticateMasterOrInternal,
@@ -42,9 +52,18 @@ router.post(
 
 router.get("/meta", getFormulaMeta);
 router.post("/query", queryFormula);
+router.post("/export", authenticate, exportFormulaXlsx);
 
 router.get("/meta/:formulaType/dates", getFormulaAvailableDates);
 router.get("/meta/:formulaType/companies", getFormulaCompanies);
+
+router.get("/custom", authenticate, listCustomFormulas);
+router.post("/custom", authenticate, createCustomFormula);
+router.post("/custom/validate", authenticate, validateCustomExpression);
+router.get("/custom/:id", authenticate, getCustomFormula);
+router.put("/custom/:id", authenticate, updateCustomFormula);
+router.delete("/custom/:id", authenticate, deleteCustomFormula);
+router.post("/custom/:id/run", authenticate, runCustomFormula);
 
 router.post("/strong-bullish-candle", ...adminOnly, generateStrongBullish);
 router.post("/bearish-candle", ...adminOnly, generateBearishCandle);
@@ -59,16 +78,10 @@ router.post("/daily-mover-up", ...adminOnly, generateDailyMoverUp);
 router.post("/daily-mover-down", ...adminOnly, generateDailyMoverDown);
 
 router.post("/rally-attempt-day", ...adminOnly, runRallyAttempt);
-
 router.post("/follow-through-day", ...adminOnly, runFollowThroughDay);
-
 router.post("/buy-day", ...adminOnly, runBuyDay);
-
 router.post("/volume-breakouts", ...adminOnly, getVolumeBreakouts);
-
 router.post("/tweezer-bottoms", ...adminOnly, getTweezerBottomPatterns);
-
-router.post('/tweezer-bottom/signals', ...adminOnly, getSavedTweezerBottomSignals);
-
+router.post("/tweezer-bottom/signals", ...adminOnly, getSavedTweezerBottomSignals);
 
 export default router;

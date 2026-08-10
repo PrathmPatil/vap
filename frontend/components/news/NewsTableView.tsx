@@ -262,7 +262,6 @@ const NewsTableView: React.FC<NewsTableViewProps> = ({ data }) => {
       <table className="min-w-full bg-white border border-gray-200">
         <thead className="bg-gray-50">
           <tr>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ministry Title</th>
             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
           </tr>
@@ -270,9 +269,6 @@ const NewsTableView: React.FC<NewsTableViewProps> = ({ data }) => {
         <tbody className="divide-y divide-gray-200">
           {ministryData.map((ministry) => (
             <tr key={ministry.id} className="hover:bg-gray-50">
-              <td className="px-6 py-4 text-sm font-medium text-gray-900">
-                {ministry.ministry_id}
-              </td>
               <td className="px-6 py-4">
                 <h3 className="text-sm font-medium text-gray-900">{ministry.title}</h3>
               </td>
@@ -373,7 +369,7 @@ const NewsTableView: React.FC<NewsTableViewProps> = ({ data }) => {
 
   if (!data || !data.total_records || !data.data) {
     return (
-      <div className="max-w-7xl mx-auto p-6">
+      <div className="w-full">
         <div className="text-center py-12">
           <div className="text-gray-400 text-6xl mb-4">📰</div>
           <h3 className="text-lg font-medium text-gray-900 mb-2">No data available</h3>
@@ -386,14 +382,14 @@ const NewsTableView: React.FC<NewsTableViewProps> = ({ data }) => {
   const sectionData = getSectionData();
 
   return (
-    <div className="max-w-7xl mx-auto p-6">
+    <div className="w-full">
       {/* Header */}
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-800">News Dashboard</h1>
         <p className="text-gray-600 mt-2">Total records across all sources</p>
       </div>
 
-      {/* Summary Cards */}
+      {/* Summary Cards (also switch the active source) */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
         {tabs.map(tab => (
           <div 
@@ -407,30 +403,6 @@ const NewsTableView: React.FC<NewsTableViewProps> = ({ data }) => {
             <p className="text-2xl font-bold text-blue-600 mt-2">{tab.count}</p>
           </div>
         ))}
-      </div>
-
-      {/* Tabs */}
-      <div className="mb-4">
-        <div className="border-b border-gray-200">
-          <nav className="-mb-px flex space-x-8">
-            {tabs.map(tab => (
-              <button
-                key={tab.key}
-                onClick={() => setActiveTab(tab.key)}
-                className={`whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm ${
-                  activeTab === tab.key
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
-              >
-                {tab.label}
-                <span className="ml-2 bg-gray-100 text-gray-900 py-0.5 px-2 rounded-full text-xs">
-                  {tab.count}
-                </span>
-              </button>
-            ))}
-          </nav>
-        </div>
       </div>
 
       {/* Table */}

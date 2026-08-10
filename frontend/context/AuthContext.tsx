@@ -6,6 +6,7 @@ import {
   ReactNode,
 } from "react";
 import { loginUser, registerUser } from "@/utils";
+import { getRoleFromToken, normalizeRole } from "@/lib/authRoles";
 
 interface User {
   name?: string;
@@ -23,9 +24,15 @@ interface AuthContextType {
   authLoading: boolean;
   user: User | null;
   role: string;
-  isSubscribed: boolean; 
+  isSubscribed: boolean;
   login: (email: string, password: string) => Promise<{ message?: string }>;
-  register: (name: string, email: string, password: string, phoneNumber:string, whatsappNumber:string) => Promise<{ message?: string }>;
+  register: (
+    name: string,
+    email: string,
+    password: string,
+    phoneNumber: string,
+    whatsappNumber: string,
+  ) => Promise<{ message?: string }>;
   logout: () => void;
 }
 
@@ -37,19 +44,28 @@ const navigateClient = (path: string) => {
   }
 };
 
+const resolveRole = (userData?: User | null, token?: string | null) => {
+  const fromUser = normalizeRole(userData?.role);
+  if (fromUser) return fromUser;
+  return getRoleFromToken(token);
+};
+
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   // Stays true until the first client-side token check completes.
   // Prevents pages from redirecting to /login during SSR/hydration flash.
   const [authLoading, setAuthLoading] = useState(true);
+  const [role, setRole] = useState("");
 
   useEffect(() => {
     const storedUser = localStorage.getItem("stockUser");
+    let parsedUser: User | null = null;
 
     if (storedUser) {
       try {
-        setUser(JSON.parse(storedUser));
+        parsedUser = JSON.parse(storedUser) as User;
+        setUser(parsedUser);
       } catch {
         localStorage.removeItem("stockUser");
       }
@@ -68,7 +84,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       document.cookie = `token=${storedToken}; path=/; max-age=${60 * 60 * 8}`;
     }
 
-    setIsAuthenticated(!!(storedToken || cookieToken));
+    const token = storedToken || cookieToken;
+    setIsAuthenticated(!!token);
+    setRole(resolveRole(parsedUser, token));
     // Mark auth check complete — pages can now safely evaluate isAuthenticated.
     setAuthLoading(false);
   }, []);
@@ -79,14 +97,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const { user: userData, accessToken, success, message } = response;
       if (success) {
         localStorage.setItem("token", accessToken);
-        // Cookie must exist for Next middleware; keep aligned with JWT (backend default 1h, allow 8h buffer for refresh UX).
+        // Cookie must exist for Next middleware; keep aligned with JWT.
         document.cookie = `token=${accessToken}; path=/; max-age=${60 * 60 * 8}`;
         setIsAuthenticated(true);
+        setUser(userData);
+        setRole(resolveRole(userData, accessToken));
+        localStorage.setItem("stockUser", JSON.stringify(userData));
 
         navigateClient("/");
-
-        setUser(userData);
-        localStorage.setItem("stockUser", JSON.stringify(userData));
 
         return { message };
       }
@@ -105,7 +123,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     phoneNumber: string,
     whatsappNumber: string,
   ) => {
-    // form.name, form.email, form.password, form.phoneNumber, form.whatsappNumber
     try {
       const response = await registerUser(
         name,
@@ -122,6 +139,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       localStorage.setItem("stockUser", JSON.stringify(userData));
       setUser(userData);
+      setRole(resolveRole(userData, accessToken));
 
       document.cookie = `token=${accessToken}; path=/; max-age=${60 * 60 * 8}`;
       localStorage.setItem("token", accessToken);
@@ -139,6 +157,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     localStorage.removeItem("stockUser");
     localStorage.removeItem("token");
     setUser(null);
+    setRole("");
     document.cookie = "token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
     setIsAuthenticated(false);
     navigateClient("/login");
@@ -150,7 +169,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         isAuthenticated,
         authLoading,
         user,
-        role: user?.role || "",
+        role,
         isSubscribed: user?.is_subscribed || true,
         login,
         register,

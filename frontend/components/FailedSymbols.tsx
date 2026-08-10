@@ -237,9 +237,9 @@ export function FailedSymbols() {
               <Pagination
                 currentPage={currentPage}
                 totalPages={totalPages}
+                totalRecords={failedSymbols.length}
                 onPageChange={setCurrentPage}
-                pageSizeLabel={`${itemsPerPage} per page`}
-                className="pt-4"
+                className="pt-3"
               />
             </div>
           )}

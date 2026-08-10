@@ -118,6 +118,7 @@ import AllCompaniesDataModel from './all_companies_data.js';
 import CompaniesDataModel from './companies_data.js';
 import FailedSymbolsModel from './failed_symbols.js';
 import ListedCompaniesModel from './listed_companies.js';
+import AllIndicesModel from './all_indices.js';
 // User
 import UserModel from './user.js';
 
@@ -175,6 +176,9 @@ import {
 } from './formulaModel.js';
 // Watchlist
 import WatchlistModel from './watchlist.js';
+import UserFormulaModel from './user_formula.js';
+import UserScanModel from './user_scan.js';
+import UserScanAlertModel from './user_scan_alert.js';
 
 /* ---------------------------------------------
    INITIALIZE MODELS
@@ -185,6 +189,7 @@ const AllCompaniesData = AllCompaniesDataModel(sequelizeStockMarket, DataTypes);
 const CompaniesData = CompaniesDataModel(sequelizeStockMarket, DataTypes);
 const FailedSymbols = FailedSymbolsModel(sequelizeStockMarket, DataTypes);
 const ListedCompanies = ListedCompaniesModel(sequelizeStockMarket, DataTypes);
+const AllIndices = AllIndicesModel(sequelizeStockMarket, DataTypes);
 
 // user
 const User = UserModel(sequelizeStockMarket, DataTypes);
@@ -248,6 +253,9 @@ const MarketHolidayModel = MarketHoliday(sequelizeStockMarket, DataTypes);
 
 // Watchlist (user-specific saved symbols)
 const Watchlist = WatchlistModel(sequelizeStockMarket, DataTypes);
+const UserFormula = UserFormulaModel(sequelizeStockMarket, DataTypes);
+const UserScan = UserScanModel(sequelizeStockMarket, DataTypes);
+const UserScanAlert = UserScanAlertModel(sequelizeStockMarket, DataTypes);
 
 /* ---------------------------------------------
    EXPORT EVERYTHING
@@ -257,6 +265,7 @@ export {
   CompaniesData,
   FailedSymbols,
   ListedCompanies,
+  AllIndices,
 
   User,
 
@@ -308,7 +317,10 @@ export {
   FiftyTwoWeekLowModel,
   DailyMoverUpModel,
   DailyMoverDownModel,
-  Watchlist
+  Watchlist,
+  UserFormula,
+  UserScan,
+  UserScanAlert
 };
 
 /* Mapping for dynamic routes */
