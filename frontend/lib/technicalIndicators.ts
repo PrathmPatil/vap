@@ -90,24 +90,40 @@ export function bollingerBands(
   return { middle, upper, lower };
 }
 
-export function latestIndicatorSnapshot(closes: number[], volumes: number[]) {
-  const maPeriods = [20, 50, 100, 200] as const;
-  const mas: Record<string, number | null> = {};
-  for (const p of maPeriods) {
-    const series = sma(closes, p);
-    mas[`ma${p}`] = series[series.length - 1] ?? null;
-  }
+export type IndicatorSnapshot = {
+  ma20: number | null;
+  ma50: number | null;
+  ma100: number | null;
+  ma200: number | null;
+  rsi14: number | null;
+  obv: number | null;
+  bbMiddle: number | null;
+  bbUpper: number | null;
+  bbLower: number | null;
+};
+
+function lastValue(series: (number | null)[]): number | null {
+  if (!series.length) return null;
+  return series[series.length - 1] ?? null;
+}
+
+export function latestIndicatorSnapshot(
+  closes: number[],
+  volumes: number[],
+): IndicatorSnapshot {
   const rsiSeries = rsi(closes, 14);
   const obvSeries = obv(closes, volumes);
   const bb = bollingerBands(closes, 20, 2);
-  const last = closes.length - 1;
 
   return {
-    ...mas,
-    rsi14: rsiSeries[last] ?? null,
-    obv: obvSeries[last] ?? null,
-    bbMiddle: bb.middle[last] ?? null,
-    bbUpper: bb.upper[last] ?? null,
-    bbLower: bb.lower[last] ?? null,
+    ma20: lastValue(sma(closes, 20)),
+    ma50: lastValue(sma(closes, 50)),
+    ma100: lastValue(sma(closes, 100)),
+    ma200: lastValue(sma(closes, 200)),
+    rsi14: lastValue(rsiSeries),
+    obv: lastValue(obvSeries),
+    bbMiddle: lastValue(bb.middle),
+    bbUpper: lastValue(bb.upper),
+    bbLower: lastValue(bb.lower),
   };
 }
