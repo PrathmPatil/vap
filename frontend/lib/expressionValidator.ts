@@ -107,61 +107,66 @@ function validateAst(tokens: Token[]) {
   let pos = 0;
   const peek = () => tokens[pos];
   const consume = () => tokens[pos++];
+  const peekOp = (): string | null => {
+    const token = peek();
+    return token?.type === "op" ? token.value : null;
+  };
+  const matchOp = (...ops: string[]) => {
+    const value = peekOp();
+    return value != null && ops.includes(value);
+  };
 
   const parseOr = (): void => {
     parseAnd();
-    while (peek()?.type === "op" && peek().value === "||") {
+    while (matchOp("||")) {
       consume();
       parseAnd();
     }
   };
   const parseAnd = (): void => {
     parseEquality();
-    while (peek()?.type === "op" && peek().value === "&&") {
+    while (matchOp("&&")) {
       consume();
       parseEquality();
     }
   };
   const parseEquality = (): void => {
     parseCompare();
-    while (peek()?.type === "op" && ["==", "!="].includes(peek().value)) {
+    while (matchOp("==", "!=")) {
       consume();
       parseCompare();
     }
   };
   const parseCompare = (): void => {
     parseAdd();
-    while (
-      peek()?.type === "op" &&
-      [">", "<", ">=", "<="].includes(peek().value)
-    ) {
+    while (matchOp(">", "<", ">=", "<=")) {
       consume();
       parseAdd();
     }
   };
   const parseAdd = (): void => {
     parseMul();
-    while (peek()?.type === "op" && ["+", "-"].includes(peek().value)) {
+    while (matchOp("+", "-")) {
       consume();
       parseMul();
     }
   };
   const parseMul = (): void => {
     parsePow();
-    while (peek()?.type === "op" && ["*", "/", "%"].includes(peek().value)) {
+    while (matchOp("*", "/", "%")) {
       consume();
       parsePow();
     }
   };
   const parsePow = (): void => {
     parseUnary();
-    while (peek()?.type === "op" && peek().value === "^") {
+    while (matchOp("^")) {
       consume();
       parseUnary();
     }
   };
   const parseUnary = (): void => {
-    if (peek()?.type === "op" && (peek().value === "-" || peek().value === "!")) {
+    if (matchOp("-", "!")) {
       consume();
       parseUnary();
       return;
@@ -177,21 +182,21 @@ function validateAst(tokens: Token[]) {
     }
     if (tok.type === "ident") {
       consume();
-      if (peek()?.type === "op" && peek().value === "(") {
+      if (matchOp("(")) {
         if (!FUNCTIONS.has(tok.value)) {
           throw new Error(
             `Unknown function '${tok.value}'. Allowed: abs, min, max, round, sqrt`
           );
         }
         consume();
-        if (!(peek()?.type === "op" && peek().value === ")")) {
+        if (!matchOp(")")) {
           parseOr();
-          while (peek()?.type === "op" && peek().value === ",") {
+          while (matchOp(",")) {
             consume();
             parseOr();
           }
         }
-        if (!(peek()?.type === "op" && peek().value === ")")) {
+        if (!matchOp(")")) {
           throw new Error(`Missing ')' after function ${tok.value}`);
         }
         consume();
@@ -207,7 +212,7 @@ function validateAst(tokens: Token[]) {
     if (tok.type === "op" && tok.value === "(") {
       consume();
       parseOr();
-      if (!(peek()?.type === "op" && peek().value === ")")) {
+      if (!matchOp(")")) {
         throw new Error("Missing closing parenthesis ')'");
       }
       consume();
