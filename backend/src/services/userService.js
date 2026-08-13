@@ -4,6 +4,7 @@ import { User } from '../models/index.js';
 import dotenv from 'dotenv';
 import redis from '../config/redis.js';
 import { generateAccessToken, generateRefreshToken } from '../utils/jwt.js';
+import { createWelcomeNotification } from './notificationInboxService.js';
 dotenv.config();
 
 const checkAndCreateUserTable = async () => {
@@ -48,6 +49,12 @@ export const registerUser = async (req, res) => {
     delete userData.password;
     delete userData.createdAt;
     delete userData.updatedAt;
+
+    try {
+      await createWelcomeNotification(user.id, user.username || user.email);
+    } catch (notifyError) {
+      console.warn('Welcome notification skipped:', notifyError.message);
+    }
 
     return res.status(201).json({
       success: true,
@@ -121,6 +128,12 @@ export const loginUser = async (req, res) => {
     delete userData.password;
     delete userData.createdAt;
     delete userData.updatedAt;
+
+    try {
+      await createWelcomeNotification(user.id, user.username || user.email);
+    } catch (notifyError) {
+      console.warn('Welcome notification skipped:', notifyError.message);
+    }
 
     return res.status(200).json({
       success: true,

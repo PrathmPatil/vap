@@ -77,7 +77,11 @@ export function Pagination({
   const safeTotalPages = Math.max(totalPages || 1, 1);
   const safeCurrentPage = Math.min(Math.max(currentPage || 1, 1), safeTotalPages);
   const showPageButtons = safeTotalPages > 1;
+  // Always show records-per-page dropdown when a change handler is provided.
   const showPageSizeSelect = Boolean(onPageSizeChange);
+  const sizeOptions = pageSizeOptions.includes(pageSize)
+    ? pageSizeOptions
+    : [...pageSizeOptions, pageSize].sort((a, b) => a - b);
 
   const items = showPageButtons
     ? getPaginationItems(safeCurrentPage, safeTotalPages, maxNumbers)
@@ -181,7 +185,7 @@ export function Pagination({
               className="h-7 rounded-md border border-slate-300 bg-white px-1.5 text-xs text-slate-700 outline-none focus:ring-2 focus:ring-slate-300"
               aria-label="Records per page"
             >
-              {pageSizeOptions.map((size) => (
+              {sizeOptions.map((size) => (
                 <option key={size} value={size}>
                   {size}/page
                 </option>

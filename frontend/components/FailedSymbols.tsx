@@ -43,7 +43,7 @@ export function FailedSymbols() {
 
   // ✅ Pagination states
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 10;
+  const [itemsPerPage, setItemsPerPage] = useState(10);
 
   useEffect(() => {
     const fetchFailedSymbols = async () => {
@@ -67,12 +67,12 @@ export function FailedSymbols() {
   }, []);
 
   // ✅ Pagination calculations
-  const totalPages = Math.ceil(failedSymbols.length / itemsPerPage);
+  const totalPages = Math.ceil(failedSymbols.length / itemsPerPage) || 1;
 
   const paginatedData = useMemo(() => {
     const startIndex = (currentPage - 1) * itemsPerPage;
     return failedSymbols.slice(startIndex, startIndex + itemsPerPage);
-  }, [failedSymbols, currentPage]);
+  }, [failedSymbols, currentPage, itemsPerPage]);
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString("en-US", {
@@ -239,6 +239,12 @@ export function FailedSymbols() {
                 totalPages={totalPages}
                 totalRecords={failedSymbols.length}
                 onPageChange={setCurrentPage}
+                pageSize={itemsPerPage}
+                pageSizeOptions={[10, 25, 50, 100]}
+                onPageSizeChange={(size) => {
+                  setItemsPerPage(size);
+                  setCurrentPage(1);
+                }}
                 className="pt-3"
               />
             </div>

@@ -105,8 +105,12 @@ export function attachListing(security, byName) {
     .trim()
     .toUpperCase();
   const company = byName.get(key);
+  const rawSymbol = company?.symbol || null;
+  const symbol = rawSymbol
+    ? String(rawSymbol).trim().replace(/\.(NS|BSE|BO)$/i, '')
+    : null;
   return {
-    symbol: company?.symbol || null,
+    symbol,
     name: company?.name || security,
     series: company?.series || null,
     security,

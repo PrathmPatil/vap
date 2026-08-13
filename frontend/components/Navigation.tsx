@@ -17,6 +17,7 @@ import { useRouter } from "next/router";
 import { useAuth } from "@/context/AuthContext";
 import { cn } from "@/lib/utils";
 import { hasMasterAccess } from "@/lib/authRoles";
+import NotificationBell from "@/components/NotificationBell";
 
 type NavItem = {
   href: string;
@@ -69,59 +70,61 @@ function Navigation() {
             </span>
           </Link>
 
-          <div className="hidden md:flex items-center gap-1">
-            {items.map((item) => {
-              const Icon = item.icon;
-              return (
-                <Link key={item.href} href={item.href}>
-                  <Button variant="ghost" className={navClass(item.href, item.match)}>
-                    <Icon className="h-4 w-4 mr-2" />
-                    {item.label}
+          <div className="flex items-center gap-1">
+            <div className="hidden md:flex items-center gap-1">
+              {items.map((item) => {
+                const Icon = item.icon;
+                return (
+                  <Link key={item.href} href={item.href}>
+                    <Button variant="ghost" className={navClass(item.href, item.match)}>
+                      <Icon className="h-4 w-4 mr-2" />
+                      {item.label}
+                    </Button>
+                  </Link>
+                );
+              })}
+
+              {role === "admin" && (
+                <Link href="/bhavcopy">
+                  <Button variant="ghost" className={navClass("/bhavcopy")}>
+                    <FileText className="h-4 w-4 mr-2" />
+                    Bhavcopy
                   </Button>
                 </Link>
-              );
-            })}
+              )}
 
-            {role === "admin" && (
-              <Link href="/bhavcopy">
-                <Button variant="ghost" className={navClass("/bhavcopy")}>
-                  <FileText className="h-4 w-4 mr-2" />
-                  Bhavcopy
-                </Button>
-              </Link>
-            )}
+              {isAuthenticated && isSubscribed && (
+                <Link href="/watchlist">
+                  <Button variant="ghost" className={navClass("/watchlist")}>
+                    <FileText className="h-4 w-4 mr-2" />
+                    Watchlist
+                  </Button>
+                </Link>
+              )}
 
-            {isAuthenticated && isSubscribed && (
-              <Link href="/watchlist">
-                <Button variant="ghost" className={navClass("/watchlist")}>
-                  <FileText className="h-4 w-4 mr-2" />
-                  Watchlist
-                </Button>
-              </Link>
-            )}
+              {isAuthenticated && isSubscribed && (
+                <Link href="/company/formula">
+                  <Button
+                    variant="ghost"
+                    className={navClass("/company/formula", (path) =>
+                      path.startsWith("/company/formula"),
+                    )}
+                  >
+                    <Calculator className="h-4 w-4 mr-2" />
+                    Formulas
+                  </Button>
+                </Link>
+              )}
 
-            {isAuthenticated && isSubscribed && (
-              <Link href="/company/formula">
-                <Button
-                  variant="ghost"
-                  className={navClass("/company/formula", (path) =>
-                    path.startsWith("/company/formula"),
-                  )}
-                >
-                  <Calculator className="h-4 w-4 mr-2" />
-                  Formulas
-                </Button>
-              </Link>
-            )}
-
-            {(role === "admin" || role === "master" || hasMasterAccess(role)) && (
-              <Link href="/master">
-                <Button variant="ghost" className={navClass("/master")}>
-                  <Calculator className="h-4 w-4 mr-2" />
-                  Logs
-                </Button>
-              </Link>
-            )}
+              {(role === "admin" || role === "master" || hasMasterAccess(role)) && (
+                <Link href="/master">
+                  <Button variant="ghost" className={navClass("/master")}>
+                    <Calculator className="h-4 w-4 mr-2" />
+                    Logs
+                  </Button>
+                </Link>
+              )}
+            </div>
 
             {!isAuthenticated ? (
               <Link href="/login">
@@ -131,10 +134,13 @@ function Navigation() {
                 </Button>
               </Link>
             ) : (
-              <Button variant="destructive" onClick={logout}>
-                <LogOut className="h-4 w-4 mr-2" />
-                Logout
-              </Button>
+              <>
+                <NotificationBell />
+                <Button variant="destructive" onClick={logout}>
+                  <LogOut className="h-4 w-4 mr-2" />
+                  Logout
+                </Button>
+              </>
             )}
           </div>
         </div>

@@ -659,6 +659,54 @@ export const runUserScan = async (
   });
 };
 
+export type InboxNotification = {
+  id: number;
+  type?: string;
+  title: string;
+  body?: string | null;
+  link?: string | null;
+  scan_id?: number | null;
+  match_count?: number | null;
+  trade_date?: string | null;
+  is_read?: boolean;
+  created_at?: string;
+};
+
+export const listNotifications = async (options?: {
+  unreadOnly?: boolean;
+  limit?: number;
+}): Promise<{
+  success: boolean;
+  data: InboxNotification[];
+  unread_count: number;
+}> => {
+  return callApi({
+    url: 'notifications',
+    method: 'GET',
+    params: {
+      unreadOnly: options?.unreadOnly ? true : undefined,
+      limit: options?.limit || 30,
+    },
+  });
+};
+
+export const getNotificationUnreadCount = async (): Promise<{
+  success: boolean;
+  unread_count: number;
+}> => {
+  return callApi({ url: 'notifications/unread-count', method: 'GET' });
+};
+
+export const markNotificationRead = async (
+  id: number | string
+): Promise<any> => {
+  return callApi({ url: `notifications/${id}/read`, method: 'PATCH' });
+};
+
+export const markAllNotificationsRead = async (): Promise<any> => {
+  return callApi({ url: 'notifications/read-all', method: 'POST' });
+};
+
 export const getTechnicalScreener = async (params: Record<string, unknown> = {}): Promise<any> => {
   return callApi<any>({
     url: 'screener/technical',

@@ -219,7 +219,11 @@ export const exportFormulaXlsx = async (req, res) => {
     rows.forEach((row) => {
       const values = {};
       keys.forEach((key) => {
-        values[key] = row[key];
+        const value = row[key];
+        values[key] =
+          key.toLowerCase() === "symbol" && typeof value === "string"
+            ? value.replace(/\.(NS|BSE|BO)$/i, "")
+            : value;
       });
       sheet.addRow(values);
     });

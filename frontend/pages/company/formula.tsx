@@ -174,14 +174,13 @@ export default function Home() {
                 }
               >
                 <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-                  <div>
-                    <h2 className="text-lg font-semibold text-slate-900">
-                      Default formulas
-                    </h2>
-                    <p className="text-sm text-slate-500">
-                      Built-in market signal formulas (buy day, FTD, gaps, and more).
+                  {tradeDate ? (
+                    <p className="text-lg font-semibold tracking-tight text-slate-900">
+                      {String(tradeDate).slice(0, 10)}
                     </p>
-                  </div>
+                  ) : (
+                    <div />
+                  )}
 
                   <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end sm:justify-end">
                     <div className="flex flex-col gap-1">
@@ -365,15 +364,6 @@ export default function Home() {
                   </div>
                 </div>
 
-                {tradeDate ? (
-                  <p className="text-xs text-slate-500">
-                    Trade date:{" "}
-                    <span className="font-medium text-slate-800">
-                      {String(tradeDate).slice(0, 10)}
-                    </span>
-                  </p>
-                ) : null}
-
                 {error && (
                   <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-red-600">
                     {error}
@@ -404,15 +394,6 @@ export default function Home() {
             </TabsContent>
 
             <TabsContent value="custom" className="space-y-6">
-              <div>
-                <h2 className="text-lg font-semibold text-slate-900">
-                  {customView?.title || "Custom formulas"}
-                </h2>
-                <p className="text-sm text-slate-500">
-                  Build and run your own formula, then export the result table.
-                </p>
-              </div>
-
               <CustomFormulaPanel
                 onRunResults={(payload) => {
                   setCustomView(payload);

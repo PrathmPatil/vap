@@ -43,7 +43,10 @@ async function getListedCompanyMap() {
 
 function resolveSymbol(security, companyMap) {
   const key = String(security || '').trim().toLowerCase();
-  return companyMap.get(key) || String(security || '').trim();
+  const mapped = companyMap.get(key) || String(security || '').trim();
+  return String(mapped || '')
+    .trim()
+    .replace(/\.(NS|BSE|BO)$/i, '');
 }
 
 const usableStatusOr = {

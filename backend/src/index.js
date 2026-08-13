@@ -31,6 +31,7 @@ import indicesRoute from './routes/ingestRoutes.js';
 import finnhubRoute from './routes/finnhubRoutes.js';
 import formulaRoutes from './routes/formulaRoutes.js';
 import userScanRoutes from './routes/userScanRoutes.js';
+import notificationRoutes from './routes/notificationRoutes.js';
 import userRoutes from './routes/userRoutes.js';
 import holidayRoutes from './routes/marketHolidayRoutes.js';
 import syncRoutes from './routes/syncRoutes.js';
@@ -69,7 +70,8 @@ import {
   CronLogModel,
   UserFormula,
   UserScan,
-  UserScanAlert
+  UserScanAlert,
+  UserNotification
 } from './models/index.js';
 
 // Init app
@@ -220,8 +222,11 @@ export const startServer = async () => {
 
       await UserScan.sync();
       await UserScanAlert.sync();
+      await UserNotification.sync();
       logger.info('✅ UserScan tables synced.');
       console.log('✅ UserScan tables synced.');
+      logger.info('✅ UserNotification table synced.');
+      console.log('✅ UserNotification table synced.');
 
       const [holidayCount, nseMainboardCount, nseSmeCount] = await Promise.all([
         MarketHolidayModel.count({ where: { is_active: 1 } }),
@@ -310,6 +315,7 @@ app.use('/vap/indices', indicesRoute);
 app.use('/vap/finnhub', finnhubRoute);
 app.use('/vap/formula', formulaRoutes);
 app.use('/vap/scans', userScanRoutes);
+app.use('/vap/notifications', notificationRoutes);
 app.use('/vap/user', userRoutes);
 app.use('/vap/holiday', holidayRoutes);
 app.use('/vap/sync', syncRoutes);

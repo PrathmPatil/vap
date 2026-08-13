@@ -179,6 +179,7 @@ import WatchlistModel from './watchlist.js';
 import UserFormulaModel from './user_formula.js';
 import UserScanModel from './user_scan.js';
 import UserScanAlertModel from './user_scan_alert.js';
+import UserNotificationModel from './user_notification.js';
 
 /* ---------------------------------------------
    INITIALIZE MODELS
@@ -256,6 +257,7 @@ const Watchlist = WatchlistModel(sequelizeStockMarket, DataTypes);
 const UserFormula = UserFormulaModel(sequelizeStockMarket, DataTypes);
 const UserScan = UserScanModel(sequelizeStockMarket, DataTypes);
 const UserScanAlert = UserScanAlertModel(sequelizeStockMarket, DataTypes);
+const UserNotification = UserNotificationModel(sequelizeStockMarket, DataTypes);
 
 /* ---------------------------------------------
    EXPORT EVERYTHING
@@ -320,7 +322,8 @@ export {
   Watchlist,
   UserFormula,
   UserScan,
-  UserScanAlert
+  UserScanAlert,
+  UserNotification
 };
 
 /* Mapping for dynamic routes */

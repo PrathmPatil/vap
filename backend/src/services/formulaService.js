@@ -40,6 +40,27 @@ import { fn, col, where, Op, literal } from 'sequelize';
    TRADE DATE + LISTED COMPANY HELPERS
 ========================================================= */
 
+/** Strip Yahoo/exchange suffixes so UI shows RELIANCE not RELIANCE.NS */
+export const stripExchangeSuffix = (symbol) =>
+  String(symbol || '')
+    .trim()
+    .replace(/\.(NS|BSE|BO)$/i, '');
+
+const withCleanSymbol = (row, nameToSymbol = null) => {
+  if (!row || typeof row !== 'object') return row;
+  const next = { ...row };
+  let symbol = stripExchangeSuffix(next.symbol);
+  if (!symbol && nameToSymbol && next.security) {
+    symbol = resolveListedSymbol(next.security, nameToSymbol) || '';
+  }
+  if (!symbol && next.security) {
+    // Last resort: keep security visible in symbol column rather than blank/null
+    symbol = stripExchangeSuffix(next.security);
+  }
+  if (next.symbol != null || symbol) next.symbol = symbol || null;
+  return next;
+};
+
 /** Exclude MISSING placeholders without dropping real rows where status is NULL/OK. */
 export const prUsableStatusWhere = () =>
   literal(
@@ -157,7 +178,7 @@ const loadListedCompanyMaps = async () => {
 
   for (const company of listedCompanies) {
     const name = String(company.name || '').trim();
-    const symbol = String(company.symbol || '').trim();
+    const symbol = stripExchangeSuffix(company.symbol);
     // Case-insensitive keys — PR.SECURITY often differs only by case from listed names.
     if (name) nameToSymbol.set(name.toLowerCase(), symbol);
     if (symbol) {
@@ -165,6 +186,7 @@ const loadListedCompanyMaps = async () => {
       listedSymbols.add(symbol.toUpperCase());
       symbolToName.set(symbol, name);
       symbolToName.set(symbol.toLowerCase(), name);
+      symbolToName.set(symbol.toUpperCase(), name);
     }
   }
 
@@ -174,9 +196,19 @@ const loadListedCompanyMaps = async () => {
 const resolveListedSymbol = (security, nameToSymbol, { equityOnly = false } = {}) => {
   const key = String(security || '').trim().toLowerCase();
   const mapped = nameToSymbol.get(key);
-  if (mapped) return mapped;
+  if (mapped) return stripExchangeSuffix(mapped);
   if (equityOnly) return null;
-  return String(security || '').trim();
+  return stripExchangeSuffix(security);
+};
+
+const resolveSecurityForSymbol = (symbol, symbolToName) => {
+  const normalized = stripExchangeSuffix(symbol);
+  return (
+    symbolToName.get(normalized) ||
+    symbolToName.get(normalized.toLowerCase()) ||
+    symbolToName.get(normalized.toUpperCase()) ||
+    normalized
+  );
 };
 
 const normalizeChangePercentRange = (minValue, maxValue) => {
@@ -202,11 +234,6 @@ const applyChangePercentFilter = (where, range) => {
     [Op.lte]: range.max,
   };
   return where;
-};
-
-const resolveSecurityForSymbol = (symbol, symbolToName) => {
-  const normalized = String(symbol || '').trim();
-  return symbolToName.get(normalized) || normalized;
 };
 
 export const processFormulaByDate = async ({
@@ -638,7 +665,7 @@ export const generateFollowThroughDayService = async ({
 
     const formattedRows = rows.map((row, index) => ({
       id: offset + index + 1,
-      symbol: row.symbol,
+      symbol: stripExchangeSuffix(row.symbol),
       rally_date: row.rally_date,
       ftd_date: row.ftd_date,
       change_percent: row.change_percent,
@@ -843,7 +870,7 @@ export const generateBuyDayService = async ({
 
     const formattedRows = rows.map((row, index) => ({
       id: offset + index + 1,
-      symbol: row.symbol,
+      symbol: stripExchangeSuffix(row.symbol),
       rally_date: row.rally_date,
       ftd_date: row.ftd_date,
       buy_date: row.buy_date,
@@ -1366,17 +1393,41 @@ export const generateStrongBullishService = async ({
     });
 
     const offset = (currentPage - 1) * itemsPerPage;
+    const { nameToSymbol } = await loadListedCompanyMaps();
 
-    const formattedRows = rows.map((row, index) => ({
-      id: offset + index + 1, // sequential id
-      security: row.security,
-      symbol: row.symbol,
-      open_price: row.open_price,
-      close_price: row.close_price,
-      change_percent: row.change_percent,
-      trade_date: row.trade_date
-      // base_percent: row.base_percent
-    }));
+    const formattedRows = rows.map((row, index) => {
+      const cleaned = withCleanSymbol(row, nameToSymbol);
+      return {
+        id: offset + index + 1,
+        security: cleaned.security,
+        symbol: cleaned.symbol,
+        open_price: cleaned.open_price,
+        close_price: cleaned.close_price,
+        change_percent: cleaned.change_percent,
+        trade_date: cleaned.trade_date,
+      };
+    });
+
+    const patches = rows
+      .map((row, index) => {
+        const symbol = formattedRows[index]?.symbol;
+        if (row.id && symbol && !stripExchangeSuffix(row.symbol)) {
+          return { id: row.id, symbol };
+        }
+        return null;
+      })
+      .filter(Boolean);
+
+    if (patches.length) {
+      await Promise.all(
+        patches.map((patch) =>
+          StrongBullishCandleModel.update(
+            { symbol: patch.symbol },
+            { where: { id: patch.id } }
+          ).catch(() => null)
+        )
+      );
+    }
 
     return {
       success: true,
@@ -1837,10 +1888,17 @@ const applyCompanyValueFilter = (where, model, value, preferredFields) => {
   const companyFields = resolveCompanyFields(model, preferredFields);
   if (!companyFields.length) return;
 
+  const cleaned = stripExchangeSuffix(value);
+  const variants = Array.from(
+    new Set([cleaned, `${cleaned}.NS`, `${cleaned}.BO`, String(value).trim()].filter(Boolean))
+  );
+
+  const fieldClauses = companyFields.flatMap((field) =>
+    variants.map((variant) => ({ [field]: variant }))
+  );
+
   const clause =
-    companyFields.length === 1
-      ? { [companyFields[0]]: value }
-      : { [Op.or]: companyFields.map((field) => ({ [field]: value })) };
+    fieldClauses.length === 1 ? fieldClauses[0] : { [Op.or]: fieldClauses };
 
   where[Op.and] = [...(where[Op.and] || []), clause];
 };
@@ -1940,12 +1998,46 @@ const buildFormulaQuery = async ({
     raw: true
   });
 
+  const needsSymbolBackfill = rows.some(
+    (row) =>
+      Object.prototype.hasOwnProperty.call(row, 'symbol') &&
+      !stripExchangeSuffix(row.symbol) &&
+      row.security
+  );
+  const { nameToSymbol } =
+    needsSymbolBackfill ? await loadListedCompanyMaps() : { nameToSymbol: null };
+
+  const data = [];
+  const symbolPatches = [];
+
+  for (let index = 0; index < rows.length; index += 1) {
+    const raw = rows[index];
+    const cleaned = withCleanSymbol(raw, nameToSymbol);
+    if (
+      raw.id &&
+      cleaned.symbol &&
+      !stripExchangeSuffix(raw.symbol) &&
+      model?.rawAttributes?.symbol
+    ) {
+      symbolPatches.push({ id: raw.id, symbol: cleaned.symbol });
+    }
+    data.push({
+      ...cleaned,
+      id: offset + index + 1,
+    });
+  }
+
+  if (symbolPatches.length) {
+    await Promise.all(
+      symbolPatches.slice(0, 200).map((patch) =>
+        model.update({ symbol: patch.symbol }, { where: { id: patch.id } }).catch(() => null)
+      )
+    );
+  }
+
   return {
     success: true,
-    data: rows.map((row, index) => ({
-      id: offset + index + 1,
-      ...row
-    })),
+    data,
     totalItems: count,
     totalPages: Math.ceil(count / itemsPerPage) || 0,
     currentPage,
@@ -2603,19 +2695,23 @@ export const getFormulaCompaniesService = async (
 
   let companies = rows
     .filter((row) => attributes.some((field) => row[field]))
-    .map((row) => ({
-      symbol: row.symbol || row.security,
-      security: row.security || row.symbol,
-      label:
-        row.symbol && row.security && row.symbol !== row.security
-          ? `${row.symbol} — ${row.security}`
-          : row.symbol || row.security
-    }));
+    .map((row) => {
+      const symbol = stripExchangeSuffix(row.symbol || row.security);
+      const security = row.security || row.symbol;
+      return {
+        symbol,
+        security,
+        label:
+          symbol && security && symbol !== security
+            ? `${symbol} — ${security}`
+            : symbol || security,
+      };
+    });
 
   if (EQUITY_ONLY_FORMULAS.has(formulaType)) {
     const { listedSymbols, nameToSymbol } = await loadListedCompanyMaps();
     companies = companies.filter((company) => {
-      const symbol = String(company.symbol || '').trim();
+      const symbol = stripExchangeSuffix(company.symbol);
       const security = String(company.security || '').trim().toLowerCase();
       return (
         listedSymbols.has(symbol) ||

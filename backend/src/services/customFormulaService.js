@@ -117,7 +117,9 @@ export async function runUserFormula(userId, id, options = {}) {
       const passes = expressionPasses(formula.expression, ctx);
       if (!passes) continue;
       matched.push({
-        symbol: ctx.symbol,
+        symbol: String(ctx.symbol || '')
+          .trim()
+          .replace(/\.(NS|BSE|BO)$/i, ''),
         name: ctx.name,
         security: ctx.security,
         series: ctx.series,

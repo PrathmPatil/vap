@@ -1,10 +1,10 @@
-import { Op } from 'sequelize';
 import { User, UserScan, UserScanAlert } from '../models/index.js';
 import { queryFormulaService } from './formulaService.js';
 import {
   sendEmailNotification,
   sendWhatsAppNotification,
 } from './notificationService.js';
+import { createNotification } from './notificationInboxService.js';
 
 const ensureTables = async () => {
   await UserScan.sync();
@@ -129,6 +129,27 @@ const notifyScan = async (scan, user, result) => {
   const deliveries = [];
   const emailTo = scan.alert_email || user?.email;
   const whatsappTo = scan.alert_whatsapp || user?.whatsappNumber || user?.phoneNumber;
+  const tradeDate = result.trade_date || result.latest_date || null;
+
+  try {
+    await createNotification({
+      userId: scan.user_id,
+      type: 'scan_alert',
+      title: scan.name || 'Scan alert',
+      body: message,
+      link: '/company/formula',
+      scanId: scan.id,
+      matchCount: result.totalItems || 0,
+      tradeDate,
+    });
+    deliveries.push({ channel: 'in_app', status: 'sent' });
+  } catch (error) {
+    deliveries.push({
+      channel: 'in_app',
+      status: 'failed',
+      message: error.message,
+    });
+  }
 
   if (scan.notify_email) {
     const emailResult = await sendEmailNotification({
@@ -193,7 +214,7 @@ export async function runUserScan(userId, id, { notify = false } = {}) {
   const user = await User.findByPk(userId);
   let notification = null;
 
-  if (notify && (scan.notify_email || scan.notify_whatsapp)) {
+  if (notify) {
     notification = await notifyScan(scan, user, result);
   } else {
     await scan.update({
@@ -213,10 +234,7 @@ export async function runUserScan(userId, id, { notify = false } = {}) {
 export async function dispatchActiveScanAlerts() {
   await ensureTables();
   const scans = await UserScan.findAll({
-    where: {
-      is_active: true,
-      [Op.or]: [{ notify_email: true }, { notify_whatsapp: true }],
-    },
+    where: { is_active: true },
   });
 
   const summary = [];

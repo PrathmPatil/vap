@@ -246,11 +246,23 @@ export default function CustomFormulaPanel({
               key,
               label: key.replace(/_/g, " ").toUpperCase(),
               sortable: true,
+              format: (value: any) => {
+                if (
+                  key.toLowerCase() === "symbol" ||
+                  key.toLowerCase().endsWith("_symbol")
+                ) {
+                  return String(value ?? "").replace(/\.(NS|BSE|BO)$/i, "");
+                }
+                return value;
+              },
             }))
         : [];
       onRunResults({
         columns,
-        data: rows,
+        data: rows.map((row: any) => ({
+          ...row,
+          symbol: String(row?.symbol ?? "").replace(/\.(NS|BSE|BO)$/i, ""),
+        })),
         totalPages: res?.pages || 1,
         totalItems: res?.total || 0,
         title: `Custom: ${formulaName} (${res?.as_of || ""})`,

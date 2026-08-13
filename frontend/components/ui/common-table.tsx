@@ -22,13 +22,6 @@ import {
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -166,13 +159,21 @@ export default function CommonTable({
     }
   };
 
-  const handleItemsPerPageChange = (value: string) => {
-    const newItemsPerPage = parseInt(value, 10);
-    if (setItemsPerPage) {
-      setItemsPerPage(newItemsPerPage);
-      setCurrentPage(1); // Reset to first page
+  const pageSizeOptions = React.useMemo(() => {
+    const base = [5, 10, 20, 25, 50, 100];
+    let options = base.filter(
+      (size) =>
+        (pageSizeMin == null || size >= pageSizeMin) &&
+        (pageSizeMax == null || size <= pageSizeMax)
+    );
+    if (pageSizeMax != null && pageSizeMax <= 50 && !options.includes(pageSizeMax)) {
+      options = [...options, pageSizeMax].sort((a, b) => a - b);
     }
-  };
+    if (itemsPerPage && !options.includes(itemsPerPage)) {
+      options = [...options, itemsPerPage].sort((a, b) => a - b);
+    }
+    return options.length ? options : [10, 25, 50];
+  }, [pageSizeMin, pageSizeMax, itemsPerPage]);
 
   const renderCellContent = (row: any, column: ColumnConfig) => {
     const value = row[column.key];
@@ -248,45 +249,6 @@ export default function CommonTable({
                 {exportLabel}
               </Button>
             )}
-            
-            {setItemsPerPage && pageSizeMin != null && pageSizeMax != null ? (
-              <label className="inline-flex items-center gap-2 text-xs text-slate-500">
-                <span>Per page</span>
-                <Input
-                  type="number"
-                  min={pageSizeMin}
-                  max={pageSizeMax}
-                  value={itemsPerPage}
-                  className="h-8 w-16 px-2 text-xs"
-                  onChange={(event) => {
-                    const next = Number(event.target.value);
-                    if (!Number.isFinite(next)) return;
-                    const clamped = Math.min(
-                      pageSizeMax,
-                      Math.max(pageSizeMin, Math.trunc(next))
-                    );
-                    setItemsPerPage(clamped);
-                    setCurrentPage(1);
-                  }}
-                />
-              </label>
-            ) : setItemsPerPage ? (
-              <Select
-                value={itemsPerPage.toString()}
-                onValueChange={handleItemsPerPageChange}
-              >
-                <SelectTrigger className="w-24">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {[5, 10, 20, 50, 100].map(size => (
-                    <SelectItem key={size} value={size.toString()}>
-                      {size} / page
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            ) : null}
           </div>
         </div>
       )}
@@ -366,7 +328,7 @@ export default function CommonTable({
         </div>
       </div>
 
-      {totalPages > 1 && (
+      {(totalPages > 1 || Boolean(setItemsPerPage)) && (
         <div className="border-t px-1 py-2.5">
           <Pagination
             currentPage={currentPage}
@@ -374,6 +336,15 @@ export default function CommonTable({
             totalRecords={total}
             onPageChange={handlePageChange}
             pageSize={itemsPerPage}
+            pageSizeOptions={pageSizeOptions}
+            onPageSizeChange={
+              setItemsPerPage
+                ? (size) => {
+                    setItemsPerPage(size);
+                    setCurrentPage(1);
+                  }
+                : undefined
+            }
           />
         </div>
       )}

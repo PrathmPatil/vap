@@ -107,6 +107,12 @@ export const useMarketSignalsData = () => {
         sortable: true,
         searchable: true,
         format: (value: any) => {
+          if (
+            key.toLowerCase() === "symbol" ||
+            key.toLowerCase().endsWith("_symbol")
+          ) {
+            return String(value ?? "").replace(/\.(NS|BSE|BO)$/i, "");
+          }
           if (key.includes("price")) return `₹${Number(value).toFixed(2)}`;
           if (key.includes("percent")) return `${Number(value).toFixed(2)}%`;
           return value;
