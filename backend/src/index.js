@@ -66,6 +66,7 @@ import {
   FiftyTwoWeekLowModel,
   DailyMoverUpModel,
   DailyMoverDownModel,
+  RsRankModel,
   MarketHolidayModel,
   CronLogModel,
   UserFormula,
@@ -78,20 +79,30 @@ import {
 const app = express();
 
 // ==========================================
-// CORS (FIXED)
+// CORS
 // ==========================================
+const allowedOrigins = new Set([
+  'http://44.199.57.0:3000',
+  'http://44.199.57.0',
+  'http://trendtraders.in',
+  'https://trendtraders.in',
+]);
+
+const isLocalDevOrigin = (origin) =>
+  /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin);
+
 app.use(
   cors({
-    origin: [
-      'http://localhost:3000',
-      'http://44.199.57.0:3000',
-      'http://44.199.57.0',
-      'http://trendtraders.in',
-      'https://trendtraders.in'
-    ],
-    methods: ['GET', 'POST', 'PUT', 'DELETE'],
-    credentials: true
-  })
+    origin(origin, callback) {
+      if (!origin || allowedOrigins.has(origin) || isLocalDevOrigin(origin)) {
+        callback(null, true);
+        return;
+      }
+      callback(new Error(`CORS blocked for origin: ${origin}`));
+    },
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    credentials: true,
+  }),
 );
 
 app.use(helmet());
@@ -197,6 +208,7 @@ export const startServer = async () => {
       await FiftyTwoWeekLowModel.sync();
       await DailyMoverUpModel.sync();
       await DailyMoverDownModel.sync();
+      await RsRankModel.sync();
       logger.info('✅ Extended formula tables synced.');
       console.log('✅ Extended formula tables synced.');
 

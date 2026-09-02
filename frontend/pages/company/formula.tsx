@@ -26,6 +26,9 @@ import MyScanPanel from "@/components/MyScanPanel";
 import { exportRowsToCsv } from "@/lib/exportData";
 import { useAuth } from "@/context/AuthContext";
 import { hasMasterAccess } from "@/lib/authRoles";
+import { useRouter } from "next/router";
+import { Badge } from "@/components/ui/badge";
+import { Crown } from "lucide-react";
 
 function slugForFilename(value: string) {
   return (
@@ -36,6 +39,18 @@ function slugForFilename(value: string) {
       .replace(/^-+|-+$/g, "")
       .slice(0, 80) || "formula"
   );
+}
+
+function formatTradeDate(value: string | null | undefined) {
+  const raw = String(value || "").slice(0, 10);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw || "";
+  const [year, month, day] = raw.split("-");
+  const d = new Date(Number(year), Number(month) - 1, Number(day));
+  return d.toLocaleDateString("en-IN", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
 }
 
 type FormulaTab = "default" | "custom" | "my-scan";
@@ -70,13 +85,30 @@ export default function Home() {
     changeSort,
     setChangeSort,
     usesChangePercent,
+    bodyPercent,
+    setBodyPercent,
+    volumeRatioMin,
+    setVolumeRatioMin,
+    minRsRank,
+    setMinRsRank,
+    usesBodyPercent,
+    usesVolumeRatio,
+    usesRsRankFilter,
+    usesSortControls,
   } = useMarketSignalsData();
-  const { role } = useAuth();
+  const router = useRouter();
+  const { role, authLoading, isAuthenticated, isSubscribed } = useAuth();
   const canUseMyScan = hasMasterAccess(role);
+
+  useEffect(() => {
+    if (authLoading) return;
+    if (!isAuthenticated || !isSubscribed) {
+      router.replace("/subscription");
+    }
+  }, [authLoading, isAuthenticated, isSubscribed, router]);
 
   const [tab, setTab] = useState<FormulaTab>("default");
   const [prefs, setPrefs] = useState<FormulaPrefs>({ favorites: [], pinned: [] });
-  const [formulaSearch, setFormulaSearch] = useState("");
   const [customView, setCustomView] = useState<{
     columns: any[];
     data: any[];
@@ -98,8 +130,8 @@ export default function Home() {
   }, [canUseMyScan, tab]);
 
   const orderedFormulas = useMemo(
-    () => orderFormulas(FORMULA_CATALOG, prefs, formulaSearch),
-    [prefs, formulaSearch]
+    () => orderFormulas(FORMULA_CATALOG, prefs),
+    [prefs]
   );
 
   const activeFormula = selectedFilters[0] || "";
@@ -126,12 +158,17 @@ export default function Home() {
     });
   };
 
-  if (loading && !data.length && !columns && tab === "default" && !customView) {
+  if (
+    (loading && !data.length && !columns && tab === "default" && !customView) ||
+    authLoading ||
+    !isAuthenticated ||
+    !isSubscribed
+  ) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
         <Navigation />
         <main className="container mx-auto px-4 py-8">
-          <PageLoader inline message="Loading formulas…" />
+          <PageLoader inline message="Loading Premium Scanner…" />
         </main>
       </div>
     );
@@ -144,9 +181,17 @@ export default function Home() {
 
         <main className="container mx-auto px-4 py-8">
           <div className="mb-6">
-            <h1 className="text-2xl font-bold text-slate-900">Formula Signals</h1>
+            <div className="flex flex-wrap items-center gap-3">
+              <h1 className="text-2xl font-bold text-slate-900">
+                Premium Scanner
+              </h1>
+              <Badge className="border-amber-200 bg-amber-100 text-amber-900 hover:bg-amber-100">
+                <Crown className="mr-1 h-3.5 w-3.5" />
+                Premium
+              </Badge>
+            </div>
             <p className="mt-1 text-sm text-slate-500">
-              Switch between system defaults and your custom formulas.
+              Run system scanners or your custom screens on NSE/BSE data.
             </p>
           </div>
 
@@ -160,8 +205,8 @@ export default function Home() {
                 canUseMyScan ? "max-w-xl grid-cols-3" : "max-w-md grid-cols-2"
               }`}
             >
-              <TabsTrigger value="default">Default</TabsTrigger>
-              <TabsTrigger value="custom">Custom</TabsTrigger>
+              <TabsTrigger value="default">Premium scanners</TabsTrigger>
+              <TabsTrigger value="custom">Custom scanners</TabsTrigger>
               {canUseMyScan ? (
                 <TabsTrigger value="my-scan">My Scan</TabsTrigger>
               ) : null}
@@ -173,41 +218,27 @@ export default function Home() {
                   loading ? "pointer-events-none space-y-6 opacity-50" : "space-y-6"
                 }
               >
-                <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+                <div className="space-y-3">
                   {tradeDate ? (
-                    <p className="text-lg font-semibold tracking-tight text-slate-900">
-                      {String(tradeDate).slice(0, 10)}
+                    <p className="text-base font-semibold tabular-nums tracking-tight text-slate-900">
+                      {formatTradeDate(tradeDate)}
                     </p>
-                  ) : (
-                    <div />
-                  )}
+                  ) : null}
 
-                  <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end sm:justify-end">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
                     <div className="flex flex-col gap-1">
                       <label className="text-xs font-medium text-slate-600">
-                        Search formulas
-                      </label>
-                      <Input
-                        value={formulaSearch}
-                        onChange={(e) => setFormulaSearch(e.target.value)}
-                        placeholder="Type to filter…"
-                        className="w-[220px]"
-                      />
-                    </div>
-
-                    <div className="flex flex-col gap-1">
-                      <label className="text-xs font-medium text-slate-600">
-                        Formula
+                        Scanner
                       </label>
                       <div className="flex items-center gap-2">
                         <Select
                           value={activeFormula}
                           onValueChange={setSelectedFilters}
                         >
-                          <SelectTrigger className="w-[240px]">
-                            <SelectValue placeholder="Select a formula" />
+                          <SelectTrigger className="w-[280px]">
+                            <SelectValue placeholder="Select a scanner" />
                           </SelectTrigger>
-                          <SelectContent>
+                          <SelectContent className="max-h-[min(24rem,var(--radix-select-content-available-height))]">
                             {orderedFormulas.map((formula) => (
                               <SelectItem key={formula.value} value={formula.value}>
                                 {(prefs.pinned.includes(formula.value)
@@ -225,7 +256,7 @@ export default function Home() {
                           type="button"
                           variant="outline"
                           size="icon"
-                          title="Pin formula"
+                          title="Pin scanner"
                           onClick={() =>
                             activeFormula && togglePinned(activeFormula)
                           }
@@ -243,7 +274,7 @@ export default function Home() {
                           type="button"
                           variant="outline"
                           size="icon"
-                          title="Favorite formula"
+                          title="Favorite scanner"
                           onClick={() =>
                             activeFormula && toggleFavorite(activeFormula)
                           }
@@ -312,6 +343,60 @@ export default function Home() {
                       </div>
                     )}
 
+                    {usesBodyPercent && (
+                      <div className="flex flex-col gap-1">
+                        <label className="text-xs font-medium text-slate-600">
+                          Body % of range
+                        </label>
+                        <Input
+                          type="number"
+                          min={0}
+                          step={1}
+                          className="w-[120px]"
+                          value={bodyPercent}
+                          onChange={(e) =>
+                            setBodyPercent(Number(e.target.value))
+                          }
+                        />
+                      </div>
+                    )}
+
+                    {usesVolumeRatio && (
+                      <div className="flex flex-col gap-1">
+                        <label className="text-xs font-medium text-slate-600">
+                          Volume ratio (min)
+                        </label>
+                        <Input
+                          type="number"
+                          min={1}
+                          step={0.1}
+                          className="w-[120px]"
+                          value={volumeRatioMin}
+                          onChange={(e) =>
+                            setVolumeRatioMin(Number(e.target.value))
+                          }
+                        />
+                      </div>
+                    )}
+
+                    {usesRsRankFilter && (
+                      <div className="flex flex-col gap-1">
+                        <label className="text-xs font-medium text-slate-600">
+                          Min RS rank
+                        </label>
+                        <Input
+                          type="number"
+                          min={1}
+                          max={99}
+                          step={1}
+                          className="w-[120px]"
+                          value={minRsRank}
+                          onChange={(e) => setMinRsRank(e.target.value)}
+                          placeholder="e.g. 80"
+                        />
+                      </div>
+                    )}
+
                     {usesChangePercent && (
                       <>
                         <div className="flex flex-col gap-1">
@@ -340,28 +425,40 @@ export default function Home() {
                             placeholder="High/low"
                           />
                         </div>
-                        <div className="flex flex-col gap-1">
-                          <label className="text-xs font-medium text-slate-600">
-                            Change order
-                          </label>
-                          <Select
-                            value={changeSort}
-                            onValueChange={(value) =>
-                              setChangeSort(value as "asc" | "desc")
-                            }
-                          >
-                            <SelectTrigger className="w-[150px]">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="desc">High to low</SelectItem>
-                              <SelectItem value="asc">Low to high</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
                       </>
                     )}
+
+                    {usesSortControls && (
+                      <div className="flex flex-col gap-1">
+                        <label className="text-xs font-medium text-slate-600">
+                          Sort order
+                        </label>
+                        <Select
+                          value={changeSort}
+                          onValueChange={(value) =>
+                            setChangeSort(value as "asc" | "desc")
+                          }
+                        >
+                          <SelectTrigger className="w-[150px]">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="desc">High to low</SelectItem>
+                            <SelectItem value="asc">Low to high</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
                   </div>
+
+                  {activeFormula === "rs-rank" ? (
+                    <p className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
+                      Shows stocks outperforming <strong>Nifty 50</strong> and{" "}
+                      <strong>Nifty 500 (CNX500)</strong> over 21 and 55 trading
+                      days. All four relative-strength values must be greater
+                      than 0. Rank 1–99 is based on the composite score.
+                    </p>
+                  ) : null}
                 </div>
 
                 {error && (
@@ -443,7 +540,7 @@ export default function Home() {
                 />
               ) : (
                 <div className="rounded-xl border border-dashed border-slate-300 bg-white/60 px-6 py-12 text-center text-sm text-slate-500">
-                  Run a custom formula above to see results here.
+                  Run a custom scanner above to see results here.
                 </div>
               )}
             </TabsContent>
@@ -453,7 +550,7 @@ export default function Home() {
                 <div>
                   <h2 className="text-lg font-semibold text-slate-900">My Scan</h2>
                   <p className="text-sm text-slate-500">
-                    Save the current formula filters and get Email or WhatsApp alerts.
+                    Save the current scanner filters and get Email or WhatsApp alerts.
                   </p>
                 </div>
                 <MyScanPanel

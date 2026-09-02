@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-const publicRoutes = ["/login", "/news", "/ipo", "/", "/dashboard"];
+const publicRoutes = ["/login", "/news", "/ipo", "/", "/dashboard", "/subscription"];
 
 function getRoleFromToken(token?: string): string {
   if (!token) return "";
@@ -31,12 +31,21 @@ export function middleware(request: NextRequest) {
 
   const isPublicRoute = publicRoutes.includes(pathname);
 
+  // Premium Scanner: guests see subscription first, not login
+  if (!token && pathname.startsWith("/company/formula")) {
+    return NextResponse.redirect(new URL("/subscription", request.url));
+  }
+
+  if (!token && pathname.startsWith("/explore")) {
+    return NextResponse.redirect(new URL("/login", request.url));
+  }
+
   if (!token && !isPublicRoute) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
   if (token && pathname === "/login") {
-    return NextResponse.redirect(new URL("/", request.url));
+    return NextResponse.redirect(new URL("/subscription", request.url));
   }
 
   // Logs / master console: admin or master only
@@ -62,5 +71,7 @@ export const config = {
     "/master/:path*",
     "/company/:path*",
     "/company/formula",
+    "/subscription",
+    "/explore",
   ],
 };

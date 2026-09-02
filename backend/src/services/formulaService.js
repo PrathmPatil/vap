@@ -16,7 +16,8 @@ import {
   TopLoserDayModel,
   FiftyTwoWeekLowModel,
   DailyMoverUpModel,
-  DailyMoverDownModel
+  DailyMoverDownModel,
+  RsRankModel
 } from '../models/index.js';
 
 import {
@@ -81,6 +82,9 @@ export const prSourceDateWhere = (tradeDate) => ({
 export const bhSourceDateWhere = (tradeDate) => ({
   [Op.and]: [where(fn('DATE', col('source_date')), tradeDate)],
 });
+
+const formulaTradeDateWhere = (dateField, tradeDate) =>
+  where(fn('DATE', col(dateField)), tradeDate);
 
 export const normalizeTradeDate = (value) => {
   if (!value) return null;
@@ -224,6 +228,37 @@ const normalizeChangePercentRange = (minValue, maxValue) => {
     min: Math.min(minNum, maxNum),
     max: Math.max(minNum, maxNum),
   };
+};
+
+const normalizeFormulaParams = (input = {}) => {
+  if (typeof input === 'number' || typeof input === 'string') {
+    const basePercent = Number(input) || 2;
+    return {
+      basePercent,
+      bodyPercent: 80,
+      volumeRatioMin: 2,
+      minRsRank: null,
+    };
+  }
+
+  const src = input || {};
+  const minRsRankRaw = src.minRsRank ?? src.min_rs_rank ?? null;
+  const minRsRank =
+    minRsRankRaw === '' || minRsRankRaw == null ? null : Number(minRsRankRaw);
+
+  return {
+    basePercent: Number(src.basePercent ?? src.base_percent ?? 2),
+    bodyPercent: Number(src.bodyPercent ?? src.body_percent ?? 80),
+    volumeRatioMin: Number(src.volumeRatioMin ?? src.volume_ratio_min ?? 2),
+    minRsRank: Number.isFinite(minRsRank) ? minRsRank : null,
+  };
+};
+
+const applyRsRankMinFilter = (where, minRsRank) => {
+  const minValue =
+    minRsRank == null || minRsRank === '' ? null : Number(minRsRank);
+  if (!Number.isFinite(minValue)) return;
+  where.rs_rank = { ...(where.rs_rank || {}), [Op.gte]: minValue };
 };
 
 const applyChangePercentFilter = (where, range) => {
@@ -1037,6 +1072,7 @@ const runFormulaEngineServiceLocked = async ({
           itemsPerPage: 10000,
           searchTerm: '',
           base_percent: 2,
+          body_percent: 80,
           targetDate: tradeDate
         })
     },
@@ -1158,6 +1194,19 @@ const runFormulaEngineServiceLocked = async ({
           currentPage: 1,
           itemsPerPage: 10000,
           searchTerm: '',
+          volume_ratio_min: 2,
+          targetDate: tradeDate
+        })
+    },
+    {
+      key: 'rs_rank',
+      label: 'Relative Strength Rank',
+      dependsOn: [],
+      execute: () =>
+        generateRsRankService({
+          currentPage: 1,
+          itemsPerPage: 10000,
+          searchTerm: '',
           targetDate: tradeDate
         })
     },
@@ -1186,7 +1235,7 @@ const runFormulaEngineServiceLocked = async ({
     },
     {
       key: 'buy_day',
-      label: 'Buy Day',
+      label: 'Action Day',
       dependsOn: ['follow_through_day'],
       execute: () =>
         generateBuyDayService({
@@ -1294,6 +1343,7 @@ export const generateStrongBullishService = async ({
   itemsPerPage = 10,
   searchTerm = '',
   base_percent = 2,
+  body_percent = 80,
   targetDate = null
 }) => {
   try {
@@ -1319,7 +1369,11 @@ export const generateStrongBullishService = async ({
     -------------------------------- */
 
     const existingCount = await StrongBullishCandleModel.count({
-      where: { trade_date: latestDate, base_percent }
+      where: {
+        base_percent,
+        body_percent,
+        [Op.and]: [formulaTradeDateWhere('trade_date', latestDate)],
+      },
     });
 
     /* --------------------------------
@@ -1332,7 +1386,14 @@ export const generateStrongBullishService = async ({
       /* -------- FETCH PR DATA -------- */
 
       const stocks = await PR.findAll({
-        attributes: ['SECURITY', 'OPEN_PRICE', 'CLOSE_PRICE', 'source_date'],
+        attributes: [
+          'SECURITY',
+          'OPEN_PRICE',
+          'CLOSE_PRICE',
+          'HIGH_PRICE',
+          'LOW_PRICE',
+          'source_date',
+        ],
         where: prSourceDateWhere(latestDate),
         raw: true
       });
@@ -1342,6 +1403,8 @@ export const generateStrongBullishService = async ({
       for (const stock of stocks) {
         const open = Number(stock.OPEN_PRICE);
         const close = Number(stock.CLOSE_PRICE);
+        const high = Number(stock.HIGH_PRICE);
+        const low = Number(stock.LOW_PRICE);
 
         if (!open || !close) continue;
 
@@ -1351,17 +1414,31 @@ export const generateStrongBullishService = async ({
         if (!symbol) continue;
 
         const percent = ((close - open) / open) * 100;
-        if (percent >= base_percent) {
-          bullishStocks.push({
-            security: stock.SECURITY,
-            symbol,
-            trade_date: latestDate,
-            open_price: open,
-            close_price: close,
-            change_percent: percent,
-            base_percent
-          });
+        if (percent < base_percent) continue;
+
+        const body = close - open;
+        const range = high - low;
+        let bodyToRangePercent = null;
+
+        if (body_percent > 0) {
+          if (!high || !low || range <= 0) continue;
+          bodyToRangePercent = (body / range) * 100;
+          if (bodyToRangePercent < body_percent) continue;
         }
+
+        bullishStocks.push({
+          security: stock.SECURITY,
+          symbol,
+          trade_date: latestDate,
+          open_price: open,
+          close_price: close,
+          high_price: high || null,
+          low_price: low || null,
+          change_percent: percent,
+          body_to_range_percent: bodyToRangePercent,
+          base_percent,
+          body_percent,
+        });
       }
 
       if (bullishStocks.length) {
@@ -1374,8 +1451,9 @@ export const generateStrongBullishService = async ({
     -------------------------------- */
 
     const whereCondition = {
-      trade_date: latestDate,
-      base_percent
+      base_percent,
+      body_percent,
+      [Op.and]: [formulaTradeDateWhere('trade_date', latestDate)],
     };
 
     if (searchTerm) {
@@ -1456,6 +1534,7 @@ export const generateVolumeBreakoutService = async ({
   currentPage = 1,
   itemsPerPage = 10,
   searchTerm = '',
+  volume_ratio_min = 2,
   targetDate = null
 }) => {
   await VolumeBreakoutModel.sync();
@@ -1471,17 +1550,18 @@ export const generateVolumeBreakoutService = async ({
   }
 
   const existingCount = await VolumeBreakoutModel.count({
-    where: { trade_date: latestDate },
+    where: {
+      volume_ratio_min,
+      [Op.and]: [formulaTradeDateWhere('trade_date', latestDate)],
+    },
   });
 
   if (existingCount === 0) {
-    // Single bulk query: for each security, rank rows by source_date DESC and pick latest 11.
-    // This replaces N per-security queries with one SQL window-function query.
+    const { nameToSymbol } = await loadListedCompanyMaps();
     const sequelize = PR.sequelize;
     const breakoutStocks = [];
 
     const { QueryTypes } = await import('sequelize');
-    // QueryTypes.SELECT returns the rows array directly (not [rows, metadata]).
     const rows = await sequelize.query(
       `
       SELECT *
@@ -1500,7 +1580,6 @@ export const generateVolumeBreakoutService = async ({
       { replacements: { latestDate }, type: QueryTypes.SELECT }
     );
 
-    // Group by security
     const bySecurity = {};
     for (const row of rows || []) {
       if (!bySecurity[row.SECURITY]) bySecurity[row.SECURITY] = [];
@@ -1508,8 +1587,13 @@ export const generateVolumeBreakoutService = async ({
     }
 
     for (const [security, history] of Object.entries(bySecurity)) {
+      const symbol = resolveListedSymbol(security, nameToSymbol, {
+        equityOnly: true,
+      });
+      if (!symbol) continue;
+
       if (history.length < 11) continue;
-      // Already sorted DESC by rn
+      history.sort((a, b) => Number(a.rn) - Number(b.rn));
       const today = history[0];
       const prev = history[1];
       const todayDate = normalizeTradeDate(today.source_date);
@@ -1518,15 +1602,21 @@ export const generateVolumeBreakoutService = async ({
       const avgVolume =
         history.slice(1).reduce((sum, row) => sum + Number(row.NET_TRDQTY), 0) / 10;
       const todayVolume = Number(today.NET_TRDQTY);
+      const ratio = avgVolume > 0 ? todayVolume / avgVolume : 0;
 
-      if (todayVolume >= avgVolume * 2 && Number(today.CLOSE_PRICE) > Number(prev.CLOSE_PRICE)) {
+      if (
+        ratio >= volume_ratio_min &&
+        Number(today.CLOSE_PRICE) > Number(prev.CLOSE_PRICE)
+      ) {
         breakoutStocks.push({
           security,
+          symbol,
           trade_date: todayDate,
           close_price: today.CLOSE_PRICE,
           volume: todayVolume,
           avg_volume_10d: avgVolume,
-          volume_ratio: todayVolume / avgVolume,
+          volume_ratio: ratio,
+          volume_ratio_min,
         });
       }
     }
@@ -1538,7 +1628,10 @@ export const generateVolumeBreakoutService = async ({
     }
   }
 
-  const whereCondition = { trade_date: latestDate };
+  const whereCondition = {
+    volume_ratio_min,
+    [Op.and]: [formulaTradeDateWhere('trade_date', latestDate)],
+  };
   if (searchTerm) {
     whereCondition.security = { [Op.like]: `%${searchTerm}%` };
   }
@@ -1556,6 +1649,358 @@ export const generateVolumeBreakoutService = async ({
   const data = rows.map((row, index) => ({
     id: offset + index + 1,
     ...row,
+  }));
+
+  return {
+    success: true,
+    data,
+    latest_date: latestDate,
+    totalItems: count,
+    currentPage,
+    itemsPerPage,
+    totalPages: Math.ceil(count / itemsPerPage) || 1,
+  };
+};
+
+const RS_BENCHMARK_LOOKBACKS = {
+  short: 21,
+  long: 55,
+};
+
+const RS_INDEX_SECURITIES = {
+  nifty: 'Nifty 50',
+  cnx500: 'Nifty 500',
+};
+
+const parsePrClose = (value) => {
+  const parsed = Number(String(value ?? '').trim());
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+};
+
+const pctReturn = (current, past) => {
+  if (current == null || past == null || past <= 0) return null;
+  return ((current - past) / past) * 100;
+};
+
+const relativeStrengthVsIndex = (stockNow, stockPast, indexNow, indexPast) => {
+  const stockRet = pctReturn(stockNow, stockPast);
+  const indexRet = pctReturn(indexNow, indexPast);
+  if (stockRet == null || indexRet == null) return null;
+  return stockRet - indexRet;
+};
+
+const loadIndexCloseHistory = async (sequelize, latestDate, security, maxRows = 70) => {
+  const { QueryTypes } = await import('sequelize');
+  const rows = await sequelize.query(
+    `
+    SELECT source_date, CLOSE_PRICE, rn
+    FROM (
+      SELECT
+        source_date,
+        CLOSE_PRICE,
+        ROW_NUMBER() OVER (ORDER BY source_date DESC) AS rn
+      FROM \`pr\`
+      WHERE SECURITY = :security
+        AND CLOSE_PRICE IS NOT NULL
+        AND DATE(source_date) <= :latestDate
+    ) ranked
+    WHERE rn <= :maxRows
+    ORDER BY rn ASC
+    `,
+    {
+      replacements: { security, latestDate, maxRows },
+      type: QueryTypes.SELECT,
+    }
+  );
+
+  const byDate = new Map();
+  const byOffset = new Map();
+
+  for (const row of rows || []) {
+    const tradeDate = normalizeTradeDate(row.source_date);
+    const close = parsePrClose(row.CLOSE_PRICE);
+    if (!tradeDate || close == null) continue;
+    const offset = Number(row.rn) - 1;
+    byDate.set(tradeDate, close);
+    byOffset.set(offset, { tradeDate, close });
+  }
+
+  return { byDate, byOffset };
+};
+
+const computeBenchmarkRelativeStrength = (
+  stockHistory,
+  indexHistory,
+  lookbackDays
+) => {
+  const offset = lookbackDays;
+  const stockNow = parsePrClose(stockHistory.byOffset.get(0)?.close);
+  const stockPast = parsePrClose(stockHistory.byOffset.get(offset)?.close);
+  const stockPastDate = stockHistory.byOffset.get(offset)?.tradeDate;
+
+  if (stockNow == null || stockPast == null || !stockPastDate) return null;
+
+  const indexNow = indexHistory.byDate.get(stockHistory.byOffset.get(0)?.tradeDate);
+  const indexPast = indexHistory.byDate.get(stockPastDate);
+
+  return relativeStrengthVsIndex(stockNow, stockPast, indexNow, indexPast);
+};
+
+const buildStockCloseHistory = (historyRows, latestDate) => {
+  const sorted = [...historyRows].sort(
+    (a, b) => Number(a.rn) - Number(b.rn)
+  );
+  const byOffset = new Map();
+
+  for (const row of sorted) {
+    const offset = Number(row.rn) - 1;
+    const tradeDate = normalizeTradeDate(row.source_date);
+    const close = parsePrClose(row.CLOSE_PRICE);
+    if (!tradeDate || close == null) continue;
+    byOffset.set(offset, { tradeDate, close });
+  }
+
+  const today = byOffset.get(0);
+  if (!today || today.tradeDate !== latestDate) {
+    return null;
+  }
+
+  return { byOffset };
+};
+
+const passesExcelRsFilters = (row) =>
+  row.rs_21_nifty > 0 &&
+  row.rs_55_nifty > 0 &&
+  row.rs_21_cnx500 > 0 &&
+  row.rs_55_cnx500 > 0;
+
+const percentileRsRank = (scores) => {
+  const sorted = [...scores].sort((a, b) => a.rs_score - b.rs_score);
+  const n = sorted.length;
+  if (n <= 1) return new Map();
+
+  const rankMap = new Map();
+  for (const item of sorted) {
+    const below = sorted.filter((entry) => entry.rs_score < item.rs_score).length;
+    const rank = Math.min(99, Math.max(1, Math.round((below / (n - 1)) * 99)));
+    rankMap.set(item.security, rank);
+  }
+  return rankMap;
+};
+
+/* =========================================================
+  RELATIVE STRENGTH RANK (NIFTY / CNX500) ENGINE
+========================================================= */
+export const generateRsRankService = async ({
+  currentPage = 1,
+  itemsPerPage = 10,
+  searchTerm = '',
+  targetDate = null,
+  minRsRank = null,
+  requireAllRsPositive = true,
+}) => {
+  await RsRankModel.sync();
+  await PR.sync();
+
+  const latestDate = await resolveTradeDate(targetDate);
+  if (!latestDate) {
+    return {
+      success: false,
+      data: [],
+      message: 'No PR data found',
+    };
+  }
+
+  const existingCount = await RsRankModel.count({
+    where: { trade_date: latestDate },
+  });
+
+  const staleRows =
+    existingCount > 0
+      ? await RsRankModel.count({
+          where: {
+            trade_date: latestDate,
+            rs_21_nifty: { [Op.is]: null },
+          },
+        })
+      : 0;
+
+  if (existingCount === 0 || staleRows > 0) {
+    if (staleRows > 0) {
+      await RsRankModel.destroy({ where: { trade_date: latestDate } });
+    }
+
+    const { nameToSymbol } = await loadListedCompanyMaps();
+    const sequelize = PR.sequelize;
+    const { QueryTypes } = await import('sequelize');
+
+    const [niftyHistory, cnx500History] = await Promise.all([
+      loadIndexCloseHistory(
+        sequelize,
+        latestDate,
+        RS_INDEX_SECURITIES.nifty,
+        RS_BENCHMARK_LOOKBACKS.long + 5
+      ),
+      loadIndexCloseHistory(
+        sequelize,
+        latestDate,
+        RS_INDEX_SECURITIES.cnx500,
+        RS_BENCHMARK_LOOKBACKS.long + 5
+      ),
+    ]);
+
+    if (
+      !niftyHistory.byOffset.has(RS_BENCHMARK_LOOKBACKS.short) ||
+      !niftyHistory.byOffset.has(RS_BENCHMARK_LOOKBACKS.long) ||
+      !cnx500History.byOffset.has(RS_BENCHMARK_LOOKBACKS.short) ||
+      !cnx500History.byOffset.has(RS_BENCHMARK_LOOKBACKS.long)
+    ) {
+      return {
+        success: false,
+        data: [],
+        message:
+          'Insufficient Nifty 50 / Nifty 500 index history for Relative Strength Rank',
+      };
+    }
+
+    const rows = await sequelize.query(
+      `
+      SELECT *
+      FROM (
+        SELECT
+          SECURITY, source_date, CLOSE_PRICE,
+          ROW_NUMBER() OVER (PARTITION BY SECURITY ORDER BY source_date DESC) AS rn
+        FROM \`pr\`
+        WHERE SECURITY IS NOT NULL
+          AND CLOSE_PRICE IS NOT NULL
+          AND (status IS NULL OR TRIM(status) = '' OR UPPER(TRIM(status)) = 'OK' OR UPPER(TRIM(status)) <> 'MISSING')
+          AND DATE(source_date) <= :latestDate
+          AND DATE(source_date) >= DATE_SUB(:latestDate, INTERVAL 120 DAY)
+      ) ranked
+      WHERE rn <= :maxRows
+      `,
+      {
+        replacements: {
+          latestDate,
+          maxRows: RS_BENCHMARK_LOOKBACKS.long + 5,
+        },
+        type: QueryTypes.SELECT,
+      }
+    );
+
+    const bySecurity = {};
+    for (const row of rows || []) {
+      if (!bySecurity[row.SECURITY]) bySecurity[row.SECURITY] = [];
+      bySecurity[row.SECURITY].push(row);
+    }
+
+    const scored = [];
+
+    for (const [security, history] of Object.entries(bySecurity)) {
+      const symbol = resolveListedSymbol(security, nameToSymbol, {
+        equityOnly: true,
+      });
+      if (!symbol) continue;
+
+      const stockHistory = buildStockCloseHistory(history, latestDate);
+      if (!stockHistory) continue;
+      if (!stockHistory.byOffset.has(RS_BENCHMARK_LOOKBACKS.short)) continue;
+      if (!stockHistory.byOffset.has(RS_BENCHMARK_LOOKBACKS.long)) continue;
+
+      const rs21Nifty = computeBenchmarkRelativeStrength(
+        stockHistory,
+        niftyHistory,
+        RS_BENCHMARK_LOOKBACKS.short
+      );
+      const rs55Nifty = computeBenchmarkRelativeStrength(
+        stockHistory,
+        niftyHistory,
+        RS_BENCHMARK_LOOKBACKS.long
+      );
+      const rs21Cnx500 = computeBenchmarkRelativeStrength(
+        stockHistory,
+        cnx500History,
+        RS_BENCHMARK_LOOKBACKS.short
+      );
+      const rs55Cnx500 = computeBenchmarkRelativeStrength(
+        stockHistory,
+        cnx500History,
+        RS_BENCHMARK_LOOKBACKS.long
+      );
+
+      if (
+        rs21Nifty == null ||
+        rs55Nifty == null ||
+        rs21Cnx500 == null ||
+        rs55Cnx500 == null
+      ) {
+        continue;
+      }
+
+      const candidate = {
+        security,
+        symbol,
+        trade_date: latestDate,
+        close_price: stockHistory.byOffset.get(0)?.close ?? null,
+        rs_21_nifty: Number(rs21Nifty.toFixed(4)),
+        rs_55_nifty: Number(rs55Nifty.toFixed(4)),
+        rs_21_cnx500: Number(rs21Cnx500.toFixed(4)),
+        rs_55_cnx500: Number(rs55Cnx500.toFixed(4)),
+        rs_score: Number(
+          ((rs21Nifty + rs55Nifty + rs21Cnx500 + rs55Cnx500) / 4).toFixed(4)
+        ),
+      };
+
+      if (requireAllRsPositive !== false && !passesExcelRsFilters(candidate)) {
+        continue;
+      }
+
+      scored.push(candidate);
+    }
+
+    const rankMap = percentileRsRank(scored);
+    const rankedRows = scored
+      .map((row) => ({
+        ...row,
+        rs_rank: rankMap.get(row.security) ?? null,
+      }))
+      .filter((row) => row.rs_rank != null);
+
+    if (rankedRows.length) {
+      await RsRankModel.bulkCreate(rankedRows, { ignoreDuplicates: true });
+    }
+  }
+
+  const whereCondition = { trade_date: latestDate };
+  if (searchTerm) {
+    whereCondition[Op.or] = [
+      { security: { [Op.like]: `%${searchTerm}%` } },
+      { symbol: { [Op.like]: `%${searchTerm}%` } },
+    ];
+  }
+  applyRsRankMinFilter(whereCondition, minRsRank);
+  if (requireAllRsPositive !== false) {
+    whereCondition[Op.and] = [
+      ...(whereCondition[Op.and] || []),
+      { rs_21_nifty: { [Op.gt]: 0 } },
+      { rs_55_nifty: { [Op.gt]: 0 } },
+      { rs_21_cnx500: { [Op.gt]: 0 } },
+      { rs_55_cnx500: { [Op.gt]: 0 } },
+    ];
+  }
+
+  const { count, rows } = await RsRankModel.findAndCountAll({
+    where: whereCondition,
+    limit: itemsPerPage,
+    offset: (currentPage - 1) * itemsPerPage,
+    order: [['rs_rank', 'DESC'], ['rs_score', 'DESC'], ['id', 'DESC']],
+    raw: true,
+  });
+
+  const offset = (currentPage - 1) * itemsPerPage;
+  const data = rows.map((row, index) => ({
+    id: offset + index + 1,
+    ...withCleanSymbol(row, null),
   }));
 
   return {
@@ -1906,6 +2351,8 @@ const applyCompanyValueFilter = (where, model, value, preferredFields) => {
 const EQUITY_ONLY_FORMULAS = new Set([
   'strong-bullish-candle',
   'bearish-candle',
+  'volume-breakouts',
+  'rs-rank',
 ]);
 
 const withEquityFilter = (where = {}, formulaType) => {
@@ -1960,7 +2407,10 @@ const buildFormulaQuery = async ({
   );
 
   if (includeLatestDate) {
-    where[dateField] = selectedDate;
+    where[Op.and] = [
+      ...(where[Op.and] || []),
+      formulaTradeDateWhere(dateField, selectedDate),
+    ];
   }
 
   if (symbol) {
@@ -1982,12 +2432,18 @@ const buildFormulaQuery = async ({
 
   const sortDir =
     String(changeSort || '').toLowerCase() === 'asc' ? 'ASC' : 'DESC';
-  const finalOrder = order || (model.rawAttributes?.change_percent
-    ? [['change_percent', sortDir], ['id', 'DESC']]
-    : [
-        [dateField, 'DESC'],
-        ['id', 'DESC']
-      ]);
+  const finalOrder =
+    order ||
+    (model.rawAttributes?.rs_rank
+      ? [['rs_rank', sortDir], ['id', 'DESC']]
+      : model.rawAttributes?.volume_ratio
+        ? [['volume_ratio', sortDir], ['id', 'DESC']]
+        : model.rawAttributes?.change_percent
+          ? [['change_percent', sortDir], ['id', 'DESC']]
+          : [
+              [dateField, 'DESC'],
+              ['id', 'DESC'],
+            ]);
   const offset = (currentPage - 1) * itemsPerPage;
 
   const { count, rows } = await model.findAndCountAll({
@@ -2067,8 +2523,20 @@ const FORMULA_REGISTRY = {
     model: StrongBullishCandleModel,
     dateField: 'trade_date',
     searchFields: ['security', 'symbol'],
-    extraWhere: (basePercent = 2) => ({ base_percent: basePercent }),
-    latestDateWhere: (basePercent = 2) => ({ base_percent: basePercent })
+    extraWhere: (input) => {
+      const params = normalizeFormulaParams(input);
+      return {
+        base_percent: params.basePercent,
+        body_percent: params.bodyPercent,
+      };
+    },
+    latestDateWhere: (input) => {
+      const params = normalizeFormulaParams(input);
+      return {
+        base_percent: params.basePercent,
+        body_percent: params.bodyPercent,
+      };
+    },
   },
   'bearish-candle': {
     model: BearishCandleModel,
@@ -2137,7 +2605,20 @@ const FORMULA_REGISTRY = {
   'volume-breakouts': {
     model: VolumeBreakoutModel,
     dateField: 'trade_date',
-    searchFields: ['symbol', 'security']
+    searchFields: ['symbol', 'security'],
+    extraWhere: (input) => {
+      const params = normalizeFormulaParams(input);
+      return { volume_ratio_min: params.volumeRatioMin };
+    },
+    latestDateWhere: (input) => {
+      const params = normalizeFormulaParams(input);
+      return { volume_ratio_min: params.volumeRatioMin };
+    },
+  },
+  'rs-rank': {
+    model: RsRankModel,
+    dateField: 'trade_date',
+    searchFields: ['symbol', 'security'],
   },
   'tweezer-bottoms': {
     model: TweezerBottomModel,
@@ -2164,7 +2645,13 @@ const attachGenerateOnRead = (slug, generate, getParams = () => ({})) => {
 attachGenerateOnRead(
   'strong-bullish-candle',
   generateStrongBullishService,
-  (basePercent) => ({ base_percent: basePercent })
+  (input) => {
+    const params = normalizeFormulaParams(input);
+    return {
+      base_percent: params.basePercent,
+      body_percent: params.bodyPercent,
+    };
+  }
 );
 attachGenerateOnRead(
   'bearish-candle',
@@ -2204,6 +2691,15 @@ attachGenerateOnRead(
   generateDailyMoverDownService,
   (basePercent) => ({ min_percent: basePercent })
 );
+attachGenerateOnRead(
+  'volume-breakouts',
+  generateVolumeBreakoutService,
+  (input) => {
+    const params = normalizeFormulaParams(input);
+    return { volume_ratio_min: params.volumeRatioMin };
+  }
+);
+attachGenerateOnRead('rs-rank', generateRsRankService, () => ({}));
 
 const getFormulaConfig = (formulaType) => {
   const config = FORMULA_REGISTRY[formulaType];
@@ -2215,14 +2711,14 @@ const getFormulaConfig = (formulaType) => {
 
 export const getFormulaAvailableDatesService = async (
   formulaType,
-  { basePercent = 2 } = {}
+  filters = {}
 ) => {
   const config = getFormulaConfig(formulaType);
   await config.model.sync();
 
   const extraWhere =
     typeof config.latestDateWhere === 'function'
-      ? config.latestDateWhere(basePercent)
+      ? config.latestDateWhere(filters)
       : config.latestDateWhere || {};
 
   const rows = await config.model.findAll({
@@ -2316,6 +2812,7 @@ export const getStrongBullishRecordsService = async ({
   symbol = '',
   targetDate = null,
   basePercent = 2,
+  bodyPercent = 80,
   changePercentMin = null,
   changePercentMax = null,
   changeSort = 'desc',
@@ -2323,7 +2820,7 @@ export const getStrongBullishRecordsService = async ({
   await StrongBullishCandleModel.sync();
 
   const percentFilter = withEquityFilter(
-    { base_percent: basePercent },
+    { base_percent: basePercent, body_percent: bodyPercent },
     'strong-bullish-candle'
   );
 
@@ -2337,7 +2834,7 @@ export const getStrongBullishRecordsService = async ({
     targetDate,
     searchFields: ['security', 'symbol'],
     extraWhere: percentFilter,
-    latestDateWhere: { base_percent: basePercent },
+    latestDateWhere: { base_percent: basePercent, body_percent: bodyPercent },
     changePercentMin,
     changePercentMax,
     changeSort,
@@ -2349,7 +2846,9 @@ export const getVolumeBreakoutRecordsService = async ({
   itemsPerPage = 10,
   searchTerm = '',
   symbol = '',
-  targetDate = null
+  targetDate = null,
+  volumeRatioMin = 2,
+  changeSort = 'desc',
 }) => {
   await VolumeBreakoutModel.sync();
 
@@ -2361,7 +2860,48 @@ export const getVolumeBreakoutRecordsService = async ({
     searchTerm,
     symbol,
     targetDate,
-    searchFields: ['symbol', 'security']
+    searchFields: ['symbol', 'security'],
+    extraWhere: withEquityFilter(
+      { volume_ratio_min: volumeRatioMin },
+      'volume-breakouts'
+    ),
+    latestDateWhere: { volume_ratio_min: volumeRatioMin },
+    changeSort,
+  });
+};
+
+export const getRsRankRecordsService = async ({
+  currentPage = 1,
+  itemsPerPage = 10,
+  searchTerm = '',
+  symbol = '',
+  targetDate = null,
+  minRsRank = null,
+  changeSort = 'desc',
+}) => {
+  await RsRankModel.sync();
+
+  const extraWhere = withEquityFilter({}, 'rs-rank');
+  applyRsRankMinFilter(extraWhere, minRsRank);
+  extraWhere[Op.and] = [
+    ...(extraWhere[Op.and] || []),
+    { rs_21_nifty: { [Op.gt]: 0 } },
+    { rs_55_nifty: { [Op.gt]: 0 } },
+    { rs_21_cnx500: { [Op.gt]: 0 } },
+    { rs_55_cnx500: { [Op.gt]: 0 } },
+  ];
+
+  return buildFormulaQuery({
+    model: RsRankModel,
+    dateField: 'trade_date',
+    currentPage,
+    itemsPerPage,
+    searchTerm,
+    symbol,
+    targetDate,
+    searchFields: ['symbol', 'security'],
+    extraWhere,
+    changeSort,
   });
 };
 
@@ -2631,14 +3171,15 @@ export const getDailyMoverDownRecordsService = async ({
 
 export const getFormulaCompaniesService = async (
   formulaType,
-  { targetDate = null, searchTerm = '', basePercent = 2, limit = 300 } = {}
+  filters = {}
 ) => {
   const config = getFormulaConfig(formulaType);
   await config.model.sync();
+  const { searchTerm = '', limit = 300, targetDate = null } = filters;
 
   const extraWhere = withEquityFilter(
     typeof config.extraWhere === 'function'
-      ? config.extraWhere(basePercent)
+      ? config.extraWhere(filters)
       : config.extraWhere || {},
     formulaType
   );
@@ -2731,31 +3272,33 @@ export const getFormulaCompaniesService = async (
 
 export const getFormulaRecordsService = async (
   formulaType,
-  {
+  filters = {}
+) => {
+  const config = getFormulaConfig(formulaType);
+  await config.model.sync();
+  const {
     currentPage = 1,
     itemsPerPage = 10,
     searchTerm = '',
     symbol = '',
     targetDate = null,
-    basePercent = 2,
     changePercentMin = null,
     changePercentMax = null,
     changeSort = null,
-  } = {}
-) => {
-  const config = getFormulaConfig(formulaType);
-  await config.model.sync();
+    minRsRank = null,
+  } = filters;
 
   const extraWhere = withEquityFilter(
     typeof config.extraWhere === 'function'
-      ? config.extraWhere(basePercent)
+      ? config.extraWhere(filters)
       : config.extraWhere || {},
     formulaType
   );
+  applyRsRankMinFilter(extraWhere, minRsRank);
 
   const latestDateWhere =
     typeof config.latestDateWhere === 'function'
-      ? config.latestDateWhere(basePercent)
+      ? config.latestDateWhere(filters)
       : config.latestDateWhere ?? extraWhere;
 
   return buildFormulaQuery({
@@ -2776,34 +3319,21 @@ export const getFormulaRecordsService = async (
   });
 };
 
-export const queryFormulaService = async (
-  formulaType,
-  {
-    currentPage = 1,
-    itemsPerPage = 10,
-    searchTerm = '',
-    symbol = '',
-    targetDate = null,
-    basePercent = 2,
-    changePercentMin = null,
-    changePercentMax = null,
-    changeSort = null,
-  } = {}
-) => {
+export const queryFormulaService = async (formulaType, filters = {}) => {
   const config = getFormulaConfig(formulaType);
   let ensureMeta = null;
 
   if (config.generateOnRead) {
     const params =
-      config.generateOnRead.getGeneratePayload?.(basePercent) ??
-      config.generateOnRead.getExistingWhere?.(basePercent) ??
+      config.generateOnRead.getGeneratePayload?.(filters) ??
+      config.generateOnRead.getExistingWhere?.(filters) ??
       {};
 
     ensureMeta = await processFormulaByDate({
-      targetDate,
+      targetDate: filters.targetDate,
       formulaModel: config.model,
       formulaDateField: config.dateField,
-      existingWhere: config.generateOnRead.getExistingWhere?.(basePercent) ?? {},
+      existingWhere: config.generateOnRead.getExistingWhere?.(filters) ?? {},
       generatePayload: params,
       generateFunction: config.generateOnRead.generate
     });
@@ -2814,15 +3344,8 @@ export const queryFormulaService = async (
   }
 
   const result = await getFormulaRecordsService(formulaType, {
-    currentPage,
-    itemsPerPage,
-    searchTerm,
-    symbol,
-    targetDate: ensureMeta?.trade_date || targetDate,
-    basePercent,
-    changePercentMin,
-    changePercentMax,
-    changeSort,
+    ...filters,
+    targetDate: ensureMeta?.trade_date || filters.targetDate,
   });
 
   return {
@@ -2830,7 +3353,7 @@ export const queryFormulaService = async (
     formula_type: formulaType,
     source: ensureMeta?.source,
     calculated: ensureMeta?.calculated,
-    requested_date: ensureMeta?.requested_date || targetDate
+    requested_date: ensureMeta?.requested_date || filters.targetDate
   };
 };
 
@@ -2841,17 +3364,23 @@ export const getFormulaMetaService = async (
     targetDate = null,
     searchTerm = '',
     basePercent = 2,
+    bodyPercent = 80,
+    volumeRatioMin = 2,
     limit = 300
   } = {}
 ) => {
+  const filters = {
+    targetDate,
+    searchTerm,
+    basePercent,
+    bodyPercent,
+    volumeRatioMin,
+    limit,
+  };
+
   if (resource === 'companies') {
-    return getFormulaCompaniesService(formulaType, {
-      targetDate,
-      searchTerm,
-      basePercent,
-      limit
-    });
+    return getFormulaCompaniesService(formulaType, filters);
   }
 
-  return getFormulaAvailableDatesService(formulaType, { basePercent });
+  return getFormulaAvailableDatesService(formulaType, filters);
 };

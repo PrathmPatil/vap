@@ -7,6 +7,7 @@ export default (sequelize, DataTypes) => {
       email: { type: DataTypes.STRING(255), unique: true },
       password: DataTypes.STRING(255),
       role:{ type: DataTypes.STRING(50), defaultValue: 'user' },
+      is_subscribed: { type: DataTypes.BOOLEAN, defaultValue: false },
       phoneNumber: DataTypes.STRING(20),
       whatsappNumber: DataTypes.STRING(20),
     },

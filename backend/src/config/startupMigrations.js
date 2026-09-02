@@ -18,6 +18,11 @@ export async function runStartupMigrations(config) {
     await ensureScreenerCompaniesTable(connection);
     await ensureVolumeBreakoutIndex(connection);
     await ensureStrongBullishSymbolColumn(connection);
+    await ensureStrongBullishKingCandleColumns(connection);
+    await ensureVolumeBreakoutRatioMinColumn(connection);
+    await ensureUserSubscriptionColumn(connection);
+    await ensureUserSubscriptionsTable(connection);
+    await ensureRsRankBenchmarkColumns(connection);
   } finally {
     await connection.end();
   }
@@ -97,6 +102,36 @@ async function ensureStrongBullishSymbolColumn(connection) {
   console.log('✅ Added strong_bullish_candle.symbol');
 }
 
+async function ensureStrongBullishKingCandleColumns(connection) {
+  if (!(await tableExists(connection, 'strong_bullish_candle'))) return;
+
+  const columns = [
+    ['body_percent', 'DOUBLE NULL AFTER `base_percent`'],
+    ['body_to_range_percent', 'DOUBLE NULL AFTER `body_percent`'],
+    ['high_price', 'DOUBLE NULL AFTER `close_price`'],
+    ['low_price', 'DOUBLE NULL AFTER `high_price`'],
+  ];
+
+  for (const [name, ddl] of columns) {
+    if (await columnExists(connection, 'strong_bullish_candle', name)) continue;
+    await connection.execute(
+      `ALTER TABLE \`strong_bullish_candle\` ADD COLUMN \`${name}\` ${ddl}`
+    );
+    console.log(`✅ Added strong_bullish_candle.${name}`);
+  }
+}
+
+async function ensureVolumeBreakoutRatioMinColumn(connection) {
+  if (!(await tableExists(connection, 'volume_breakout'))) return;
+  if (await columnExists(connection, 'volume_breakout', 'volume_ratio_min')) return;
+
+  await connection.execute(`
+    ALTER TABLE \`volume_breakout\`
+    ADD COLUMN \`volume_ratio_min\` FLOAT NULL DEFAULT 2 AFTER \`volume_ratio\`
+  `);
+  console.log('✅ Added volume_breakout.volume_ratio_min');
+}
+
 async function ensureVolumeBreakoutIndex(connection) {
   if (!(await tableExists(connection, 'volume_breakout'))) {
     return;
@@ -117,6 +152,68 @@ async function ensureVolumeBreakoutIndex(connection) {
       if (!String(error.message).includes('Duplicate')) {
         console.warn(`⚠️ volume_breakout index: ${error.message}`);
       }
+    }
+  }
+}
+
+async function ensureUserSubscriptionColumn(connection) {
+  if (!(await tableExists(connection, 'users'))) {
+    return;
+  }
+
+  if (!(await columnExists(connection, 'users', 'is_subscribed'))) {
+    await connection.execute(`
+      ALTER TABLE \`users\`
+      ADD COLUMN \`is_subscribed\` TINYINT(1) NOT NULL DEFAULT 0
+    `);
+    console.log('✅ Added users.is_subscribed column');
+  }
+}
+
+async function ensureUserSubscriptionsTable(connection) {
+  if (await tableExists(connection, 'user_subscriptions')) {
+    return;
+  }
+
+  await connection.execute(`
+    CREATE TABLE IF NOT EXISTS \`user_subscriptions\` (
+      \`id\` INT AUTO_INCREMENT PRIMARY KEY,
+      \`user_id\` INT NOT NULL,
+      \`plan_id\` VARCHAR(20) NOT NULL,
+      \`plan_name\` VARCHAR(80) NOT NULL,
+      \`amount\` DECIMAL(10, 2) NOT NULL,
+      \`currency\` VARCHAR(3) NOT NULL DEFAULT 'INR',
+      \`status\` VARCHAR(20) NOT NULL DEFAULT 'active',
+      \`started_at\` DATETIME NOT NULL,
+      \`expires_at\` DATETIME NOT NULL,
+      \`created_at\` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      INDEX \`idx_user_subscriptions_user\` (\`user_id\`),
+      INDEX \`idx_user_subscriptions_user_status\` (\`user_id\`, \`status\`),
+      INDEX \`idx_user_subscriptions_expires\` (\`expires_at\`)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+  `);
+  console.log('✅ Ensured user_subscriptions table exists');
+}
+
+async function ensureRsRankBenchmarkColumns(connection) {
+  if (!(await tableExists(connection, 'rs_rank'))) {
+    return;
+  }
+
+  const columns = [
+    ['rs_21_nifty', 'DOUBLE NULL'],
+    ['rs_55_nifty', 'DOUBLE NULL'],
+    ['rs_21_cnx500', 'DOUBLE NULL'],
+    ['rs_55_cnx500', 'DOUBLE NULL'],
+  ];
+
+  for (const [name, definition] of columns) {
+    if (!(await columnExists(connection, 'rs_rank', name))) {
+      await connection.execute(`
+        ALTER TABLE \`rs_rank\`
+        ADD COLUMN \`${name}\` ${definition}
+      `);
+      console.log(`✅ Added rs_rank.${name} column`);
     }
   }
 }

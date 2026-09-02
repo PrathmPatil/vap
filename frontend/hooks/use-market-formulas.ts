@@ -4,7 +4,7 @@ import {
   getFormulaData,
 } from "@/utils";
 import { FORMULA_CATALOG } from "@/lib/formulaCatalog";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 function slugForFilename(value: string) {
   return (
@@ -37,6 +37,12 @@ const CHANGE_PERCENT_FORMULAS = new Set([
   "daily-mover-down",
 ]);
 
+const SORTABLE_FORMULAS = new Set([
+  ...CHANGE_PERCENT_FORMULAS,
+  "volume-breakouts",
+  "rs-rank",
+]);
+
 export type FormulaCompanyOption = {
   symbol: string;
   security?: string;
@@ -46,7 +52,13 @@ export type FormulaCompanyOption = {
 const clampPageSize = (value: number) =>
   Math.min(50, Math.max(1, Math.trunc(Number(value) || 10)));
 
-export const useMarketSignalsData = () => {
+type UseMarketSignalsOptions = {
+  /** When false, skips API fetches (e.g. non-premium explore page). Default true. */
+  enabled?: boolean;
+};
+
+export const useMarketSignalsData = (options: UseMarketSignalsOptions = {}) => {
+  const enabled = options.enabled !== false;
   const [data, setData] = useState<any[]>([]);
   const [columns, setColumns] = useState<any>(null);
   const [currentPage, setCurrentPage] = useState<number>(1);
@@ -60,6 +72,9 @@ export const useMarketSignalsData = () => {
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [basePercent, setBasePercent] = useState<number>(2);
+  const [bodyPercent, setBodyPercent] = useState<number>(80);
+  const [volumeRatioMin, setVolumeRatioMin] = useState<number>(2);
+  const [minRsRank, setMinRsRank] = useState<string>("");
   const [selectedDate, setSelectedDate] = useState<string>("");
   const [selectedSymbol, setSelectedSymbol] = useState<string>("");
   const [companies, setCompanies] = useState<FormulaCompanyOption[]>([]);
@@ -69,8 +84,15 @@ export const useMarketSignalsData = () => {
   const [changeSort, setChangeSort] = useState<"asc" | "desc">("desc");
 
   const formulaType = selectedFilters[0];
+  const formulaTypeRef = useRef(formulaType);
+  formulaTypeRef.current = formulaType;
+
   const usesCurrentDay = CURRENT_DAY_FORMULAS.has(formulaType);
   const usesChangePercent = CHANGE_PERCENT_FORMULAS.has(formulaType);
+  const usesBodyPercent = formulaType === "strong-bullish-candle";
+  const usesVolumeRatio = formulaType === "volume-breakouts";
+  const usesRsRankFilter = formulaType === "rs-rank";
+  const usesSortControls = SORTABLE_FORMULAS.has(formulaType);
 
   const setItemsPerPage = (value: number) => {
     setItemsPerPageState(clampPageSize(value));
@@ -81,6 +103,8 @@ export const useMarketSignalsData = () => {
     changePercentMin === "" ? null : Number(changePercentMin);
   const parsedChangeMax =
     changePercentMax === "" ? null : Number(changePercentMax);
+
+  const parsedMinRsRank = minRsRank === "" ? null : Number(minRsRank);
 
   const buildColumns = useCallback((rows: any[]) => {
     if (!rows?.length) {
@@ -97,7 +121,79 @@ export const useMarketSignalsData = () => {
       "createdat",
       "updatedat",
       "base_percent",
+      "body_percent",
+      "volume_ratio_min",
+      "q1",
+      "q2",
+      "q3",
+      "q4",
     ]);
+
+    const rsRankLabels: Record<string, string> = {
+      security: "NAME OF COMPANY",
+      rs_rank: "RELATIVE STRENGTH RANK",
+      rs_21_nifty: "21D VS NIFTY (>0)",
+      rs_55_nifty: "55D VS NIFTY (>0)",
+      rs_21_cnx500: "21D VS CNX500 (>0)",
+      rs_55_cnx500: "55D VS CNX500 (>0)",
+      rs_score: "COMPOSITE RS SCORE",
+      symbol: "SYMBOL",
+      close_price: "CLOSE PRICE",
+    };
+
+    const rsRankOrder = [
+      "security",
+      "symbol",
+      "rs_rank",
+      "rs_21_nifty",
+      "rs_55_nifty",
+      "rs_21_cnx500",
+      "rs_55_cnx500",
+      "rs_score",
+      "close_price",
+    ];
+
+    const formatCell = (key: string, value: any) => {
+      if (
+        key.toLowerCase() === "symbol" ||
+        key.toLowerCase().endsWith("_symbol")
+      ) {
+        return String(value ?? "").replace(/\.(NS|BSE|BO)$/i, "");
+      }
+      if (key.includes("price")) return `₹${Number(value).toFixed(2)}`;
+      if (key.startsWith("rs_") && key !== "rs_rank") {
+        const num = Number(value);
+        if (!Number.isFinite(num)) return value;
+        return `${num >= 0 ? "+" : ""}${num.toFixed(2)}%`;
+      }
+      if (key.includes("percent") || key === "rs_score")
+        return key === "rs_score"
+          ? Number(value).toFixed(2)
+          : `${Number(value).toFixed(2)}%`;
+      if (key === "volume_ratio") return `${Number(value).toFixed(2)}x`;
+      if (key === "rs_rank") return String(value);
+      return value;
+    };
+
+    if (formulaType === "rs-rank") {
+      const available = new Set(Object.keys(rows[0]));
+      const orderedKeys = rsRankOrder.filter((key) => available.has(key));
+      const trailingKeys = Object.keys(rows[0]).filter(
+        (key) =>
+          !hiddenKeys.has(key.toLowerCase()) && !orderedKeys.includes(key),
+      );
+
+      setColumns(
+        [...orderedKeys, ...trailingKeys].map((key) => ({
+          key,
+          label: rsRankLabels[key] || key.replace(/_/g, " ").toUpperCase(),
+          sortable: true,
+          searchable: true,
+          format: (value: any) => formatCell(key, value),
+        })),
+      );
+      return;
+    }
 
     const generatedColumns = Object.keys(rows[0])
       .filter((key) => !hiddenKeys.has(key.toLowerCase()))
@@ -106,29 +202,27 @@ export const useMarketSignalsData = () => {
         label: key.replace(/_/g, " ").toUpperCase(),
         sortable: true,
         searchable: true,
-        format: (value: any) => {
-          if (
-            key.toLowerCase() === "symbol" ||
-            key.toLowerCase().endsWith("_symbol")
-          ) {
-            return String(value ?? "").replace(/\.(NS|BSE|BO)$/i, "");
-          }
-          if (key.includes("price")) return `₹${Number(value).toFixed(2)}`;
-          if (key.includes("percent")) return `${Number(value).toFixed(2)}%`;
-          return value;
-        },
+        format: (value: any) => formatCell(key, value),
       }));
 
     setColumns(generatedColumns);
-  }, []);
+  }, [formulaType]);
 
   const fetchFormulaRows = useCallback(async () => {
-    if (!formulaType) return;
+    if (!enabled || !formulaType) return;
 
     if (
       basePercent <= 0 &&
       (formulaType === "strong-bullish-candle" ||
         formulaType === "bearish-candle")
+    ) {
+      setLoading(false);
+      return;
+    }
+
+    if (
+      volumeRatioMin <= 0 &&
+      formulaType === "volume-breakouts"
     ) {
       setLoading(false);
       return;
@@ -145,11 +239,14 @@ export const useMarketSignalsData = () => {
         {
           searchTerm,
           basePercent,
+          bodyPercent: usesBodyPercent ? bodyPercent : undefined,
+          volumeRatioMin: usesVolumeRatio ? volumeRatioMin : undefined,
+          minRsRank: usesRsRankFilter ? parsedMinRsRank : null,
           targetDate: usesCurrentDay ? null : selectedDate || null,
           symbol: selectedSymbol || null,
           changePercentMin: usesChangePercent ? parsedChangeMin : null,
           changePercentMax: usesChangePercent ? parsedChangeMax : null,
-          changeSort: usesChangePercent ? changeSort : undefined,
+          changeSort: usesSortControls ? changeSort : undefined,
         }
       );
 
@@ -191,31 +288,51 @@ export const useMarketSignalsData = () => {
     itemsPerPage,
     searchTerm,
     basePercent,
+    bodyPercent,
+    volumeRatioMin,
+    parsedMinRsRank,
     selectedDate,
     selectedSymbol,
     usesCurrentDay,
     usesChangePercent,
+    usesBodyPercent,
+    usesVolumeRatio,
+    usesRsRankFilter,
+    usesSortControls,
     parsedChangeMin,
     parsedChangeMax,
     changeSort,
     buildColumns,
+    enabled,
   ]);
 
   useEffect(() => {
-    if (!formulaType) return;
+    if (!enabled || !formulaType) return;
 
     getFormulaCompanies(formulaType, {
       targetDate: usesCurrentDay ? null : selectedDate || null,
       searchTerm,
       basePercent,
+      bodyPercent,
+      volumeRatioMin,
     })
       .then((response) => setCompanies(response.companies || []))
       .catch(() => setCompanies([]));
-  }, [formulaType, selectedDate, searchTerm, basePercent, usesCurrentDay]);
+  }, [
+    formulaType,
+    selectedDate,
+    searchTerm,
+    basePercent,
+    bodyPercent,
+    volumeRatioMin,
+    usesCurrentDay,
+    enabled,
+  ]);
 
   useEffect(() => {
+    if (!enabled) return;
     fetchFormulaRows();
-  }, [fetchFormulaRows]);
+  }, [enabled, fetchFormulaRows]);
 
   const handleSearch = async (term: string, nextBasePercent = basePercent) => {
     setSearchTerm(term);
@@ -224,7 +341,9 @@ export const useMarketSignalsData = () => {
     setCurrentPage(1);
   };
 
-  const handleFormulaChange = (value: string) => {
+  const handleFormulaChange = useCallback((value: string) => {
+    if (formulaTypeRef.current === value) return;
+
     setSelectedFilters([value]);
     setSelectedSymbol("");
     setSearchTerm("");
@@ -233,6 +352,8 @@ export const useMarketSignalsData = () => {
     setChangePercentMin("");
     setChangePercentMax("");
     setChangeSort("desc");
+    setMinRsRank("");
+
     if (value === "gap-up-day" || value === "gap-down-day") {
       setBasePercent(1);
     } else if (
@@ -244,8 +365,11 @@ export const useMarketSignalsData = () => {
       setBasePercent(3);
     } else if (value === "strong-bullish-candle" || value === "bearish-candle") {
       setBasePercent(2);
+      setBodyPercent(80);
+    } else if (value === "volume-breakouts") {
+      setVolumeRatioMin(2);
     }
-  };
+  }, []);
 
   const handleDateChange = (value: string) => {
     setSelectedDate(value);
@@ -272,11 +396,14 @@ export const useMarketSignalsData = () => {
     await exportFormulaXlsx(formulaType, {
       searchTerm,
       basePercent,
+      bodyPercent: usesBodyPercent ? bodyPercent : undefined,
+      volumeRatioMin: usesVolumeRatio ? volumeRatioMin : undefined,
+      minRsRank: usesRsRankFilter ? parsedMinRsRank : null,
       targetDate: usesCurrentDay ? null : selectedDate || null,
       symbol: selectedSymbol || null,
       changePercentMin: usesChangePercent ? parsedChangeMin : null,
       changePercentMax: usesChangePercent ? parsedChangeMax : null,
-      changeSort: usesChangePercent ? changeSort : undefined,
+      changeSort: usesSortControls ? changeSort : undefined,
       filename,
     });
   };
@@ -285,6 +412,7 @@ export const useMarketSignalsData = () => {
     data,
     columns,
     selectedFilters,
+    formulaType,
     setSelectedFilters: handleFormulaChange,
     loading,
     error,
@@ -297,6 +425,21 @@ export const useMarketSignalsData = () => {
     handleExport,
     setBasePercent,
     basePercent,
+    bodyPercent,
+    setBodyPercent: (value: number) => {
+      setBodyPercent(value);
+      setCurrentPage(1);
+    },
+    volumeRatioMin,
+    setVolumeRatioMin: (value: number) => {
+      setVolumeRatioMin(value);
+      setCurrentPage(1);
+    },
+    minRsRank,
+    setMinRsRank: (value: string) => {
+      setMinRsRank(value);
+      setCurrentPage(1);
+    },
     totalPages,
     totalItems,
     selectedDate,
@@ -321,5 +464,9 @@ export const useMarketSignalsData = () => {
       setCurrentPage(1);
     },
     usesChangePercent,
+    usesBodyPercent,
+    usesVolumeRatio,
+    usesRsRankFilter,
+    usesSortControls,
   };
 };

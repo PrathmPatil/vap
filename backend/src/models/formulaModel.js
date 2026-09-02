@@ -188,6 +188,18 @@ export const StrongBullishCandle = (sequelize, DataTypes) => {
       },
       base_percent: {
         type: DataTypes.DOUBLE
+      },
+      body_percent: {
+        type: DataTypes.DOUBLE
+      },
+      body_to_range_percent: {
+        type: DataTypes.DOUBLE
+      },
+      high_price: {
+        type: DataTypes.DOUBLE
+      },
+      low_price: {
+        type: DataTypes.DOUBLE
       }
     },
     {
@@ -223,7 +235,12 @@ export const VolumeBreakout = (sequelize, DataTypes) => {
 
       avg_volume_10d: DataTypes.BIGINT,
 
-      volume_ratio: DataTypes.FLOAT
+      volume_ratio: DataTypes.FLOAT,
+
+      volume_ratio_min: {
+        type: DataTypes.FLOAT,
+        defaultValue: 2
+      }
     },
     {
       tableName: 'volume_breakout',
@@ -647,6 +664,42 @@ export const DailyMoverDown = (sequelize, DataTypes) => {
       createdAt: 'created_at',
       updatedAt: 'updated_at',
       indexes: [{ fields: ['symbol', 'trade_date'] }]
+    }
+  );
+};
+
+/* =========================================================
+    Relative Strength Rank (Nifty / CNX500)
+========================================================= */
+export const RsRank = (sequelize, DataTypes) => {
+  return sequelize.define(
+    'RsRank',
+    {
+      id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
+      security: DataTypes.STRING(255),
+      symbol: DataTypes.STRING(50),
+      trade_date: DataTypes.DATEONLY,
+      rs_score: DataTypes.DOUBLE,
+      rs_rank: DataTypes.INTEGER,
+      rs_21_nifty: DataTypes.DOUBLE,
+      rs_55_nifty: DataTypes.DOUBLE,
+      rs_21_cnx500: DataTypes.DOUBLE,
+      rs_55_cnx500: DataTypes.DOUBLE,
+      q1: DataTypes.DOUBLE,
+      q2: DataTypes.DOUBLE,
+      q3: DataTypes.DOUBLE,
+      q4: DataTypes.DOUBLE,
+      close_price: DataTypes.DOUBLE
+    },
+    {
+      tableName: 'rs_rank',
+      timestamps: true,
+      createdAt: 'created_at',
+      updatedAt: 'updated_at',
+      indexes: [
+        { fields: ['trade_date', 'rs_rank'] },
+        { fields: ['symbol', 'trade_date'] }
+      ]
     }
   );
 };

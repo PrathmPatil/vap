@@ -172,7 +172,8 @@ import {
   TopLoserDay,
   FiftyTwoWeekLow,
   DailyMoverUp,
-  DailyMoverDown
+  DailyMoverDown,
+  RsRank
 } from './formulaModel.js';
 // Watchlist
 import WatchlistModel from './watchlist.js';
@@ -180,6 +181,7 @@ import UserFormulaModel from './user_formula.js';
 import UserScanModel from './user_scan.js';
 import UserScanAlertModel from './user_scan_alert.js';
 import UserNotificationModel from './user_notification.js';
+import UserSubscriptionModel from './user_subscription.js';
 
 /* ---------------------------------------------
    INITIALIZE MODELS
@@ -247,6 +249,7 @@ const TopLoserDayModel = TopLoserDay(sequelizeStockMarket, DataTypes);
 const FiftyTwoWeekLowModel = FiftyTwoWeekLow(sequelizeStockMarket, DataTypes);
 const DailyMoverUpModel = DailyMoverUp(sequelizeStockMarket, DataTypes);
 const DailyMoverDownModel = DailyMoverDown(sequelizeStockMarket, DataTypes);
+const RsRankModel = RsRank(sequelizeStockMarket, DataTypes);
 
 // logs
 const CronLogModel = CronJobLog(sequelizeStockMarket, DataTypes);
@@ -258,6 +261,7 @@ const UserFormula = UserFormulaModel(sequelizeStockMarket, DataTypes);
 const UserScan = UserScanModel(sequelizeStockMarket, DataTypes);
 const UserScanAlert = UserScanAlertModel(sequelizeStockMarket, DataTypes);
 const UserNotification = UserNotificationModel(sequelizeStockMarket, DataTypes);
+const UserSubscription = UserSubscriptionModel(sequelizeStockMarket, DataTypes);
 
 /* ---------------------------------------------
    EXPORT EVERYTHING
@@ -319,11 +323,13 @@ export {
   FiftyTwoWeekLowModel,
   DailyMoverUpModel,
   DailyMoverDownModel,
+  RsRankModel,
   Watchlist,
   UserFormula,
   UserScan,
   UserScanAlert,
-  UserNotification
+  UserNotification,
+  UserSubscription
 };
 
 /* Mapping for dynamic routes */

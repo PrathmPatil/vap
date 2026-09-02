@@ -447,6 +447,9 @@ export const getFormulaData = async (
     changePercentMin?: number | null;
     changePercentMax?: number | null;
     changeSort?: 'asc' | 'desc';
+    bodyPercent?: number;
+    volumeRatioMin?: number;
+    minRsRank?: number | null;
   }
 ): Promise<any> => {
   return callApi<any>({
@@ -459,6 +462,12 @@ export const getFormulaData = async (
       searchTerm: options?.searchTerm || '',
       basePercent: options?.basePercent,
       base_percent: options?.basePercent,
+      bodyPercent: options?.bodyPercent,
+      body_percent: options?.bodyPercent,
+      volumeRatioMin: options?.volumeRatioMin,
+      volume_ratio_min: options?.volumeRatioMin,
+      minRsRank: options?.minRsRank,
+      min_rs_rank: options?.minRsRank,
       date: options?.targetDate || undefined,
       targetDate: options?.targetDate || undefined,
       symbol: options?.symbol || undefined,
@@ -479,6 +488,9 @@ export const exportFormulaXlsx = async (
     changePercentMin?: number | null;
     changePercentMax?: number | null;
     changeSort?: 'asc' | 'desc';
+    bodyPercent?: number;
+    volumeRatioMin?: number;
+    minRsRank?: number | null;
     filename?: string;
   }
 ): Promise<void> => {
@@ -498,6 +510,9 @@ export const exportFormulaXlsx = async (
       formulaType,
       searchTerm: options?.searchTerm || '',
       basePercent: options?.basePercent,
+      bodyPercent: options?.bodyPercent,
+      volumeRatioMin: options?.volumeRatioMin,
+      minRsRank: options?.minRsRank,
       targetDate: options?.targetDate || undefined,
       symbol: options?.symbol || undefined,
       changePercentMin: options?.changePercentMin,
@@ -540,6 +555,8 @@ export const getFormulaCompanies = async (
     targetDate?: string | null;
     searchTerm?: string;
     basePercent?: number;
+    bodyPercent?: number;
+    volumeRatioMin?: number;
   }
 ): Promise<{
   success: boolean;
@@ -555,6 +572,8 @@ export const getFormulaCompanies = async (
       date: options?.targetDate || undefined,
       searchTerm: options?.searchTerm || undefined,
       basePercent: options?.basePercent,
+      bodyPercent: options?.bodyPercent,
+      volumeRatioMin: options?.volumeRatioMin,
     },
   });
 };
@@ -576,6 +595,31 @@ export const registerUser = async (name: string, email: string, password: string
     data: { username: name, email, password, phoneNumber, whatsappNumber }
   });
 }
+
+export const getUserProfile = async (): Promise<any> => {
+  return callApi<any>({
+    url: 'user/profile',
+    method: 'GET',
+  });
+};
+
+export const getSubscriptionDetails = async (): Promise<any> => {
+  return callApi<any>({
+    url: 'user/subscription',
+    method: 'GET',
+  });
+};
+
+export const activateSubscription = async (payload: {
+  acceptTerms: boolean;
+  plan?: string;
+}): Promise<any> => {
+  return callApi<any>({
+    url: 'user/subscribe',
+    method: 'POST',
+    data: payload,
+  });
+};
 
 // http://localhost:8000/vap/holiday
 export const getMarketHolidays = async (page: number, limit: number, search?: string): Promise<any> => {

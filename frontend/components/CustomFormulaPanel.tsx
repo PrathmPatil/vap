@@ -297,7 +297,7 @@ export default function CustomFormulaPanel({
       <div className="mb-4 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
         <div>
           <h2 className="text-lg font-semibold text-slate-900">
-            My Custom Formulas
+            My Custom Scanners
           </h2>
           <p className="text-sm text-slate-500">
             Saved to your account (and cached locally). Example:{" "}

@@ -5,6 +5,8 @@ import {
   registerUser,
   loginUser,
   profile,
+  getSubscriptionDetails,
+  activateSubscription,
   logout,
   forgotPassword,
   resetPassword,
@@ -20,6 +22,8 @@ router.post("/register", authLimiter, registerUser);
 router.post("/login", authLimiter, loginUser);
 
 router.get("/profile", authenticate, profile);
+router.get("/subscription", authenticate, getSubscriptionDetails);
+router.post("/subscribe", authenticate, activateSubscription);
 
 router.post("/logout", authLimiter, logout);
 router.post("/forgot-password", authLimiter, forgotPassword);

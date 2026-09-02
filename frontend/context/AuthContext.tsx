@@ -5,8 +5,8 @@ import {
   useState,
   ReactNode,
 } from "react";
-import { loginUser, registerUser } from "@/utils";
-import { getRoleFromToken, normalizeRole } from "@/lib/authRoles";
+import { loginUser, registerUser, getUserProfile } from "@/utils";
+import { getRoleFromToken, normalizeRole, hasPremiumAccess } from "@/lib/authRoles";
 
 interface User {
   name?: string;
@@ -33,6 +33,7 @@ interface AuthContextType {
     phoneNumber: string,
     whatsappNumber: string,
   ) => Promise<{ message?: string }>;
+  refreshUser: () => Promise<void>;
   logout: () => void;
 }
 
@@ -48,6 +49,18 @@ const resolveRole = (userData?: User | null, token?: string | null) => {
   const fromUser = normalizeRole(userData?.role);
   if (fromUser) return fromUser;
   return getRoleFromToken(token);
+};
+
+const resolvePostLoginPath = (_userData: User, _accessToken: string) => {
+  if (typeof window === "undefined") return "/subscription";
+
+  const params = new URLSearchParams(window.location.search);
+  const returnUrl = params.get("returnUrl");
+  if (returnUrl && returnUrl.startsWith("/") && !returnUrl.startsWith("//")) {
+    return returnUrl;
+  }
+
+  return "/subscription";
 };
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
@@ -104,7 +117,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setRole(resolveRole(userData, accessToken));
         localStorage.setItem("stockUser", JSON.stringify(userData));
 
-        navigateClient("/");
+        navigateClient(resolvePostLoginPath(userData, accessToken));
 
         return { message };
       }
@@ -144,7 +157,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       document.cookie = `token=${accessToken}; path=/; max-age=${60 * 60 * 8}`;
       localStorage.setItem("token", accessToken);
       setIsAuthenticated(true);
-      navigateClient("/");
+      navigateClient(resolvePostLoginPath(userData, accessToken));
 
       return { message };
     } catch (error) {
@@ -163,6 +176,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     navigateClient("/login");
   };
 
+  const refreshUser = async () => {
+    try {
+      const response = await getUserProfile();
+      if (response?.success && response.user) {
+        const userData = response.user as User;
+        setUser(userData);
+        setRole(resolveRole(userData, localStorage.getItem("token")));
+        localStorage.setItem("stockUser", JSON.stringify(userData));
+      }
+    } catch (error) {
+      console.warn("Profile refresh failed:", error);
+    }
+  };
+
+  const isSubscribed = hasPremiumAccess(role, user?.is_subscribed === true);
+
   return (
     <AuthContext.Provider
       value={{
@@ -170,9 +199,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         authLoading,
         user,
         role,
-        isSubscribed: user?.is_subscribed || true,
+        isSubscribed,
         login,
         register,
+        refreshUser,
         logout,
       }}
     >

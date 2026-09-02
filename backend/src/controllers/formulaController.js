@@ -71,6 +71,12 @@ const parseFormulaFilters = (body = {}, { forExport = false } = {}) => {
     targetDate,
     base_percent,
     basePercent,
+    body_percent,
+    bodyPercent,
+    volume_ratio_min,
+    volumeRatioMin,
+    min_rs_rank,
+    minRsRank,
     changePercentMin,
     change_percent_min,
     changePercentMax,
@@ -86,6 +92,9 @@ const parseFormulaFilters = (body = {}, { forExport = false } = {}) => {
     symbol: String(symbol || "").trim(),
     targetDate: date || targetDate || null,
     basePercent: basePercent ?? base_percent ?? 2,
+    bodyPercent: bodyPercent ?? body_percent ?? 80,
+    volumeRatioMin: volumeRatioMin ?? volume_ratio_min ?? 2,
+    minRsRank: minRsRank ?? min_rs_rank ?? null,
     changePercentMin: changePercentMin ?? change_percent_min ?? null,
     changePercentMax: changePercentMax ?? change_percent_max ?? null,
     changeSort: changeSort || change_sort || "desc",
@@ -121,6 +130,10 @@ export const getFormulaMeta = async (req, res) => {
       searchTerm = "",
       basePercent,
       base_percent,
+      bodyPercent,
+      body_percent,
+      volumeRatioMin,
+      volume_ratio_min,
       limit = 300
     } = req.query;
 
@@ -137,6 +150,8 @@ export const getFormulaMeta = async (req, res) => {
       targetDate: date || targetDate || null,
       searchTerm,
       basePercent: basePercent ?? base_percent ?? 2,
+      bodyPercent: bodyPercent ?? body_percent ?? 80,
+      volumeRatioMin: volumeRatioMin ?? volume_ratio_min ?? 2,
       limit: Number(limit) || 300
     });
 
@@ -264,6 +279,10 @@ export const getFormulaCompanies = async (req, res) => {
       searchTerm = "",
       basePercent,
       base_percent,
+      bodyPercent,
+      body_percent,
+      volumeRatioMin,
+      volume_ratio_min,
       limit = 300
     } = req.query;
 
@@ -271,6 +290,8 @@ export const getFormulaCompanies = async (req, res) => {
       targetDate: date || targetDate || null,
       searchTerm,
       basePercent: basePercent ?? base_percent ?? 2,
+      bodyPercent: bodyPercent ?? body_percent ?? 80,
+      volumeRatioMin: volumeRatioMin ?? volume_ratio_min ?? 2,
       limit: Number(limit) || 300
     });
 
@@ -338,7 +359,13 @@ const respondWithFormulaRows = async (res, ensureResult, filters, getRecordsFn) 
     searchTerm: filters.searchTerm,
     symbol: filters.symbol,
     targetDate: ensureResult.trade_date || filters.targetDate,
-    basePercent: filters.basePercent
+    basePercent: filters.basePercent,
+    bodyPercent: filters.bodyPercent,
+    volumeRatioMin: filters.volumeRatioMin,
+    minRsRank: filters.minRsRank,
+    changePercentMin: filters.changePercentMin,
+    changePercentMax: filters.changePercentMax,
+    changeSort: filters.changeSort,
   });
 
   return res.status(200).json({
@@ -388,13 +415,20 @@ const runEnsuredFormula = async (
 export const generateStrongBullish = async (req, res) => {
   const filters = parseFormulaFilters(req.body);
   const selectedBasePercent = filters.basePercent;
+  const selectedBodyPercent = filters.bodyPercent;
 
   return runEnsuredFormula(res, {
     filters,
     formulaModel: StrongBullishCandleModel,
     formulaDateField: "trade_date",
-    existingWhere: { base_percent: selectedBasePercent },
-    generatePayload: { base_percent: selectedBasePercent },
+    existingWhere: {
+      base_percent: selectedBasePercent,
+      body_percent: selectedBodyPercent,
+    },
+    generatePayload: {
+      base_percent: selectedBasePercent,
+      body_percent: selectedBodyPercent,
+    },
     generateFunction: generateStrongBullishService,
     getRecordsFn: getStrongBullishRecordsService
   });

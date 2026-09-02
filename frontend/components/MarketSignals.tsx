@@ -154,8 +154,8 @@ export default function MarketSignalsPage() {
         };
       case "buy":
         return {
-          title: "Buy Day",
-          description: "Stocks with strong buy signals",
+          title: "Action Day",
+          description: "Stocks with strong action-day signals",
           icon: Target,
           color: "text-purple-600",
           bgColor: "bg-purple-50",
@@ -295,7 +295,11 @@ export default function MarketSignalsPage() {
                         <IconComponent className="h-4 w-4" />
                         <span className="hidden sm:inline">{config.title}</span>
                         <span className="sm:hidden">
-                          {tab === "followthrough" ? "FTD" : tab.toUpperCase()}
+                          {tab === "followthrough"
+                            ? "FTD"
+                            : tab === "buy"
+                              ? "Action"
+                              : tab.toUpperCase()}
                         </span>
                         <Badge variant="secondary" className="ml-1">
                           {config.count}

@@ -12,6 +12,14 @@ export function hasMasterAccess(role?: string | null): boolean {
   return MASTER_ROLES.includes(normalized as MasterRole);
 }
 
+export function hasPremiumAccess(
+  role?: string | null,
+  isSubscribed?: boolean | null,
+): boolean {
+  if (hasMasterAccess(role)) return true;
+  return isSubscribed === true;
+}
+
 /** Decode JWT payload without verifying signature (UI gating only). */
 export function getRoleFromToken(token?: string | null): string {
   if (!token) return "";
