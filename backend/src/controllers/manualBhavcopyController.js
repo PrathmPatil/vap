@@ -10,21 +10,41 @@ const pythonClient = axios.create({
   timeout: 120000,
 });
 
+function pythonErrorMessage(error) {
+  const fromPython =
+    error.response?.data?.detail || error.response?.data?.message;
+  if (typeof fromPython === "string" && fromPython.trim() && fromPython !== "Error") {
+    return fromPython;
+  }
+  if (Array.isArray(fromPython) && fromPython.length) {
+    return fromPython.map(String).join("; ");
+  }
+
+  const code = error.code ? ` (${error.code})` : "";
+  const cause = error.message && error.message !== "Error"
+    ? error.message
+    : "Python bhavcopy service unavailable";
+
+  if (!error.response) {
+    return `${cause}${code}. Backend tried ${PYTHON_API_URL} — set PYTHON_API_URL=http://fastapi:8080 in Docker.`;
+  }
+  return `${cause}${code}`;
+}
+
 function forwardPythonError(error, res) {
   const status = error.response?.status || 502;
-  const detail =
-    error.response?.data?.detail ||
-    error.response?.data?.message ||
-    error.message ||
-    "Python bhavcopy service unavailable";
+  const message = pythonErrorMessage(error);
 
-  logger.error("Manual bhavcopy proxy error:", detail);
+  logger.error("Manual bhavcopy proxy error:", message);
 
   return res.status(status).json({
     success: false,
-    message: typeof detail === "string" ? detail : JSON.stringify(detail),
+    message,
     python_base: PYTHON_API_URL,
-    detail: error.response?.data || null,
+    detail: error.response?.data || {
+      code: error.code || null,
+      axios: error.message || null,
+    },
   });
 }
 

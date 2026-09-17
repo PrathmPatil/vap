@@ -27,6 +27,9 @@ services:
       - "8000:8000"
     env_file:
       - ./backend/.env
+    environment:
+      # Inside Docker, call FastAPI by service name — never localhost
+      PYTHON_API_URL: http://fastapi:8080
     depends_on:
       mysql:
         condition: service_healthy
