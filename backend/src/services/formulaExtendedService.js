@@ -21,6 +21,11 @@ const parseNum = (value) => {
   return Number.isFinite(num) ? num : null;
 };
 
+const resolveMinPercent = (min_percent, fallback = 3) => {
+  const n = Number(min_percent);
+  return Number.isFinite(n) ? n : fallback;
+};
+
 const getTradeDate = async (targetDate) => {
   const { resolveTradeDate } = await import('./formulaService.js');
   return resolveTradeDate(targetDate);
@@ -259,8 +264,10 @@ export const generateTopGainerService = async ({
   const tradeDate = await getTradeDate(targetDate);
   if (!tradeDate) return { success: false, message: 'No PR data found' };
 
+  const threshold = resolveMinPercent(min_percent);
+
   const existing = await TopGainerDayModel.count({
-    where: { trade_date: tradeDate, min_percent }
+    where: { trade_date: tradeDate, min_percent: threshold }
   });
   if (existing > 0) {
     return { success: true, message: 'Already generated', totalItems: existing };
@@ -279,7 +286,7 @@ export const generateTopGainerService = async ({
   const rows = [];
   for (const row of glRows) {
     const changePercent = parseNum(row.PERCENT_CG);
-    if (changePercent === null || changePercent < min_percent) continue;
+    if (changePercent === null || changePercent < threshold) continue;
 
     const security = String(row.SECURITY || '').trim();
     rows.push({
@@ -289,7 +296,7 @@ export const generateTopGainerService = async ({
       prev_close: parseNum(row.PREV_CL_PR),
       change_percent: changePercent,
       trade_date: tradeDate,
-      min_percent
+      min_percent: threshold,
     });
   }
 
@@ -341,8 +348,10 @@ export const generateTopLoserService = async ({
   const tradeDate = await getTradeDate(targetDate);
   if (!tradeDate) return { success: false, message: 'No PR data found' };
 
+  const threshold = resolveMinPercent(min_percent);
+
   const existing = await TopLoserDayModel.count({
-    where: { trade_date: tradeDate, min_percent }
+    where: { trade_date: tradeDate, min_percent: threshold }
   });
   if (existing > 0) {
     return { success: true, message: 'Already generated', totalItems: existing };
@@ -361,7 +370,7 @@ export const generateTopLoserService = async ({
   const rows = [];
   for (const row of glRows) {
     const changePercent = parseNum(row.PERCENT_CG);
-    if (changePercent === null || changePercent > -min_percent) continue;
+    if (changePercent === null || changePercent > -threshold) continue;
 
     const security = String(row.SECURITY || '').trim();
     rows.push({
@@ -371,7 +380,7 @@ export const generateTopLoserService = async ({
       prev_close: parseNum(row.PREV_CL_PR),
       change_percent: changePercent,
       trade_date: tradeDate,
-      min_percent
+      min_percent: threshold,
     });
   }
 
@@ -424,8 +433,10 @@ export const generateDailyMoverUpService = async ({
   const tradeDate = await getTradeDate(targetDate);
   if (!tradeDate) return { success: false, message: 'No PR data found' };
 
+  const threshold = resolveMinPercent(min_percent);
+
   const existing = await DailyMoverUpModel.count({
-    where: { trade_date: tradeDate, min_percent }
+    where: { trade_date: tradeDate, min_percent: threshold }
   });
   if (existing > 0) {
     return { success: true, message: 'Already generated', totalItems: existing };
@@ -441,7 +452,7 @@ export const generateDailyMoverUpService = async ({
     if (!prevClose || !close) continue;
 
     const changePercent = ((close - prevClose) / prevClose) * 100;
-    if (changePercent >= min_percent) {
+    if (changePercent >= threshold) {
       rows.push({
         security: stock.SECURITY,
         symbol: resolveSymbol(stock.SECURITY, companyMap),
@@ -449,7 +460,7 @@ export const generateDailyMoverUpService = async ({
         prev_close: prevClose,
         change_percent: changePercent,
         trade_date: tradeDate,
-        min_percent
+        min_percent: threshold,
       });
     }
   }
@@ -466,8 +477,10 @@ export const generateDailyMoverDownService = async ({
   const tradeDate = await getTradeDate(targetDate);
   if (!tradeDate) return { success: false, message: 'No PR data found' };
 
+  const threshold = resolveMinPercent(min_percent);
+
   const existing = await DailyMoverDownModel.count({
-    where: { trade_date: tradeDate, min_percent }
+    where: { trade_date: tradeDate, min_percent: threshold }
   });
   if (existing > 0) {
     return { success: true, message: 'Already generated', totalItems: existing };
@@ -483,7 +496,7 @@ export const generateDailyMoverDownService = async ({
     if (!prevClose || !close) continue;
 
     const changePercent = ((close - prevClose) / prevClose) * 100;
-    if (changePercent <= -min_percent) {
+    if (changePercent <= -threshold) {
       rows.push({
         security: stock.SECURITY,
         symbol: resolveSymbol(stock.SECURITY, companyMap),
@@ -491,7 +504,7 @@ export const generateDailyMoverDownService = async ({
         prev_close: prevClose,
         change_percent: changePercent,
         trade_date: tradeDate,
-        min_percent
+        min_percent: threshold,
       });
     }
   }

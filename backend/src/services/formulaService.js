@@ -260,6 +260,12 @@ const normalizeFormulaParams = (input = {}) => {
   };
 };
 
+/** Registry hooks receive full filter objects — never use `(basePercent) =>` defaults. */
+const whereFromBasePercent = (field) => (input) => {
+  const { basePercent } = normalizeFormulaParams(input);
+  return { [field]: basePercent };
+};
+
 const applyRsRankMinFilter = (where, minRsRank) => {
   const minValue =
     minRsRank == null || minRsRank === '' ? null : Number(minRsRank);
@@ -2904,22 +2910,22 @@ const FORMULA_REGISTRY = {
     model: BearishCandleModel,
     dateField: 'trade_date',
     searchFields: ['security', 'symbol'],
-    extraWhere: (basePercent = 2) => ({ base_percent: basePercent }),
-    latestDateWhere: (basePercent = 2) => ({ base_percent: basePercent })
+    extraWhere: whereFromBasePercent('base_percent'),
+    latestDateWhere: whereFromBasePercent('base_percent'),
   },
   'gap-up-day': {
     model: GapUpDayModel,
     dateField: 'trade_date',
     searchFields: ['security', 'symbol'],
-    extraWhere: (basePercent = 1) => ({ gap_threshold: basePercent }),
-    latestDateWhere: (basePercent = 1) => ({ gap_threshold: basePercent })
+    extraWhere: whereFromBasePercent('gap_threshold'),
+    latestDateWhere: whereFromBasePercent('gap_threshold'),
   },
   'gap-down-day': {
     model: GapDownDayModel,
     dateField: 'trade_date',
     searchFields: ['security', 'symbol'],
-    extraWhere: (basePercent = 1) => ({ gap_threshold: basePercent }),
-    latestDateWhere: (basePercent = 1) => ({ gap_threshold: basePercent })
+    extraWhere: whereFromBasePercent('gap_threshold'),
+    latestDateWhere: whereFromBasePercent('gap_threshold'),
   },
   'fifty-two-week-high': {
     model: FiftyTwoWeekHighModel,
@@ -2930,8 +2936,8 @@ const FORMULA_REGISTRY = {
     model: TopGainerDayModel,
     dateField: 'trade_date',
     searchFields: ['security', 'symbol'],
-    extraWhere: (basePercent = 3) => ({ min_percent: basePercent }),
-    latestDateWhere: (basePercent = 3) => ({ min_percent: basePercent })
+    extraWhere: whereFromBasePercent('min_percent'),
+    latestDateWhere: whereFromBasePercent('min_percent'),
   },
   'band-hit-52w': {
     model: BandHit52wModel,
@@ -2942,8 +2948,8 @@ const FORMULA_REGISTRY = {
     model: TopLoserDayModel,
     dateField: 'trade_date',
     searchFields: ['security', 'symbol'],
-    extraWhere: (basePercent = 3) => ({ min_percent: basePercent }),
-    latestDateWhere: (basePercent = 3) => ({ min_percent: basePercent })
+    extraWhere: whereFromBasePercent('min_percent'),
+    latestDateWhere: whereFromBasePercent('min_percent'),
   },
   'fifty-two-week-low': {
     model: FiftyTwoWeekLowModel,
@@ -2954,15 +2960,15 @@ const FORMULA_REGISTRY = {
     model: DailyMoverUpModel,
     dateField: 'trade_date',
     searchFields: ['security', 'symbol'],
-    extraWhere: (basePercent = 3) => ({ min_percent: basePercent }),
-    latestDateWhere: (basePercent = 3) => ({ min_percent: basePercent })
+    extraWhere: whereFromBasePercent('min_percent'),
+    latestDateWhere: whereFromBasePercent('min_percent'),
   },
   'daily-mover-down': {
     model: DailyMoverDownModel,
     dateField: 'trade_date',
     searchFields: ['security', 'symbol'],
-    extraWhere: (basePercent = 3) => ({ min_percent: basePercent }),
-    latestDateWhere: (basePercent = 3) => ({ min_percent: basePercent })
+    extraWhere: whereFromBasePercent('min_percent'),
+    latestDateWhere: whereFromBasePercent('min_percent'),
   },
   'volume-breakouts': {
     model: VolumeBreakoutModel,
@@ -3029,40 +3035,40 @@ attachGenerateOnRead(
 attachGenerateOnRead(
   'bearish-candle',
   generateBearishCandleService,
-  (basePercent) => ({ base_percent: basePercent })
+  whereFromBasePercent('base_percent')
 );
 attachGenerateOnRead(
   'gap-up-day',
   generateGapUpService,
-  (basePercent) => ({ gap_threshold: basePercent })
+  whereFromBasePercent('gap_threshold')
 );
 attachGenerateOnRead(
   'gap-down-day',
   generateGapDownService,
-  (basePercent) => ({ gap_threshold: basePercent })
+  whereFromBasePercent('gap_threshold')
 );
 attachGenerateOnRead('fifty-two-week-high', generateFiftyTwoWeekHighService);
 attachGenerateOnRead(
   'top-gainer-day',
   generateTopGainerService,
-  (basePercent) => ({ min_percent: basePercent })
+  whereFromBasePercent('min_percent')
 );
 attachGenerateOnRead('band-hit-52w', generateBandHit52wService);
 attachGenerateOnRead(
   'top-loser-day',
   generateTopLoserService,
-  (basePercent) => ({ min_percent: basePercent })
+  whereFromBasePercent('min_percent')
 );
 attachGenerateOnRead('fifty-two-week-low', generateFiftyTwoWeekLowService);
 attachGenerateOnRead(
   'daily-mover-up',
   generateDailyMoverUpService,
-  (basePercent) => ({ min_percent: basePercent })
+  whereFromBasePercent('min_percent')
 );
 attachGenerateOnRead(
   'daily-mover-down',
   generateDailyMoverDownService,
-  (basePercent) => ({ min_percent: basePercent })
+  whereFromBasePercent('min_percent')
 );
 attachGenerateOnRead(
   'volume-breakouts',
