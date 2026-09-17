@@ -101,6 +101,8 @@ export default function Home() {
     usesSortControls,
     rsRunMeta,
     rsConfirmation,
+    rsFormulaDates,
+    selectedSymbol,
   } = useMarketSignalsData();
   const router = useRouter();
   const { role, authLoading, isAuthenticated, isSubscribed } = useAuth();
@@ -471,12 +473,10 @@ export default function Home() {
                       <RsRankConfirmationPanel
                         runMeta={rsRunMeta as RsRunMeta | null}
                         confirmation={rsConfirmation as RsRankConfirmation | null}
+                        formulaDates={rsFormulaDates as RsRankConfirmation | null}
                         loading={loading}
-                        companyHint={
-                          selectedSymbol
-                            ? undefined
-                            : "Showing confirmation for the top row — select a company for a specific stock."
-                        }
+                        selectedSymbol={selectedSymbol || ""}
+                        companyHint="Select a company to compare its session dates vs the reference row above."
                       />
                     </>
                   ) : null}

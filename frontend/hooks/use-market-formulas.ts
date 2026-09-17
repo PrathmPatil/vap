@@ -88,6 +88,10 @@ export const useMarketSignalsData = (options: UseMarketSignalsOptions = {}) => {
     string,
     unknown
   > | null>(null);
+  const [rsFormulaDates, setRsFormulaDates] = useState<Record<
+    string,
+    unknown
+  > | null>(null);
   const [changePercentMin, setChangePercentMin] = useState<string>("");
   const [changePercentMax, setChangePercentMax] = useState<string>("");
   const [changeSort, setChangeSort] = useState<"asc" | "desc">("desc");
@@ -132,6 +136,10 @@ export const useMarketSignalsData = (options: UseMarketSignalsOptions = {}) => {
       "base_percent",
       "body_percent",
       "volume_ratio_min",
+      "rs_21_nifty",
+      "rs_55_nifty",
+      "rs_21_cnx500",
+      "rs_55_cnx500",
     ]);
 
     const rsRankLabels: Record<string, string> = {
@@ -276,6 +284,7 @@ export const useMarketSignalsData = (options: UseMarketSignalsOptions = {}) => {
         latest_date,
         rs_run_meta,
         rs_confirmation,
+        rs_formula_dates,
       } = response;
 
       if (!success) {
@@ -294,6 +303,11 @@ export const useMarketSignalsData = (options: UseMarketSignalsOptions = {}) => {
           ? (rs_confirmation as Record<string, unknown>) || null
           : null
       );
+      setRsFormulaDates(
+        formulaType === "rs-rank"
+          ? (rs_formula_dates as Record<string, unknown>) || null
+          : null
+      );
       setTotalPages(
         apiTotalPages ??
           (Math.ceil((safeRows.length || 0) / itemsPerPage) || 1)
@@ -307,6 +321,7 @@ export const useMarketSignalsData = (options: UseMarketSignalsOptions = {}) => {
       setTotalItems(0);
       setRsRunMeta(null);
       setRsConfirmation(null);
+      setRsFormulaDates(null);
     } finally {
       setLoading(false);
     }
@@ -500,5 +515,6 @@ export const useMarketSignalsData = (options: UseMarketSignalsOptions = {}) => {
     usesSortControls,
     rsRunMeta,
     rsConfirmation,
+    rsFormulaDates,
   };
 };

@@ -1777,6 +1777,7 @@ const RS_QUARTER_LABELS = {
 };
 
 const buildRsQuarterBreakdown = (stockHistory, metrics) => {
+  if (!stockHistory?.byOffset) return [];
   const asOf = stockHistory.byOffset.get(0);
   return Object.entries(RS_QUARTER_LOOKBACKS).map(([key, sessions]) => {
     const lookback = stockHistory.byOffset.get(sessions);
@@ -1789,8 +1790,57 @@ const buildRsQuarterBreakdown = (stockHistory, metrics) => {
       lookback_date: lookback?.tradeDate ?? null,
       lookback_close: lookback?.close ?? null,
       return_pct: metrics?.[key] ?? null,
+      lookback_available: Boolean(lookback),
     };
   });
+};
+
+const collectDatesUsed = (quarters = []) => {
+  const set = new Set();
+  for (const row of quarters) {
+    if (row.as_of_date) set.add(String(row.as_of_date).slice(0, 10));
+    if (row.lookback_date) set.add(String(row.lookback_date).slice(0, 10));
+  }
+  return [...set].sort();
+};
+
+const confirmationPayload = ({
+  success,
+  message,
+  latestDate,
+  resolvedSecurity,
+  resolvedSymbol,
+  stockHistory,
+  metrics,
+  stored,
+}) => {
+  const quarters = buildRsQuarterBreakdown(stockHistory, metrics);
+  const datesUsed = collectDatesUsed(quarters);
+  const sessionsLoaded = stockHistory?.byOffset?.size ?? 0;
+
+  return {
+    success,
+    message,
+    trade_date: latestDate,
+    security: resolvedSecurity,
+    symbol: resolvedSymbol || stripExchangeSuffix(stored?.symbol),
+    rs_rank: stored?.rs_rank ?? null,
+    rs_score: stored?.rs_score ?? metrics?.rs_score ?? null,
+    weighted_formula: '(2×Q1 + Q2 + Q3 + Q4) / 5',
+    quarter_session_lookbacks: RS_QUARTER_LOOKBACKS,
+    quarters,
+    dates_used: datesUsed,
+    trading_sessions_loaded: sessionsLoaded,
+    stored_row: stored
+      ? {
+          q1: stored.q1,
+          q2: stored.q2,
+          q3: stored.q3,
+          q4: stored.q4,
+          close_price: stored.close_price,
+        }
+      : null,
+  };
 };
 
 const loadRsHistoryRowsForSecurity = async (security, latestDate) => {
@@ -1855,6 +1905,14 @@ export const getRsRankConfirmationService = async ({
     if (row) {
       resolvedSecurity = row.security;
       resolvedSymbol = stripExchangeSuffix(row.symbol) || resolvedSymbol;
+    } else {
+      const { nameToSymbol } = await loadListedCompanyMaps();
+      for (const [name, sym] of nameToSymbol.entries()) {
+        if (stripExchangeSuffix(sym) === resolvedSymbol) {
+          resolvedSecurity = name;
+          break;
+        }
+      }
     }
   }
 
@@ -1871,51 +1929,91 @@ export const getRsRankConfirmationService = async ({
     latestDate
   );
   const stockHistory = buildStockCloseHistory(historyRows, latestDate);
-  if (!stockHistory) {
-    return {
-      success: false,
-      message: `Insufficient PR history for ${resolvedSecurity} on ${latestDate}`,
-      trade_date: latestDate,
-      security: resolvedSecurity,
-      symbol: resolvedSymbol,
-    };
-  }
-
-  const metrics = computeIbdRsMetrics(stockHistory);
-  if (!metrics) {
-    return {
-      success: false,
-      message: `Need at least 252 trading sessions of history for ${resolvedSecurity}`,
-      trade_date: latestDate,
-      security: resolvedSecurity,
-      symbol: resolvedSymbol,
-    };
-  }
 
   const stored = await RsRankModel.findOne({
     where: { trade_date: latestDate, security: resolvedSecurity },
     raw: true,
   });
 
-  return {
+  if (!stockHistory) {
+    return confirmationPayload({
+      success: false,
+      message: `No PR row on as-of date ${latestDate} for ${resolvedSecurity} (stock may not have traded that session).`,
+      latestDate,
+      resolvedSecurity,
+      resolvedSymbol,
+      stockHistory: null,
+      metrics: null,
+      stored,
+    });
+  }
+
+  const metrics = computeIbdRsMetrics(stockHistory);
+  if (!metrics) {
+    const sessions = stockHistory.byOffset.size - 1;
+    return confirmationPayload({
+      success: false,
+      message: `Need 252 prior sessions for full Q1–Q4; ${resolvedSecurity} has ${sessions} loaded before/as-of ${latestDate}. Dates below show what is available.`,
+      latestDate,
+      resolvedSecurity,
+      resolvedSymbol,
+      stockHistory,
+      metrics: null,
+      stored,
+    });
+  }
+
+  return confirmationPayload({
     success: true,
-    trade_date: latestDate,
-    security: resolvedSecurity,
-    symbol: resolvedSymbol || stripExchangeSuffix(stored?.symbol),
-    rs_rank: stored?.rs_rank ?? null,
-    rs_score: stored?.rs_score ?? metrics.rs_score,
-    weighted_formula: '(2×Q1 + Q2 + Q3 + Q4) / 5',
-    quarter_session_lookbacks: RS_QUARTER_LOOKBACKS,
-    quarters: buildRsQuarterBreakdown(stockHistory, metrics),
-    stored_row: stored
-      ? {
-          q1: stored.q1,
-          q2: stored.q2,
-          q3: stored.q3,
-          q4: stored.q4,
-          close_price: stored.close_price,
-        }
-      : null,
+    message: undefined,
+    latestDate,
+    resolvedSecurity,
+    resolvedSymbol,
+    stockHistory,
+    metrics,
+    stored,
+  });
+};
+
+/** Example stock with full history — shows PR session dates used for the run's as-of day. */
+export const getRsRankFormulaDatesService = async (tradeDate = null) => {
+  await RsRankModel.sync();
+
+  const latestDate = await resolveTradeDate(tradeDate);
+  if (!latestDate) {
+    return { success: false, message: 'No PR trade date available' };
+  }
+
+  const refRow = await RsRankModel.findOne({
+    where: {
+      trade_date: latestDate,
+      q1: { [Op.not]: null },
+    },
+    order: [['rs_rank', 'DESC'], ['rs_score', 'DESC']],
+    raw: true,
+  });
+
+  if (!refRow) {
+    return {
+      success: false,
+      message: `No fully ranked RS rows for ${latestDate} yet. Run the scanner or fetch bhavcopy first.`,
+      trade_date: latestDate,
+    };
+  }
+
+  const detail = await getRsRankConfirmationService({
+    security: refRow.security,
+    symbol: refRow.symbol,
+    tradeDate: latestDate,
+  });
+
+  return {
+    ...detail,
+    is_reference: true,
+    reference_note:
+      'Each stock uses the same as-of trade date; lookback dates are that stock’s own prior sessions (table shows one ranked example).',
+    reference_symbol: stripExchangeSuffix(refRow.symbol),
+    reference_security: refRow.security,
   };
 };
 
@@ -3518,22 +3616,18 @@ export const queryFormulaService = async (formulaType, filters = {}) => {
       min_sessions_required: RS_QUARTER_LOOKBACKS.q4,
     };
 
-    if (td && payload.data?.length) {
-      let targetRow = payload.data[0];
-      if (filters.symbol && String(filters.symbol).trim()) {
-        const want = stripExchangeSuffix(String(filters.symbol).trim());
-        targetRow =
-          payload.data.find(
-            (row) =>
-              stripExchangeSuffix(row.symbol) === want ||
-              row.security === filters.symbol
-          ) || targetRow;
+    if (td) {
+      payload.rs_formula_dates = await getRsRankFormulaDatesService(td);
+
+      const symbolFilter = String(filters.symbol || '').trim();
+      if (symbolFilter) {
+        payload.rs_confirmation = await getRsRankConfirmationService({
+          symbol: symbolFilter,
+          tradeDate: td,
+        });
+      } else {
+        payload.rs_confirmation = payload.rs_formula_dates;
       }
-      payload.rs_confirmation = await getRsRankConfirmationService({
-        symbol: targetRow.symbol,
-        security: targetRow.security,
-        tradeDate: td,
-      });
     }
   }
 

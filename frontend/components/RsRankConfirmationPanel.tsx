@@ -7,6 +7,7 @@ type RsQuarterRow = {
   lookback_date: string | null;
   lookback_close: number | null;
   return_pct: number | null;
+  lookback_available?: boolean;
 };
 
 export type RsRankConfirmation = {
@@ -19,6 +20,12 @@ export type RsRankConfirmation = {
   rs_score?: number | null;
   weighted_formula?: string;
   quarters?: RsQuarterRow[];
+  dates_used?: string[];
+  trading_sessions_loaded?: number;
+  is_reference?: boolean;
+  reference_note?: string;
+  reference_symbol?: string;
+  reference_security?: string;
 };
 
 export type RsRunMeta = {
@@ -52,38 +59,142 @@ function formatPct(value?: number | null) {
   return `${num >= 0 ? "+" : ""}${num.toFixed(2)}%`;
 }
 
+function QuarterDatesTable({
+  confirmation,
+  title,
+}: {
+  confirmation: RsRankConfirmation;
+  title?: string;
+}) {
+  if (!confirmation.quarters?.length) return null;
+
+  return (
+    <div className="space-y-2">
+      {title ? (
+        <p className="text-sm font-medium text-slate-800">{title}</p>
+      ) : null}
+      {confirmation.dates_used?.length ? (
+        <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2">
+          <p className="text-[0.65rem] font-semibold uppercase tracking-wide text-slate-500">
+            All PR dates used in this calculation
+          </p>
+          <p className="mt-1 flex flex-wrap gap-2 text-xs font-medium text-slate-800">
+            {confirmation.dates_used.map((d) => (
+              <span
+                key={d}
+                className="rounded bg-white px-2 py-0.5 ring-1 ring-slate-200 tabular-nums"
+              >
+                {formatDate(d)}
+                <span className="ml-1 font-normal text-slate-500">({d})</span>
+              </span>
+            ))}
+          </p>
+        </div>
+      ) : null}
+
+      <div className="overflow-x-auto rounded-lg border border-slate-200">
+        <table className="min-w-full text-left text-xs">
+          <thead className="bg-slate-50 text-[0.65rem] font-semibold uppercase tracking-wide text-slate-500">
+            <tr>
+              <th className="px-3 py-2">Quarter</th>
+              <th className="px-3 py-2">Sessions back</th>
+              <th className="px-3 py-2">As-of date</th>
+              <th className="px-3 py-2">As-of close</th>
+              <th className="px-3 py-2">Lookback date</th>
+              <th className="px-3 py-2">Lookback close</th>
+              <th className="px-3 py-2">Return</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-100 text-slate-800">
+            {confirmation.quarters.map((row) => (
+              <tr
+                key={row.quarter}
+                className={row.lookback_available === false ? "bg-amber-50/60" : ""}
+              >
+                <td className="px-3 py-2 font-medium">{row.label}</td>
+                <td className="px-3 py-2 tabular-nums">
+                  {row.trading_sessions_back}
+                </td>
+                <td className="px-3 py-2">{formatDate(row.as_of_date)}</td>
+                <td className="px-3 py-2 tabular-nums">
+                  {formatPrice(row.as_of_close)}
+                </td>
+                <td className="px-3 py-2">
+                  {row.lookback_available === false ? (
+                    <span className="text-amber-800">Missing session</span>
+                  ) : (
+                    formatDate(row.lookback_date)
+                  )}
+                </td>
+                <td className="px-3 py-2 tabular-nums">
+                  {formatPrice(row.lookback_close)}
+                </td>
+                <td className="px-3 py-2 tabular-nums font-medium">
+                  {formatPct(row.return_pct)}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
 type Props = {
   runMeta?: RsRunMeta | null;
   confirmation?: RsRankConfirmation | null;
+  formulaDates?: RsRankConfirmation | null;
   loading?: boolean;
   companyHint?: string;
+  selectedSymbol?: string;
 };
 
 export default function RsRankConfirmationPanel({
   runMeta,
   confirmation,
+  formulaDates,
   loading,
   companyHint,
+  selectedSymbol,
 }: Props) {
-  const tradeDate = runMeta?.trade_date || confirmation?.trade_date;
+  const tradeDate =
+    runMeta?.trade_date || confirmation?.trade_date || formulaDates?.trade_date;
+
+  const showFormulaDates =
+    formulaDates &&
+    formulaDates !== confirmation &&
+    formulaDates.quarters?.length;
+
+  const showCompanyBlock =
+    selectedSymbol &&
+    confirmation &&
+    confirmation !== formulaDates &&
+    confirmation.quarters?.length;
+
+  const showDefault =
+    !selectedSymbol &&
+    confirmation?.quarters?.length &&
+    !showFormulaDates;
 
   return (
     <div className="space-y-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
       <div>
         <h3 className="text-sm font-semibold text-slate-900">
-          RS Rank — calculation confirmation
+          RS Rank — dates &amp; data used
         </h3>
         <p className="mt-1 text-xs text-slate-600">
-          Trading-session lookbacks (not calendar months). Returns use PR close
-          from the as-of date vs the close {`{63, 126, 189, 252}`} sessions
-          earlier for this stock.
+          Formula as-of date is one NSE session. Q1–Q4 use PR closes from that
+          session and from 63 / 126 / 189 / 252 <strong>trading sessions</strong>{" "}
+          earlier (per stock).
         </p>
       </div>
 
       {tradeDate ? (
         <div className="flex flex-wrap gap-3 text-sm">
           <span className="rounded-md bg-slate-100 px-2 py-1 font-medium text-slate-800">
-            As-of session: {formatDate(tradeDate)}
+            Formula as-of: {formatDate(tradeDate)}
+            <span className="ml-1 font-normal text-slate-500">({tradeDate})</span>
           </span>
           {runMeta?.stocks_ranked != null ? (
             <span className="rounded-md bg-slate-100 px-2 py-1 text-slate-700">
@@ -93,12 +204,7 @@ export default function RsRankConfirmationPanel({
           {runMeta?.source ? (
             <span className="rounded-md bg-slate-100 px-2 py-1 text-slate-700">
               Data: {runMeta.source}
-              {runMeta.calculated ? " (recalculated this run)" : " (from DB)"}
-            </span>
-          ) : null}
-          {runMeta?.regenerated ? (
-            <span className="rounded-md bg-amber-100 px-2 py-1 text-amber-900">
-              Universe refreshed for this date
+              {runMeta.calculated ? " (recalculated)" : " (from DB)"}
             </span>
           ) : null}
         </div>
@@ -106,68 +212,63 @@ export default function RsRankConfirmationPanel({
 
       {loading ? (
         <p className="text-sm text-slate-500">Loading session dates…</p>
-      ) : confirmation?.success && confirmation.quarters?.length ? (
-        <>
-          <div className="flex flex-wrap gap-3 text-sm text-slate-800">
-            <span className="font-medium">
-              {confirmation.symbol || confirmation.security}
-            </span>
-            {confirmation.rs_rank != null ? (
-              <span>RS Rank: {confirmation.rs_rank}</span>
-            ) : null}
-            {confirmation.rs_score != null ? (
-              <span>RS Score: {Number(confirmation.rs_score).toFixed(2)}</span>
-            ) : null}
-            {confirmation.weighted_formula ? (
-              <span className="text-slate-600">
-                Formula: {confirmation.weighted_formula}
-              </span>
-            ) : null}
-          </div>
-
-          <div className="overflow-x-auto rounded-lg border border-slate-200">
-            <table className="min-w-full text-left text-xs">
-              <thead className="bg-slate-50 text-[0.65rem] font-semibold uppercase tracking-wide text-slate-500">
-                <tr>
-                  <th className="px-3 py-2">Quarter</th>
-                  <th className="px-3 py-2">Sessions back</th>
-                  <th className="px-3 py-2">As-of date</th>
-                  <th className="px-3 py-2">As-of close</th>
-                  <th className="px-3 py-2">Lookback date</th>
-                  <th className="px-3 py-2">Lookback close</th>
-                  <th className="px-3 py-2">Return</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 text-slate-800">
-                {confirmation.quarters.map((row) => (
-                  <tr key={row.quarter}>
-                    <td className="px-3 py-2 font-medium">{row.label}</td>
-                    <td className="px-3 py-2 tabular-nums">
-                      {row.trading_sessions_back}
-                    </td>
-                    <td className="px-3 py-2">{formatDate(row.as_of_date)}</td>
-                    <td className="px-3 py-2 tabular-nums">
-                      {formatPrice(row.as_of_close)}
-                    </td>
-                    <td className="px-3 py-2">{formatDate(row.lookback_date)}</td>
-                    <td className="px-3 py-2 tabular-nums">
-                      {formatPrice(row.lookback_close)}
-                    </td>
-                    <td className="px-3 py-2 tabular-nums font-medium">
-                      {formatPct(row.return_pct)}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </>
       ) : (
-        <p className="text-sm text-slate-600">
-          {confirmation?.message ||
-            companyHint ||
-            "Pick a company from the dropdown to see exact session dates and closes used in Q1–Q4."}
-        </p>
+        <>
+          {showFormulaDates ? (
+            <QuarterDatesTable
+              confirmation={formulaDates}
+              title={`Reference stock: ${formulaDates.reference_symbol || formulaDates.symbol || formulaDates.security} — ${formulaDates.reference_note || "full Q1–Q4 dates"}`}
+            />
+          ) : formulaDates && !formulaDates.success ? (
+            <p className="text-sm text-amber-800">{formulaDates.message}</p>
+          ) : null}
+
+          {showCompanyBlock || showDefault ? (
+            <QuarterDatesTable
+              confirmation={confirmation!}
+              title={
+                showCompanyBlock
+                  ? `Selected: ${confirmation?.symbol || confirmation?.security}`
+                  : undefined
+              }
+            />
+          ) : null}
+
+          {confirmation && !confirmation.success && confirmation.message ? (
+            <p className="text-sm text-amber-800">{confirmation.message}</p>
+          ) : null}
+
+          {!showFormulaDates &&
+          !showCompanyBlock &&
+          !showDefault &&
+          !confirmation?.quarters?.length ? (
+            <p className="text-sm text-slate-600">
+              {confirmation?.message ||
+                formulaDates?.message ||
+                companyHint ||
+                "Select a company to see its session dates and closes."}
+            </p>
+          ) : null}
+
+          {confirmation?.success || formulaDates?.success ? (
+            <div className="flex flex-wrap gap-3 text-xs text-slate-600">
+              {(confirmation?.rs_rank ?? formulaDates?.rs_rank) != null ? (
+                <span>
+                  RS Rank: {confirmation?.rs_rank ?? formulaDates?.rs_rank}
+                </span>
+              ) : null}
+              {(confirmation?.rs_score ?? formulaDates?.rs_score) != null ? (
+                <span>
+                  RS Score:{" "}
+                  {Number(
+                    confirmation?.rs_score ?? formulaDates?.rs_score
+                  ).toFixed(2)}
+                </span>
+              ) : null}
+              <span>Formula: (2×Q1 + Q2 + Q3 + Q4) / 5</span>
+            </div>
+          ) : null}
+        </>
       )}
     </div>
   );
