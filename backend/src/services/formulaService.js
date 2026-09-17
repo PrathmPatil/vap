@@ -1804,6 +1804,81 @@ const collectDatesUsed = (quarters = []) => {
   return [...set].sort();
 };
 
+/** Distinct NSE session dates in PR (newest first), through as-of day. */
+const loadMarketTradingSessionDates = async (latestDate, maxSessionsBack = 252) => {
+  const sequelize = PR.sequelize;
+  const { QueryTypes } = await import('sequelize');
+  const limit = maxSessionsBack + 1;
+
+  const rows = await sequelize.query(
+    `
+    SELECT session_date
+    FROM (
+      SELECT DISTINCT DATE(source_date) AS session_date
+      FROM \`pr\`
+      WHERE DATE(source_date) <= :latestDate
+        AND (status IS NULL OR TRIM(status) = '' OR UPPER(TRIM(status)) = 'OK' OR UPPER(TRIM(status)) <> 'MISSING')
+    ) d
+    ORDER BY session_date DESC
+    LIMIT :limit
+    `,
+    {
+      replacements: { latestDate, limit },
+      type: QueryTypes.SELECT,
+    }
+  );
+
+  return rows
+    .map((row) => normalizeTradeDate(row.session_date))
+    .filter(Boolean);
+};
+
+const buildMarketRsSessionPayload = (sessionDatesDesc, latestDate) => {
+  const asOfDate = sessionDatesDesc[0] ?? latestDate;
+  const quarters = Object.entries(RS_QUARTER_LOOKBACKS).map(([key, sessions]) => {
+    const lookbackDate = sessionDatesDesc[sessions] ?? null;
+    return {
+      quarter: key,
+      label: RS_QUARTER_LABELS[key] || key,
+      trading_sessions_back: sessions,
+      as_of_date: asOfDate,
+      as_of_close: null,
+      lookback_date: lookbackDate,
+      lookback_close: null,
+      return_pct: null,
+      lookback_available: Boolean(lookbackDate),
+    };
+  });
+
+  const lookback_session_dates = {
+    as_of: asOfDate,
+    q1_63_sessions: sessionDatesDesc[RS_QUARTER_LOOKBACKS.q1] ?? null,
+    q2_126_sessions: sessionDatesDesc[RS_QUARTER_LOOKBACKS.q2] ?? null,
+    q3_189_sessions: sessionDatesDesc[RS_QUARTER_LOOKBACKS.q3] ?? null,
+    q4_252_sessions: sessionDatesDesc[RS_QUARTER_LOOKBACKS.q4] ?? null,
+  };
+
+  const session_timeline = sessionDatesDesc
+    .map((date, sessionsBack) => ({ sessions_back: sessionsBack, date }))
+    .reverse();
+
+  const sessionsLoaded = Math.max(0, sessionDatesDesc.length - 1);
+  const hasFullHistory = sessionDatesDesc.length > RS_QUARTER_LOOKBACKS.q4;
+
+  return {
+    quarters,
+    lookback_session_dates,
+    session_timeline,
+    dates_used: collectDatesUsed(quarters),
+    trading_sessions_loaded: sessionsLoaded,
+    has_full_lookback_history: hasFullHistory,
+    success: hasFullHistory,
+    message: hasFullHistory
+      ? undefined
+      : `Need ${RS_QUARTER_LOOKBACKS.q4} sessions before as-of; only ${sessionsLoaded} NSE session(s) found in PR through ${latestDate}.`,
+  };
+};
+
 const confirmationPayload = ({
   success,
   message,
@@ -1975,15 +2050,32 @@ export const getRsRankConfirmationService = async ({
   });
 };
 
-/** Example stock with full history — shows PR session dates used for the run's as-of day. */
+/** NSE session calendar for RS lookbacks (63 / 126 / 189 / 252) on the as-of trade date. */
 export const getRsRankFormulaDatesService = async (tradeDate = null) => {
-  await RsRankModel.sync();
+  await PR.sync();
 
   const latestDate = await resolveTradeDate(tradeDate);
   if (!latestDate) {
     return { success: false, message: 'No PR trade date available' };
   }
 
+  const sessionDates = await loadMarketTradingSessionDates(
+    latestDate,
+    RS_QUARTER_LOOKBACKS.q4
+  );
+
+  if (!sessionDates.length) {
+    return {
+      success: false,
+      message: `No PR session dates on or before ${latestDate}.`,
+      trade_date: latestDate,
+    };
+  }
+
+  const market = buildMarketRsSessionPayload(sessionDates, latestDate);
+
+  let example = null;
+  await RsRankModel.sync();
   const refRow = await RsRankModel.findOne({
     where: {
       trade_date: latestDate,
@@ -1993,27 +2085,33 @@ export const getRsRankFormulaDatesService = async (tradeDate = null) => {
     raw: true,
   });
 
-  if (!refRow) {
-    return {
-      success: false,
-      message: `No fully ranked RS rows for ${latestDate} yet. Run the scanner or fetch bhavcopy first.`,
-      trade_date: latestDate,
-    };
+  if (refRow) {
+    example = await getRsRankConfirmationService({
+      security: refRow.security,
+      symbol: refRow.symbol,
+      tradeDate: latestDate,
+    });
   }
 
-  const detail = await getRsRankConfirmationService({
-    security: refRow.security,
-    symbol: refRow.symbol,
-    tradeDate: latestDate,
-  });
-
   return {
-    ...detail,
-    is_reference: true,
+    success: market.success,
+    message: market.message,
+    trade_date: latestDate,
+    weighted_formula: '(2×Q1 + Q2 + Q3 + Q4) / 5',
+    quarter_session_lookbacks: RS_QUARTER_LOOKBACKS,
+    is_market_calendar: true,
     reference_note:
-      'Each stock uses the same as-of trade date; lookback dates are that stock’s own prior sessions (table shows one ranked example).',
-    reference_symbol: stripExchangeSuffix(refRow.symbol),
-    reference_security: refRow.security,
+      'Lookback dates below are NSE trading sessions from PR (same session count for every stock). Example closes shown when a ranked stock is available.',
+    quarters: example?.success ? example.quarters : market.quarters,
+    lookback_session_dates: market.lookback_session_dates,
+    session_timeline: market.session_timeline,
+    dates_used: market.dates_used,
+    trading_sessions_loaded: market.trading_sessions_loaded,
+    has_full_lookback_history: market.has_full_lookback_history,
+    example_symbol: example?.success ? stripExchangeSuffix(refRow?.symbol) : null,
+    example_security: example?.success ? refRow?.security : null,
+    example_rs_rank: example?.rs_rank ?? null,
+    example_rs_score: example?.rs_score ?? null,
   };
 };
 

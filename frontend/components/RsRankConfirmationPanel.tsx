@@ -10,6 +10,19 @@ type RsQuarterRow = {
   lookback_available?: boolean;
 };
 
+export type RsLookbackSessionDates = {
+  as_of?: string | null;
+  q1_63_sessions?: string | null;
+  q2_126_sessions?: string | null;
+  q3_189_sessions?: string | null;
+  q4_252_sessions?: string | null;
+};
+
+export type RsSessionTimelineRow = {
+  sessions_back: number;
+  date: string;
+};
+
 export type RsRankConfirmation = {
   success: boolean;
   message?: string;
@@ -23,9 +36,17 @@ export type RsRankConfirmation = {
   dates_used?: string[];
   trading_sessions_loaded?: number;
   is_reference?: boolean;
+  is_market_calendar?: boolean;
   reference_note?: string;
   reference_symbol?: string;
   reference_security?: string;
+  lookback_session_dates?: RsLookbackSessionDates;
+  session_timeline?: RsSessionTimelineRow[];
+  has_full_lookback_history?: boolean;
+  example_symbol?: string | null;
+  example_security?: string | null;
+  example_rs_rank?: number | null;
+  example_rs_score?: number | null;
 };
 
 export type RsRunMeta = {
@@ -57,6 +78,107 @@ function formatPct(value?: number | null) {
   if (value == null || !Number.isFinite(Number(value))) return "—";
   const num = Number(value);
   return `${num >= 0 ? "+" : ""}${num.toFixed(2)}%`;
+}
+
+function LookbackDatesSummary({
+  lookbacks,
+}: {
+  lookbacks?: RsLookbackSessionDates | null;
+}) {
+  if (!lookbacks) return null;
+
+  const items: { key: string; label: string; date: string | null | undefined }[] =
+    [
+      { key: "as_of", label: "As-of (0 sessions)", date: lookbacks.as_of },
+      {
+        key: "q1",
+        label: "63 sessions back (~3M)",
+        date: lookbacks.q1_63_sessions,
+      },
+      {
+        key: "q2",
+        label: "126 sessions back (~6M)",
+        date: lookbacks.q2_126_sessions,
+      },
+      {
+        key: "q3",
+        label: "189 sessions back (~9M)",
+        date: lookbacks.q3_189_sessions,
+      },
+      {
+        key: "q4",
+        label: "252 sessions back (~12M)",
+        date: lookbacks.q4_252_sessions,
+      },
+    ];
+
+  return (
+    <div className="rounded-lg border border-amber-200 bg-amber-50/80 p-3">
+      <p className="text-[0.65rem] font-semibold uppercase tracking-wide text-amber-900/80">
+        NSE calendar dates for RS lookbacks
+      </p>
+      <div className="mt-2 grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
+        {items.map((item) => (
+          <div
+            key={item.key}
+            className="rounded-md bg-white px-2.5 py-2 ring-1 ring-amber-100"
+          >
+            <p className="text-[0.65rem] font-medium text-slate-500">
+              {item.label}
+            </p>
+            <p className="mt-0.5 text-sm font-semibold text-slate-900">
+              {item.date ? formatDate(item.date) : "—"}
+            </p>
+            {item.date ? (
+              <p className="text-[0.65rem] tabular-nums text-slate-500">
+                {item.date}
+              </p>
+            ) : (
+              <p className="text-[0.65rem] text-amber-800">Not in PR yet</p>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function SessionTimelineList({
+  timeline,
+}: {
+  timeline?: RsSessionTimelineRow[];
+}) {
+  if (!timeline?.length) return null;
+
+  return (
+    <details className="rounded-lg border border-slate-200 bg-slate-50/50 px-3 py-2">
+      <summary className="cursor-pointer text-xs font-medium text-slate-700">
+        All NSE session dates used (0 → {timeline.length - 1} sessions back,{" "}
+        {timeline.length} days)
+      </summary>
+      <div className="mt-2 max-h-48 overflow-y-auto">
+        <table className="min-w-full text-left text-[0.65rem]">
+          <thead className="sticky top-0 bg-slate-100 text-slate-500">
+            <tr>
+              <th className="px-2 py-1">Sessions back</th>
+              <th className="px-2 py-1">Date</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-100 text-slate-800">
+            {[...timeline].reverse().map((row) => (
+              <tr key={`${row.sessions_back}-${row.date}`}>
+                <td className="px-2 py-0.5 tabular-nums">{row.sessions_back}</td>
+                <td className="px-2 py-0.5">
+                  {formatDate(row.date)}
+                  <span className="ml-1 text-slate-500">({row.date})</span>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </details>
+  );
 }
 
 function QuarterDatesTable({
@@ -161,10 +283,7 @@ export default function RsRankConfirmationPanel({
   const tradeDate =
     runMeta?.trade_date || confirmation?.trade_date || formulaDates?.trade_date;
 
-  const showFormulaDates =
-    formulaDates &&
-    formulaDates !== confirmation &&
-    formulaDates.quarters?.length;
+  const showFormulaDates = Boolean(formulaDates?.quarters?.length);
 
   const showCompanyBlock =
     selectedSymbol &&
@@ -214,12 +333,30 @@ export default function RsRankConfirmationPanel({
         <p className="text-sm text-slate-500">Loading session dates…</p>
       ) : (
         <>
+          {formulaDates?.lookback_session_dates ? (
+            <LookbackDatesSummary
+              lookbacks={formulaDates.lookback_session_dates}
+            />
+          ) : null}
+
+          {formulaDates?.session_timeline?.length ? (
+            <SessionTimelineList timeline={formulaDates.session_timeline} />
+          ) : null}
+
+          {formulaDates?.reference_note ? (
+            <p className="text-xs text-slate-600">{formulaDates.reference_note}</p>
+          ) : null}
+
           {showFormulaDates ? (
             <QuarterDatesTable
               confirmation={formulaDates}
-              title={`Reference stock: ${formulaDates.reference_symbol || formulaDates.symbol || formulaDates.security} — ${formulaDates.reference_note || "full Q1–Q4 dates"}`}
+              title={
+                formulaDates.example_symbol
+                  ? `Example PR closes: ${formulaDates.example_symbol}${formulaDates.example_security ? ` (${formulaDates.example_security})` : ""}`
+                  : "Q1–Q4 session dates (market calendar)"
+              }
             />
-          ) : formulaDates && !formulaDates.success ? (
+          ) : formulaDates && !formulaDates.success && formulaDates.message ? (
             <p className="text-sm text-amber-800">{formulaDates.message}</p>
           ) : null}
 
