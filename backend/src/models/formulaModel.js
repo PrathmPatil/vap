@@ -212,6 +212,65 @@ export const StrongBullishCandle = (sequelize, DataTypes) => {
   );
 };
 
+/*
+---------------------------------------------------
+Strong King Candle
+---------------------------------------------------
+*/
+
+export const StrongKingCandle = (sequelize, DataTypes) => {
+  return sequelize.define(
+    'StrongKingCandle',
+    {
+      id: {
+        type: DataTypes.INTEGER,
+        primaryKey: true,
+        autoIncrement: true
+      },
+      security: {
+        type: DataTypes.STRING(255)
+      },
+      symbol: {
+        type: DataTypes.STRING(50)
+      },
+      open_price: {
+        type: DataTypes.DOUBLE
+      },
+      close_price: {
+        type: DataTypes.DOUBLE
+      },
+      change_percent: {
+        type: DataTypes.DOUBLE
+      },
+      trade_date: {
+        type: DataTypes.DATEONLY
+      },
+      base_percent: {
+        type: DataTypes.DOUBLE
+      },
+      body_percent: {
+        type: DataTypes.DOUBLE
+      },
+      body_to_range_percent: {
+        type: DataTypes.DOUBLE
+      },
+      high_price: {
+        type: DataTypes.DOUBLE
+      },
+      low_price: {
+        type: DataTypes.DOUBLE
+      }
+    },
+    {
+      tableName: 'strong_king_candle',
+      timestamps: true,
+      createdAt: 'created_at',
+      updatedAt: 'updated_at',
+      indexes: [{ fields: ['security', 'trade_date'] }]
+    }
+  );
+};
+
 /* =========================================================
     Volume Breakout
 ========================================================= */
@@ -669,7 +728,7 @@ export const DailyMoverDown = (sequelize, DataTypes) => {
 };
 
 /* =========================================================
-    Relative Strength Rank (Nifty / CNX500)
+    Relative Strength Rank (IBD-style, cross-sectional)
 ========================================================= */
 export const RsRank = (sequelize, DataTypes) => {
   return sequelize.define(

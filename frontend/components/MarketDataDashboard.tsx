@@ -465,10 +465,6 @@ const MarketDataDashboard: React.FC = () => {
           {(
             [
               "market-holiday",
-              // "market-status",
-              // "market-holiday-old",
-              // "ipo-calendar",
-              // "earnings-calendar",
             ] as TableType[]
           ).map((table) => (
             <button
@@ -491,7 +487,6 @@ const MarketDataDashboard: React.FC = () => {
       <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
         <div className="overflow-x-auto">{renderContent()}</div>
 
-        {/* Pagination Footer */}
         <div className="border-t bg-white px-4 py-2.5">
           <CustomPagination
             currentPage={page}

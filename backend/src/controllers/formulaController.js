@@ -2,6 +2,7 @@ import { Op } from "sequelize";
 import {
   runFormulaEngineService,
   generateStrongBullishService,
+  generateStrongKingCandleService,
   generateFollowThroughDayService,
   generateBuyDayService,
   generateRallyAttemptService,
@@ -11,6 +12,7 @@ import {
   getFollowThroughDayRecordsService,
   getBuyDayRecordsService,
   getStrongBullishRecordsService,
+  getStrongKingCandleRecordsService,
   getVolumeBreakoutRecordsService,
   getTweezerBottomRecordsService,
   getBearishCandleRecordsService,
@@ -31,6 +33,7 @@ import {
 } from "../services/formulaService.js";
 import {
   StrongBullishCandleModel,
+  StrongKingCandleModel,
   BearishCandleModel,
   GapUpDayModel,
   GapDownDayModel,
@@ -415,11 +418,32 @@ const runEnsuredFormula = async (
 export const generateStrongBullish = async (req, res) => {
   const filters = parseFormulaFilters(req.body);
   const selectedBasePercent = filters.basePercent;
-  const selectedBodyPercent = filters.bodyPercent;
 
   return runEnsuredFormula(res, {
     filters,
     formulaModel: StrongBullishCandleModel,
+    formulaDateField: "trade_date",
+    existingWhere: {
+      base_percent: selectedBasePercent,
+      body_percent: 0,
+    },
+    generatePayload: {
+      base_percent: selectedBasePercent,
+      body_percent: 0,
+    },
+    generateFunction: generateStrongBullishService,
+    getRecordsFn: getStrongBullishRecordsService
+  });
+};
+
+export const generateStrongKingCandle = async (req, res) => {
+  const filters = parseFormulaFilters(req.body);
+  const selectedBasePercent = filters.basePercent;
+  const selectedBodyPercent = filters.bodyPercent;
+
+  return runEnsuredFormula(res, {
+    filters,
+    formulaModel: StrongKingCandleModel,
     formulaDateField: "trade_date",
     existingWhere: {
       base_percent: selectedBasePercent,
@@ -429,8 +453,8 @@ export const generateStrongBullish = async (req, res) => {
       base_percent: selectedBasePercent,
       body_percent: selectedBodyPercent,
     },
-    generateFunction: generateStrongBullishService,
-    getRecordsFn: getStrongBullishRecordsService
+    generateFunction: generateStrongKingCandleService,
+    getRecordsFn: getStrongKingCandleRecordsService
   });
 };
 

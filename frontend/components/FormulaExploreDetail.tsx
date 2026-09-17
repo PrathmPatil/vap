@@ -209,6 +209,7 @@ export default function FormulaExploreDetail({
             ) : null}
 
             {(item.value === "strong-bullish-candle" ||
+              item.value === "strong-king-candle" ||
               item.value === "bearish-candle" ||
               item.value === "gap-up-day" ||
               item.value === "gap-down-day" ||

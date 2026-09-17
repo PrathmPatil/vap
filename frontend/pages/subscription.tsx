@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import Navigation from "@/components/Navigation";
@@ -34,11 +34,6 @@ export default function SubscriptionPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const termsRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (authLoading || !isAuthenticated) return;
-    refreshUser();
-  }, [authLoading, isAuthenticated, refreshUser]);
 
   const scrollToTerms = () => {
     termsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });

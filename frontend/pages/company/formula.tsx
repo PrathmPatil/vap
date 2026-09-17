@@ -29,6 +29,10 @@ import { hasMasterAccess } from "@/lib/authRoles";
 import { useRouter } from "next/router";
 import { Badge } from "@/components/ui/badge";
 import { Crown } from "lucide-react";
+import RsRankConfirmationPanel, {
+  type RsRankConfirmation,
+  type RsRunMeta,
+} from "@/components/RsRankConfirmationPanel";
 
 function slugForFilename(value: string) {
   return (
@@ -95,6 +99,8 @@ export default function Home() {
     usesVolumeRatio,
     usesRsRankFilter,
     usesSortControls,
+    rsRunMeta,
+    rsConfirmation,
   } = useMarketSignalsData();
   const router = useRouter();
   const { role, authLoading, isAuthenticated, isSubscribed } = useAuth();
@@ -317,6 +323,7 @@ export default function Home() {
                     </div>
 
                     {(activeFormula === "strong-bullish-candle" ||
+                      activeFormula === "strong-king-candle" ||
                       activeFormula === "bearish-candle" ||
                       activeFormula === "gap-up-day" ||
                       activeFormula === "gap-down-day" ||
@@ -452,12 +459,26 @@ export default function Home() {
                   </div>
 
                   {activeFormula === "rs-rank" ? (
-                    <p className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
-                      Shows stocks outperforming <strong>Nifty 50</strong> and{" "}
-                      <strong>Nifty 500 (CNX500)</strong> over 21 and 55 trading
-                      days. All four relative-strength values must be greater
-                      than 0. Rank 1–99 is based on the composite score.
-                    </p>
+                    <>
+                      <p className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
+                        <strong>IBD-style RS Rank</strong> — uses the stock&apos;s
+                        own price returns over ~3M, 6M, 9M, and 12M (63/126/189/252
+                        sessions). RS Score ={" "}
+                        <code>(2×Q1 + Q2 + Q3 + Q4) / 5</code>. Rank 1–99 is the
+                        percentile versus all NSE EQ stocks with full history — not
+                        vs Nifty.
+                      </p>
+                      <RsRankConfirmationPanel
+                        runMeta={rsRunMeta as RsRunMeta | null}
+                        confirmation={rsConfirmation as RsRankConfirmation | null}
+                        loading={loading}
+                        companyHint={
+                          selectedSymbol
+                            ? undefined
+                            : "Showing confirmation for the top row — select a company for a specific stock."
+                        }
+                      />
+                    </>
                   ) : null}
                 </div>
 

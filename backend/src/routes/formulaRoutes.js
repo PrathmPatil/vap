@@ -8,6 +8,7 @@ import {
 import {
   runFormulaEngine,
   generateStrongBullish,
+  generateStrongKingCandle,
   generateBearishCandle,
   generateGapUpDay,
   generateGapDownDay,
@@ -66,6 +67,7 @@ router.delete("/custom/:id", authenticate, deleteCustomFormula);
 router.post("/custom/:id/run", authenticate, runCustomFormula);
 
 router.post("/strong-bullish-candle", ...adminOnly, generateStrongBullish);
+router.post("/strong-king-candle", ...adminOnly, generateStrongKingCandle);
 router.post("/bearish-candle", ...adminOnly, generateBearishCandle);
 router.post("/gap-up-day", ...adminOnly, generateGapUpDay);
 router.post("/gap-down-day", ...adminOnly, generateGapDownDay);

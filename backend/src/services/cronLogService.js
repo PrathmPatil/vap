@@ -1,5 +1,45 @@
-import { Op } from "sequelize";
+import { Op, literal } from "sequelize";
 import { CronLogModel } from "../models/index.js";
+
+const escapeDate = (sequelize, dateStr) => sequelize.escape(dateStr);
+
+const jsonFieldEquals = (sequelize, jsonPath, dateStr) =>
+  literal(
+    `JSON_UNQUOTE(JSON_EXTRACT(additional_data, '${jsonPath}')) = ${escapeDate(sequelize, dateStr)}`
+  );
+
+/** Cron / manual job rows tied to a trade date (target_date, trade_date, or log run day). */
+export const fetchLogsByTradeDate = async (dateStr, { limit = 50 } = {}) => {
+  const sequelize = CronLogModel.sequelize;
+  const dayStart = new Date(dateStr);
+  dayStart.setHours(0, 0, 0, 0);
+  const dayEnd = new Date(dateStr);
+  dayEnd.setHours(23, 59, 59, 999);
+
+  const rows = await CronLogModel.findAll({
+    where: {
+      [Op.or]: [
+        jsonFieldEquals(sequelize, "$.target_date", dateStr),
+        jsonFieldEquals(sequelize, "$.trade_date", dateStr),
+        jsonFieldEquals(sequelize, "$.date", dateStr),
+        {
+          additional_data: {
+            [Op.like]: `%${dateStr}%`,
+          },
+        },
+        {
+          start_time: {
+            [Op.between]: [dayStart, dayEnd],
+          },
+        },
+      ],
+    },
+    order: [["start_time", "DESC"]],
+    limit: Number(limit),
+  });
+
+  return rows;
+};
 
 export const fetchLogs = async ({
   page = 1,

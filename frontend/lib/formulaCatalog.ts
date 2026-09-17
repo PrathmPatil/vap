@@ -17,6 +17,7 @@ export const FORMULA_CATALOG: FormulaOption[] = [
   { value: "rally-attempt-day", label: "Rally Attempt Day" },
   { value: "rs-rank", label: "Relative Strength Rank" },
   { value: "strong-bullish-candle", label: "Strong Bullish Candle" },
+  { value: "strong-king-candle", label: "Strong King Candle" },
   { value: "top-gainer-day", label: "Top Gainer Day" },
   { value: "top-loser-day", label: "Top Loser Day" },
   { value: "tweezer-bottoms", label: "Tweezer Bottoms" },

@@ -161,6 +161,7 @@ import {
   FollowThroughDay,
   RallyAttemptDay,
   StrongBullishCandle,
+  StrongKingCandle,
   TweezerBottom,
   VolumeBreakout,
   BearishCandle,
@@ -237,6 +238,7 @@ const RallyAttemptDayModel = RallyAttemptDay(sequelizeStockMarket, DataTypes);
 const FollowThroughDayModel = FollowThroughDay(sequelizeStockMarket, DataTypes);
 const BuyDayModel = BuyDay(sequelizeStockMarket, DataTypes);
 const StrongBullishCandleModel = StrongBullishCandle(sequelizeStockMarket, DataTypes);
+const StrongKingCandleModel = StrongKingCandle(sequelizeStockMarket, DataTypes);
 const VolumeBreakoutModel = VolumeBreakout(sequelizeStockMarket, DataTypes);
 const TweezerBottomModel = TweezerBottom(sequelizeStockMarket, DataTypes);
 const BearishCandleModel = BearishCandle(sequelizeStockMarket, DataTypes);
@@ -311,6 +313,7 @@ export {
   FollowThroughDayModel,
   BuyDayModel,
   StrongBullishCandleModel,
+  StrongKingCandleModel,
   VolumeBreakoutModel,
   TweezerBottomModel,
   BearishCandleModel,

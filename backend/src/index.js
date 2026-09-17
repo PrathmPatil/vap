@@ -37,6 +37,7 @@ import holidayRoutes from './routes/marketHolidayRoutes.js';
 import syncRoutes from './routes/syncRoutes.js';
 import logRoutes from './routes/cronLogRoutes.js';
 import cronManagementRoutes from './routes/cronManagementRoutes.js';
+import manualBhavcopyRoutes from './routes/manualBhavcopyRoutes.js';
 import { startFormulaCron } from './crons/formulaCron.js';
 import { ensureMasterUser } from './config/ensureMasterUser.js';
 import { ensureIpoColumns } from './config/ensureIpoColumns.js';
@@ -51,6 +52,7 @@ import {
   MainboardData,
   SmeData,
   StrongBullishCandleModel,
+  StrongKingCandleModel,
   RallyAttemptDayModel,
   FollowThroughDayModel,
   BuyDayModel,
@@ -89,7 +91,10 @@ const allowedOrigins = new Set([
 ]);
 
 const isLocalDevOrigin = (origin) =>
-  /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin);
+  /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(origin) ||
+  /^https?:\/\/(192\.168\.\d{1,3}\.\d{1,3}|10\.\d{1,3}\.\d{1,3}\.\d{1,3}|172\.(1[6-9]|2\d|3[01])\.\d{1,3}\.\d{1,3})(:\d+)?$/i.test(
+    origin
+  );
 
 app.use(
   cors({
@@ -189,6 +194,10 @@ export const startServer = async () => {
       await StrongBullishCandleModel.sync();
       logger.info('✅ StrongBullishCandle table synced.');
       console.log('✅ StrongBullishCandle table synced.');
+
+      await StrongKingCandleModel.sync();
+      logger.info('✅ StrongKingCandle table synced.');
+      console.log('✅ StrongKingCandle table synced.');
 
       await VolumeBreakoutModel.sync();
       logger.info('✅ VolumeBreakout table synced.');
@@ -333,6 +342,7 @@ app.use('/vap/holiday', holidayRoutes);
 app.use('/vap/sync', syncRoutes);
 app.use('/vap/logs', logRoutes);
 app.use('/vap/cron-management', cronManagementRoutes);
+app.use('/vap/manual/bhavcopy', manualBhavcopyRoutes);
 
 app.get('/vap/welcome', (req, res) => {
   res.send('📂 Welcome to the Corporate Events Ingestion API.');

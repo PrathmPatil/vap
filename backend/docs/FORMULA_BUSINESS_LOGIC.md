@@ -28,6 +28,7 @@
 | # | Formula | Source | Min history | Business purpose |
 |---|---------|--------|-------------|------------------|
 | 1 | **Strong Bullish Candle** | PR | 1 day | Intraday momentum — close up ≥2% from open |
+| 1b | **Strong King Candle** | PR | 1 day | King candle — close up ≥2% plus body ≥80% of range |
 | 2 | **Bearish Candle** | PR | 1 day | Intraday weakness — close down ≥2% from open |
 | 3 | **Gap Up** | PR | 1 day | Opening gap up vs previous close (≥1%) |
 | 4 | **Gap Down** | PR | 1 day | Opening gap down vs previous close (≤−1%) |
@@ -43,6 +44,7 @@
 | 14 | **52-Week Low Breakdown** | PR | 1 day | Price at/near 52-week low (`LO_52_WK`) |
 | 15 | **Daily Mover Up** | PR | 1 day | Close up ≥3% vs previous close |
 | 16 | **Daily Mover Down** | PR | 1 day | Close down ≥3% vs previous close |
+| 17 | **Relative Strength Rank** | PR | 252 sessions | IBD-style weighted quarterly returns, percentile 1–99 |
 
 ### B. Planned (need more data or external feed)
 
@@ -63,7 +65,21 @@
 - **Use case:** Screen stocks with strong buying pressure same day
 - **Output:** security, open, close, change_percent, trade_date
 
-### Bearish Candle
+### Strong King Candle
+- **Rule:** Strong Bullish Candle rules **plus** `(close − open) / (high − low) × 100 ≥ body_percent` (default 80%)
+- **Use case:** Stricter momentum — decisive one-sided buying with minimal wicks
+- **Output:** security, open, close, high, low, change_percent, body_to_range_percent, trade_date
+
+### Relative Strength Rank (IBD-style)
+- **Q1:** `(P₀ − P₆₃) / P₆₃ × 100` — latest ~3-month return (63 sessions)
+- **Q2:** `(P₀ − P₁₂₆) / P₁₂₆ × 100` — ~6-month return
+- **Q3:** `(P₀ − P₁₈₉) / P₁₈₉ × 100` — ~9-month return
+- **Q4:** `(P₀ − P₂₅₂) / P₂₅₂ × 100` — ~12-month return
+- **RS Score:** `(2×Q1 + Q2 + Q3 + Q4) / 5` (recent quarter double-weighted)
+- **RS Rank:** percentile of RS Score vs all EQ stocks with full history, mapped to 1–99
+- **Universe:** NSE EQ via `listed_companies`; stocks with &lt;252 sessions excluded
+- **Note:** Stock-vs-stock ranking only — **not** stock minus Nifty (that is RS Line, not RS Rank)
+
 - **Rule:** `(close − open) / open × 100 ≤ −base_percent`
 - **Use case:** Weakness / short-watch list
 - **Output:** Same shape as bullish
@@ -118,6 +134,7 @@
 | Formula slug | POST endpoint |
 |--------------|---------------|
 | strong-bullish-candle | `/vap/formula/strong-bullish-candle` |
+| strong-king-candle | `/vap/formula/strong-king-candle` |
 | bearish-candle | `/vap/formula/bearish-candle` |
 | gap-up-day | `/vap/formula/gap-up-day` |
 | gap-down-day | `/vap/formula/gap-down-day` |

@@ -67,9 +67,9 @@ function buildCatalog(): ManualApiEndpoint[] {
     {
       id: "bh-date-formulas",
       name: "Fetch Date + Run Formulas",
-      path: "/bhavcopy/fetch-date-with-formulas/{date}",
+      path: "/vap/manual/bhavcopy/fetch-date-with-formulas/{date}",
       method: "POST",
-      host: "python",
+      host: "backend",
       description: "Fetch one trade day then run the full formula engine (cron pipeline)",
       primary: true,
       parameters: [
@@ -80,9 +80,9 @@ function buildCatalog(): ManualApiEndpoint[] {
     {
       id: "bh-range-formulas",
       name: "Fetch Range + Run Formulas",
-      path: "/bhavcopy/fetch-range-with-formulas",
+      path: "/vap/manual/bhavcopy/fetch-range-with-formulas",
       method: "POST",
-      host: "python",
+      host: "backend",
       description: "Backfill missing weekdays then run formulas for each success day",
       primary: true,
       parameters: [

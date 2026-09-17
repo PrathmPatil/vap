@@ -19,6 +19,7 @@ function slugForFilename(value: string) {
 
 const CURRENT_DAY_FORMULAS = new Set([
   "strong-bullish-candle",
+  "strong-king-candle",
   "bearish-candle",
   "gap-up-day",
   "gap-down-day",
@@ -30,6 +31,7 @@ const CURRENT_DAY_FORMULAS = new Set([
 
 const CHANGE_PERCENT_FORMULAS = new Set([
   "strong-bullish-candle",
+  "strong-king-candle",
   "bearish-candle",
   "top-gainer-day",
   "top-loser-day",
@@ -79,6 +81,13 @@ export const useMarketSignalsData = (options: UseMarketSignalsOptions = {}) => {
   const [selectedSymbol, setSelectedSymbol] = useState<string>("");
   const [companies, setCompanies] = useState<FormulaCompanyOption[]>([]);
   const [tradeDate, setTradeDate] = useState<string | null>(null);
+  const [rsRunMeta, setRsRunMeta] = useState<Record<string, unknown> | null>(
+    null
+  );
+  const [rsConfirmation, setRsConfirmation] = useState<Record<
+    string,
+    unknown
+  > | null>(null);
   const [changePercentMin, setChangePercentMin] = useState<string>("");
   const [changePercentMax, setChangePercentMax] = useState<string>("");
   const [changeSort, setChangeSort] = useState<"asc" | "desc">("desc");
@@ -89,7 +98,7 @@ export const useMarketSignalsData = (options: UseMarketSignalsOptions = {}) => {
 
   const usesCurrentDay = CURRENT_DAY_FORMULAS.has(formulaType);
   const usesChangePercent = CHANGE_PERCENT_FORMULAS.has(formulaType);
-  const usesBodyPercent = formulaType === "strong-bullish-candle";
+  const usesBodyPercent = formulaType === "strong-king-candle";
   const usesVolumeRatio = formulaType === "volume-breakouts";
   const usesRsRankFilter = formulaType === "rs-rank";
   const usesSortControls = SORTABLE_FORMULAS.has(formulaType);
@@ -123,20 +132,16 @@ export const useMarketSignalsData = (options: UseMarketSignalsOptions = {}) => {
       "base_percent",
       "body_percent",
       "volume_ratio_min",
-      "q1",
-      "q2",
-      "q3",
-      "q4",
     ]);
 
     const rsRankLabels: Record<string, string> = {
       security: "NAME OF COMPANY",
       rs_rank: "RELATIVE STRENGTH RANK",
-      rs_21_nifty: "21D VS NIFTY (>0)",
-      rs_55_nifty: "55D VS NIFTY (>0)",
-      rs_21_cnx500: "21D VS CNX500 (>0)",
-      rs_55_cnx500: "55D VS CNX500 (>0)",
-      rs_score: "COMPOSITE RS SCORE",
+      q1: "Q1 — 3M RETURN (2× WEIGHT)",
+      q2: "Q2 — 6M RETURN",
+      q3: "Q3 — 9M RETURN",
+      q4: "Q4 — 12M RETURN",
+      rs_score: "WEIGHTED RS SCORE",
       symbol: "SYMBOL",
       close_price: "CLOSE PRICE",
     };
@@ -145,10 +150,10 @@ export const useMarketSignalsData = (options: UseMarketSignalsOptions = {}) => {
       "security",
       "symbol",
       "rs_rank",
-      "rs_21_nifty",
-      "rs_55_nifty",
-      "rs_21_cnx500",
-      "rs_55_cnx500",
+      "q1",
+      "q2",
+      "q3",
+      "q4",
       "rs_score",
       "close_price",
     ];
@@ -161,6 +166,11 @@ export const useMarketSignalsData = (options: UseMarketSignalsOptions = {}) => {
         return String(value ?? "").replace(/\.(NS|BSE|BO)$/i, "");
       }
       if (key.includes("price")) return `₹${Number(value).toFixed(2)}`;
+      if (/^q[1-4]$/.test(key)) {
+        const num = Number(value);
+        if (!Number.isFinite(num)) return value;
+        return `${num >= 0 ? "+" : ""}${num.toFixed(2)}%`;
+      }
       if (key.startsWith("rs_") && key !== "rs_rank") {
         const num = Number(value);
         if (!Number.isFinite(num)) return value;
@@ -214,8 +224,14 @@ export const useMarketSignalsData = (options: UseMarketSignalsOptions = {}) => {
     if (
       basePercent <= 0 &&
       (formulaType === "strong-bullish-candle" ||
+        formulaType === "strong-king-candle" ||
         formulaType === "bearish-candle")
     ) {
+      setLoading(false);
+      return;
+    }
+
+    if (bodyPercent <= 0 && formulaType === "strong-king-candle") {
       setLoading(false);
       return;
     }
@@ -258,6 +274,8 @@ export const useMarketSignalsData = (options: UseMarketSignalsOptions = {}) => {
         totalItems: apiTotalItems,
         trade_date,
         latest_date,
+        rs_run_meta,
+        rs_confirmation,
       } = response;
 
       if (!success) {
@@ -268,6 +286,14 @@ export const useMarketSignalsData = (options: UseMarketSignalsOptions = {}) => {
       buildColumns(safeRows);
       setData(safeRows);
       setTradeDate(trade_date || latest_date || selectedDate || null);
+      setRsRunMeta(
+        formulaType === "rs-rank" ? (rs_run_meta as Record<string, unknown>) : null
+      );
+      setRsConfirmation(
+        formulaType === "rs-rank"
+          ? (rs_confirmation as Record<string, unknown>) || null
+          : null
+      );
       setTotalPages(
         apiTotalPages ??
           (Math.ceil((safeRows.length || 0) / itemsPerPage) || 1)
@@ -279,6 +305,8 @@ export const useMarketSignalsData = (options: UseMarketSignalsOptions = {}) => {
       setColumns(null);
       setTotalPages(1);
       setTotalItems(0);
+      setRsRunMeta(null);
+      setRsConfirmation(null);
     } finally {
       setLoading(false);
     }
@@ -364,6 +392,8 @@ export const useMarketSignalsData = (options: UseMarketSignalsOptions = {}) => {
     ) {
       setBasePercent(3);
     } else if (value === "strong-bullish-candle" || value === "bearish-candle") {
+      setBasePercent(2);
+    } else if (value === "strong-king-candle") {
       setBasePercent(2);
       setBodyPercent(80);
     } else if (value === "volume-breakouts") {
@@ -468,5 +498,7 @@ export const useMarketSignalsData = (options: UseMarketSignalsOptions = {}) => {
     usesVolumeRatio,
     usesRsRankFilter,
     usesSortControls,
+    rsRunMeta,
+    rsConfirmation,
   };
 };

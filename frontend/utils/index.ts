@@ -628,7 +628,26 @@ export const getMarketHolidays = async (page: number, limit: number, search?: st
     method: 'POST',
     data: { page, limit, search }
   });
-}
+};
+
+export const getDataCoverageCalendar = async (
+  year: number,
+  month: number
+): Promise<any> => {
+  return callApi<any>({
+    url: 'holiday/coverage-calendar',
+    method: 'GET',
+    params: { year, month },
+  });
+};
+
+export const getCoverageDateDetail = async (date: string): Promise<any> => {
+  return callApi<any>({
+    url: 'holiday/coverage-calendar/date',
+    method: 'GET',
+    params: { date },
+  });
+};
 // /logs
 export const getCronLogs = async (page: number, limit: number, job_name?: string, status?: string): Promise<any> => {
   return callApi<any>({

@@ -5,6 +5,7 @@ import {
   BarChart3,
   Bookmark,
   Building2,
+  CalendarDays,
   ChevronDown,
   Compass,
   Crown,
@@ -123,7 +124,14 @@ function Navigation() {
       ? [{ href: "/bhavcopy", label: "Bhavcopy", icon: Database }]
       : []),
     ...(role === "admin" || role === "master" || hasMasterAccess(role)
-      ? [{ href: "/master", label: "Logs", icon: ScrollText }]
+      ? [
+          {
+            href: "/master/data-coverage",
+            label: "Data Coverage",
+            icon: CalendarDays,
+          },
+          { href: "/master", label: "Logs", icon: ScrollText },
+        ]
       : []),
   ];
 

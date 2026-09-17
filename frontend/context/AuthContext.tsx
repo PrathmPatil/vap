@@ -1,7 +1,10 @@
 import {
   createContext,
+  useCallback,
   useContext,
   useEffect,
+  useMemo,
+  useRef,
   useState,
   ReactNode,
 } from "react";
@@ -70,6 +73,25 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   // Prevents pages from redirecting to /login during SSR/hydration flash.
   const [authLoading, setAuthLoading] = useState(true);
   const [role, setRole] = useState("");
+  const profileRefreshInFlight = useRef(false);
+
+  const refreshUser = useCallback(async () => {
+    if (profileRefreshInFlight.current) return;
+    profileRefreshInFlight.current = true;
+    try {
+      const response = await getUserProfile();
+      if (response?.success && response.user) {
+        const userData = response.user as User;
+        setUser(userData);
+        setRole(resolveRole(userData, localStorage.getItem("token")));
+        localStorage.setItem("stockUser", JSON.stringify(userData));
+      }
+    } catch (error) {
+      console.warn("Profile refresh failed:", error);
+    } finally {
+      profileRefreshInFlight.current = false;
+    }
+  }, []);
 
   useEffect(() => {
     const storedUser = localStorage.getItem("stockUser");
@@ -103,6 +125,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     // Mark auth check complete — pages can now safely evaluate isAuthenticated.
     setAuthLoading(false);
   }, []);
+
+  useEffect(() => {
+    if (authLoading || !isAuthenticated) return;
+    void refreshUser();
+  }, [authLoading, isAuthenticated, refreshUser]);
 
   const login = async (email: string, password: string) => {
     try {
@@ -176,38 +203,32 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     navigateClient("/login");
   };
 
-  const refreshUser = async () => {
-    try {
-      const response = await getUserProfile();
-      if (response?.success && response.user) {
-        const userData = response.user as User;
-        setUser(userData);
-        setRole(resolveRole(userData, localStorage.getItem("token")));
-        localStorage.setItem("stockUser", JSON.stringify(userData));
-      }
-    } catch (error) {
-      console.warn("Profile refresh failed:", error);
-    }
-  };
-
   const isSubscribed = hasPremiumAccess(role, user?.is_subscribed === true);
 
+  const contextValue = useMemo(
+    () => ({
+      isAuthenticated,
+      authLoading,
+      user,
+      role,
+      isSubscribed,
+      login,
+      register,
+      refreshUser,
+      logout,
+    }),
+    [
+      isAuthenticated,
+      authLoading,
+      user,
+      role,
+      isSubscribed,
+      refreshUser,
+    ],
+  );
+
   return (
-    <AuthContext.Provider
-      value={{
-        isAuthenticated,
-        authLoading,
-        user,
-        role,
-        isSubscribed,
-        login,
-        register,
-        refreshUser,
-        logout,
-      }}
-    >
-      {children}
-    </AuthContext.Provider>
+    <AuthContext.Provider value={contextValue}>{children}</AuthContext.Provider>
   );
 };
 
