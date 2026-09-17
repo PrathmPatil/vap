@@ -102,7 +102,6 @@ export default function Home() {
     rsRunMeta,
     rsConfirmation,
     rsFormulaDates,
-    selectedSymbol,
   } = useMarketSignalsData();
   const router = useRouter();
   const { role, authLoading, isAuthenticated, isSubscribed } = useAuth();
