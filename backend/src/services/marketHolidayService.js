@@ -30,6 +30,205 @@ const iterateDays = (startStr, endStr) => {
   return days;
 };
 
+const addCalendarDays = (dateStr, delta) => {
+  const cursor = new Date(`${dateStr}T00:00:00Z`);
+  cursor.setUTCDate(cursor.getUTCDate() + delta);
+  return cursor.toISOString().slice(0, 10);
+};
+
+export const classifyMarketDay = (dateStr, holidayMap = new Map()) => {
+  const key = toDateOnly(dateStr);
+  if (!key) return { status: "invalid", date: dateStr };
+
+  const dow = new Date(`${key}T00:00:00Z`).getUTCDay();
+  if (dow === 0 || dow === 6) {
+    return { status: "weekend", date: key, is_weekend: true };
+  }
+
+  const holiday = holidayMap.get(key);
+  if (holiday) {
+    return {
+      status: "holiday",
+      date: key,
+      holiday_description: holiday.description,
+      holiday_day: holiday.day,
+      holiday_segment: holiday.segment,
+    };
+  }
+
+  return { status: "trading", date: key, market_open: true };
+};
+
+export const loadHolidayMapForRange = async (startStr, endStr) => {
+  const start = toDateOnly(startStr);
+  const end = toDateOnly(endStr);
+  if (!start || !end) return new Map();
+
+  const holidayRows = await MarketHolidayModel.findAll({
+    attributes: ["holiday_date", "description", "day", "segment"],
+    where: {
+      is_active: 1,
+      holiday_date: { [Op.between]: [start, end] },
+    },
+    order: [["holiday_date", "ASC"]],
+    raw: true,
+  });
+
+  const holidayMap = new Map();
+  for (const row of holidayRows || []) {
+    const key = toDateOnly(row.holiday_date);
+    if (!key || holidayMap.has(key)) continue;
+    holidayMap.set(key, {
+      description: row.description || "Market holiday",
+      day: row.day || null,
+      segment: row.segment || null,
+    });
+  }
+  return holidayMap;
+};
+
+/** Trading sessions on or before as-of (index 0 = as-of session). */
+export const buildExpectedTradingSessionsDesc = async (
+  asOfDate,
+  maxSessionsBack = 252
+) => {
+  const asOf = toDateOnly(asOfDate);
+  if (!asOf) return [];
+
+  const calendarStart = addCalendarDays(asOf, -(maxSessionsBack * 2 + 120));
+  const holidayMap = await loadHolidayMapForRange(calendarStart, asOf);
+
+  const sessionsDesc = [];
+  let cursor = asOf;
+
+  while (sessionsDesc.length <= maxSessionsBack) {
+    const day = classifyMarketDay(cursor, holidayMap);
+    if (day.status === "trading") {
+      sessionsDesc.push(day.date);
+    }
+    cursor = addCalendarDays(cursor, -1);
+    if (cursor < calendarStart) break;
+  }
+
+  return sessionsDesc;
+};
+
+export const loadPrFetchedDatesInRange = async (startStr, endStr) => {
+  const start = toDateOnly(startStr);
+  const end = toDateOnly(endStr);
+  if (!start || !end) return new Set();
+
+  const { QueryTypes } = await import("sequelize");
+  const rows = await PR.sequelize.query(
+    `
+    SELECT DISTINCT DATE(source_date) AS trade_date
+    FROM \`pr\`
+    WHERE source_date IS NOT NULL
+      AND TRIM(source_date) <> ''
+      AND DATE(source_date) BETWEEN :start AND :end
+    `,
+    {
+      replacements: { start, end },
+      type: QueryTypes.SELECT,
+    }
+  );
+
+  return new Set(
+    (rows || []).map((row) => toDateOnly(row.trade_date)).filter(Boolean)
+  );
+};
+
+/** Which RS lookback dates are open market days but missing PR bhavcopy. */
+export const analyzeRsRankDataGaps = async (asOfDate, maxSessionsBack = 252) => {
+  const asOf = toDateOnly(asOfDate);
+  if (!asOf) {
+    return {
+      success: false,
+      message: "Invalid as-of date",
+    };
+  }
+
+  const expectedSessions = await buildExpectedTradingSessionsDesc(
+    asOf,
+    maxSessionsBack
+  );
+
+  const lookbackOffsets = {
+    as_of: 0,
+    q1_63_sessions: 63,
+    q2_126_sessions: 126,
+    q3_189_sessions: 189,
+    q4_252_sessions: 252,
+  };
+
+  const rangeEnd = asOf;
+  const rangeStart =
+    expectedSessions[expectedSessions.length - 1] ||
+    addCalendarDays(asOf, -(maxSessionsBack * 2));
+
+  const holidayMap = await loadHolidayMapForRange(rangeStart, rangeEnd);
+  const prFetched = await loadPrFetchedDatesInRange(rangeStart, rangeEnd);
+
+  const lookback_checks = Object.entries(lookbackOffsets).map(([key, offset]) => {
+    const expectedDate = expectedSessions[offset] ?? null;
+    const market = expectedDate
+      ? classifyMarketDay(expectedDate, holidayMap)
+      : { status: "unknown", date: null };
+
+    let pr_status = "unknown";
+    if (expectedDate) {
+      pr_status = prFetched.has(expectedDate) ? "fetched" : "missing";
+    } else if (offset > 0) {
+      pr_status = "insufficient_calendar";
+    }
+
+    const fetchable =
+      market.status === "trading" && pr_status === "missing";
+
+    return {
+      key,
+      trading_sessions_back: offset,
+      expected_date: expectedDate,
+      market_status: market.status,
+      market_open: market.status === "trading",
+      pr_status,
+      fetchable,
+      ...(market.holiday_description
+        ? { holiday_description: market.holiday_description }
+        : {}),
+    };
+  });
+
+  const missing_trading_dates = [];
+  for (const dateStr of iterateDays(rangeStart, rangeEnd)) {
+    const market = classifyMarketDay(dateStr, holidayMap);
+    if (market.status !== "trading") continue;
+    if (!prFetched.has(dateStr)) {
+      missing_trading_dates.push(dateStr);
+    }
+  }
+
+  missing_trading_dates.sort();
+
+  return {
+    success: true,
+    as_of_date: asOf,
+    expected_sessions_available: expectedSessions.length,
+    need_sessions: maxSessionsBack + 1,
+    has_full_expected_history: expectedSessions.length > maxSessionsBack,
+    lookback_checks,
+    missing_trading_dates,
+    missing_trading_count: missing_trading_dates.length,
+    fetch_range:
+      missing_trading_dates.length > 0
+        ? {
+            start_date: missing_trading_dates[0],
+            end_date: missing_trading_dates[missing_trading_dates.length - 1],
+          }
+        : null,
+  };
+};
+
 export const getCoverageCalendar = async ({ year, month }) => {
   const bounds = monthBounds(year, month);
   const today = new Date().toISOString().slice(0, 10);

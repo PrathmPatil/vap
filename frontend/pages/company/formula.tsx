@@ -102,10 +102,12 @@ export default function Home() {
     rsRunMeta,
     rsConfirmation,
     rsFormulaDates,
+    refetchFormulaRows,
   } = useMarketSignalsData();
   const router = useRouter();
   const { role, authLoading, isAuthenticated, isSubscribed } = useAuth();
   const canUseMyScan = hasMasterAccess(role);
+  const canFetchBhavcopy = hasMasterAccess(role);
 
   useEffect(() => {
     if (authLoading) return;
@@ -476,6 +478,8 @@ export default function Home() {
                         loading={loading}
                         selectedSymbol={selectedSymbol || ""}
                         companyHint="Select a company to compare its session dates vs the reference row above."
+                        canFetchBhavcopy={canFetchBhavcopy}
+                        onRefresh={() => void refetchFormulaRows()}
                       />
                     </>
                   ) : null}

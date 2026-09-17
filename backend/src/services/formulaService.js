@@ -22,6 +22,11 @@ import {
 } from '../models/index.js';
 
 import {
+  analyzeRsRankDataGaps,
+  buildExpectedTradingSessionsDesc,
+} from './marketHolidayService.js';
+
+import {
   generateBearishCandleService,
   generateGapUpService,
   generateGapDownService,
@@ -2064,15 +2069,47 @@ export const getRsRankFormulaDatesService = async (tradeDate = null) => {
     RS_QUARTER_LOOKBACKS.q4
   );
 
-  if (!sessionDates.length) {
+  const expectedSessions = await buildExpectedTradingSessionsDesc(
+    latestDate,
+    RS_QUARTER_LOOKBACKS.q4
+  );
+
+  const dataGaps = await analyzeRsRankDataGaps(
+    latestDate,
+    RS_QUARTER_LOOKBACKS.q4
+  );
+
+  if (!expectedSessions.length && !sessionDates.length) {
     return {
       success: false,
-      message: `No PR session dates on or before ${latestDate}.`,
+      message: `No trading sessions on or before ${latestDate}.`,
       trade_date: latestDate,
     };
   }
 
-  const market = buildMarketRsSessionPayload(sessionDates, latestDate);
+  const market = buildMarketRsSessionPayload(
+    sessionDates.length ? sessionDates : expectedSessions,
+    latestDate
+  );
+
+  const lookbackFromExpected = {
+    as_of: expectedSessions[0] ?? latestDate,
+    q1_63_sessions: expectedSessions[RS_QUARTER_LOOKBACKS.q1] ?? null,
+    q2_126_sessions: expectedSessions[RS_QUARTER_LOOKBACKS.q2] ?? null,
+    q3_189_sessions: expectedSessions[RS_QUARTER_LOOKBACKS.q3] ?? null,
+    q4_252_sessions: expectedSessions[RS_QUARTER_LOOKBACKS.q4] ?? null,
+  };
+
+  const missingPrSet = new Set(dataGaps.missing_trading_dates || []);
+
+  const session_timeline = expectedSessions
+    .slice(0, RS_QUARTER_LOOKBACKS.q4 + 1)
+    .map((date, sessionsBack) => ({
+      sessions_back: sessionsBack,
+      date,
+      market_status: 'trading',
+      pr_status: missingPrSet.has(date) ? 'missing' : 'fetched',
+    }));
 
   let example = null;
   await RsRankModel.sync();
@@ -2093,21 +2130,40 @@ export const getRsRankFormulaDatesService = async (tradeDate = null) => {
     });
   }
 
+  const hasFullPrHistory = sessionDates.length > RS_QUARTER_LOOKBACKS.q4;
+  const gapMessage =
+    dataGaps.missing_trading_count > 0
+      ? `${dataGaps.missing_trading_count} NSE trading day(s) in the RS window have no bhavcopy in PR yet — fetch them to compute full Q1–Q4.`
+      : market.message;
+
   return {
-    success: market.success,
-    message: market.message,
+    success: hasFullPrHistory && dataGaps.has_full_expected_history,
+    message: gapMessage,
     trade_date: latestDate,
     weighted_formula: '(2×Q1 + Q2 + Q3 + Q4) / 5',
     quarter_session_lookbacks: RS_QUARTER_LOOKBACKS,
     is_market_calendar: true,
     reference_note:
-      'Lookback dates below are NSE trading sessions from PR (same session count for every stock). Example closes shown when a ranked stock is available.',
+      'Lookback calendar dates use NSE trading days (weekends/holidays excluded). PR status shows whether bhavcopy exists in the database.',
     quarters: example?.success ? example.quarters : market.quarters,
-    lookback_session_dates: market.lookback_session_dates,
-    session_timeline: market.session_timeline,
-    dates_used: market.dates_used,
-    trading_sessions_loaded: market.trading_sessions_loaded,
-    has_full_lookback_history: market.has_full_lookback_history,
+    lookback_session_dates: lookbackFromExpected,
+    lookback_checks: dataGaps.lookback_checks,
+    data_gaps: {
+      missing_trading_dates: dataGaps.missing_trading_dates,
+      missing_trading_count: dataGaps.missing_trading_count,
+      fetch_range: dataGaps.fetch_range,
+      pr_sessions_loaded: Math.max(0, sessionDates.length - 1),
+      expected_sessions_available: dataGaps.expected_sessions_available,
+    },
+    session_timeline,
+    dates_used: collectDatesUsed(
+      Object.values(RS_QUARTER_LOOKBACKS).map((sessions) => ({
+        as_of_date: lookbackFromExpected.as_of,
+        lookback_date: expectedSessions[sessions] ?? null,
+      }))
+    ),
+    trading_sessions_loaded: Math.max(0, sessionDates.length - 1),
+    has_full_lookback_history: hasFullPrHistory,
     example_symbol: example?.success ? stripExchangeSuffix(refRow?.symbol) : null,
     example_security: example?.success ? refRow?.security : null,
     example_rs_rank: example?.rs_rank ?? null,

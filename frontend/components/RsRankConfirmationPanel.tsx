@@ -1,3 +1,13 @@
+import Link from "next/link";
+import { useCallback, useState } from "react";
+import { Loader2, Download } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import {
+  fetchBhavcopyForDate,
+  fetchBhavcopyRange,
+  formatBhavcopyFetchError,
+} from "@/lib/bhavcopyManualFetch";
+
 type RsQuarterRow = {
   quarter: string;
   label: string;
@@ -21,6 +31,27 @@ export type RsLookbackSessionDates = {
 export type RsSessionTimelineRow = {
   sessions_back: number;
   date: string;
+  pr_status?: "fetched" | "missing";
+  market_status?: string;
+};
+
+export type RsLookbackCheck = {
+  key: string;
+  trading_sessions_back: number;
+  expected_date: string | null;
+  market_status: string;
+  market_open?: boolean;
+  pr_status: string;
+  fetchable?: boolean;
+  holiday_description?: string;
+};
+
+export type RsDataGaps = {
+  missing_trading_dates?: string[];
+  missing_trading_count?: number;
+  fetch_range?: { start_date: string; end_date: string } | null;
+  pr_sessions_loaded?: number;
+  expected_sessions_available?: number;
 };
 
 export type RsRankConfirmation = {
@@ -41,6 +72,8 @@ export type RsRankConfirmation = {
   reference_symbol?: string;
   reference_security?: string;
   lookback_session_dates?: RsLookbackSessionDates;
+  lookback_checks?: RsLookbackCheck[];
+  data_gaps?: RsDataGaps;
   session_timeline?: RsSessionTimelineRow[];
   has_full_lookback_history?: boolean;
   example_symbol?: string | null;
@@ -80,37 +113,58 @@ function formatPct(value?: number | null) {
   return `${num >= 0 ? "+" : ""}${num.toFixed(2)}%`;
 }
 
+const LOOKBACK_LABELS: Record<string, string> = {
+  as_of: "As-of (0 sessions)",
+  q1_63_sessions: "63 sessions back (~3M)",
+  q2_126_sessions: "126 sessions back (~6M)",
+  q3_189_sessions: "189 sessions back (~9M)",
+  q4_252_sessions: "252 sessions back (~12M)",
+};
+
+function prStatusLabel(status?: string) {
+  if (status === "fetched") return { text: "Bhavcopy in PR", className: "text-emerald-700" };
+  if (status === "missing") return { text: "Bhavcopy missing", className: "text-red-700" };
+  return { text: "Unknown", className: "text-slate-500" };
+}
+
+function marketStatusLabel(check?: RsLookbackCheck) {
+  if (!check) return null;
+  if (check.market_status === "trading") {
+    return <span className="text-emerald-700">Market open</span>;
+  }
+  if (check.market_status === "holiday") {
+    return (
+      <span className="text-amber-800" title={check.holiday_description}>
+        Holiday{check.holiday_description ? `: ${check.holiday_description}` : ""}
+      </span>
+    );
+  }
+  if (check.market_status === "weekend") {
+    return <span className="text-slate-500">Weekend</span>;
+  }
+  return <span className="text-slate-500">{check.market_status}</span>;
+}
+
 function LookbackDatesSummary({
   lookbacks,
+  checks,
 }: {
   lookbacks?: RsLookbackSessionDates | null;
+  checks?: RsLookbackCheck[];
 }) {
-  if (!lookbacks) return null;
+  if (!lookbacks && !checks?.length) return null;
 
-  const items: { key: string; label: string; date: string | null | undefined }[] =
-    [
-      { key: "as_of", label: "As-of (0 sessions)", date: lookbacks.as_of },
-      {
-        key: "q1",
-        label: "63 sessions back (~3M)",
-        date: lookbacks.q1_63_sessions,
-      },
-      {
-        key: "q2",
-        label: "126 sessions back (~6M)",
-        date: lookbacks.q2_126_sessions,
-      },
-      {
-        key: "q3",
-        label: "189 sessions back (~9M)",
-        date: lookbacks.q3_189_sessions,
-      },
-      {
-        key: "q4",
-        label: "252 sessions back (~12M)",
-        date: lookbacks.q4_252_sessions,
-      },
-    ];
+  const checkByKey = new Map((checks || []).map((c) => [c.key, c]));
+
+  const items = checks?.length
+    ? checks
+    : [
+        { key: "as_of", expected_date: lookbacks?.as_of ?? null, pr_status: "", market_status: "trading" },
+        { key: "q1_63_sessions", expected_date: lookbacks?.q1_63_sessions ?? null, pr_status: "", market_status: "trading" },
+        { key: "q2_126_sessions", expected_date: lookbacks?.q2_126_sessions ?? null, pr_status: "", market_status: "trading" },
+        { key: "q3_189_sessions", expected_date: lookbacks?.q3_189_sessions ?? null, pr_status: "", market_status: "trading" },
+        { key: "q4_252_sessions", expected_date: lookbacks?.q4_252_sessions ?? null, pr_status: "", market_status: "trading" },
+      ].map((row) => ({ ...row, trading_sessions_back: 0 } as RsLookbackCheck));
 
   return (
     <div className="rounded-lg border border-amber-200 bg-amber-50/80 p-3">
@@ -118,27 +172,196 @@ function LookbackDatesSummary({
         NSE calendar dates for RS lookbacks
       </p>
       <div className="mt-2 grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
-        {items.map((item) => (
-          <div
-            key={item.key}
-            className="rounded-md bg-white px-2.5 py-2 ring-1 ring-amber-100"
-          >
-            <p className="text-[0.65rem] font-medium text-slate-500">
-              {item.label}
-            </p>
-            <p className="mt-0.5 text-sm font-semibold text-slate-900">
-              {item.date ? formatDate(item.date) : "—"}
-            </p>
-            {item.date ? (
-              <p className="text-[0.65rem] tabular-nums text-slate-500">
-                {item.date}
+        {items.map((item) => {
+          const check = checkByKey.get(item.key) || item;
+          const date = check.expected_date;
+          const pr = prStatusLabel(check.pr_status);
+          return (
+            <div
+              key={item.key}
+              className="rounded-md bg-white px-2.5 py-2 ring-1 ring-amber-100"
+            >
+              <p className="text-[0.65rem] font-medium text-slate-500">
+                {LOOKBACK_LABELS[item.key] || item.key}
               </p>
-            ) : (
-              <p className="text-[0.65rem] text-amber-800">Not in PR yet</p>
-            )}
-          </div>
-        ))}
+              <p className="mt-0.5 text-sm font-semibold text-slate-900">
+                {date ? formatDate(date) : "—"}
+              </p>
+              {date ? (
+                <p className="text-[0.65rem] tabular-nums text-slate-500">{date}</p>
+              ) : null}
+              <p className="mt-1 text-[0.65rem]">{marketStatusLabel(check)}</p>
+              {check.pr_status ? (
+                <p className={`text-[0.65rem] font-medium ${pr.className}`}>{pr.text}</p>
+              ) : null}
+            </div>
+          );
+        })}
       </div>
+    </div>
+  );
+}
+
+function RsRankMissingFetchPanel({
+  formulaDates,
+  canFetchBhavcopy,
+  onFetched,
+}: {
+  formulaDates?: RsRankConfirmation | null;
+  canFetchBhavcopy?: boolean;
+  onFetched?: () => void;
+}) {
+  const gaps = formulaDates?.data_gaps;
+  const missing = gaps?.missing_trading_dates || [];
+  const [busyDate, setBusyDate] = useState<string | null>(null);
+  const [busyRange, setBusyRange] = useState(false);
+  const [statusMsg, setStatusMsg] = useState<string | null>(null);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  const runDate = useCallback(
+    async (date: string) => {
+      setBusyDate(date);
+      setErrorMsg(null);
+      setStatusMsg(`Starting bhavcopy fetch for ${date}…`);
+      try {
+        const result = await fetchBhavcopyForDate(date, false);
+        setStatusMsg(
+          `Fetch queued for ${date}. Refresh this page after the job completes.`
+        );
+        onFetched?.();
+        void result;
+      } catch (err) {
+        setErrorMsg(formatBhavcopyFetchError(err).message);
+        setStatusMsg(null);
+      } finally {
+        setBusyDate(null);
+      }
+    },
+    [onFetched]
+  );
+
+  const runRange = useCallback(async () => {
+    const range = gaps?.fetch_range;
+    if (!range) return;
+    setBusyRange(true);
+    setErrorMsg(null);
+    setStatusMsg(
+      `Starting range fetch ${range.start_date} → ${range.end_date}…`
+    );
+    try {
+      await fetchBhavcopyRange(range.start_date, range.end_date, false);
+      setStatusMsg(
+        `Range fetch queued. Refresh after jobs finish (Admin → Data Coverage for progress).`
+      );
+      onFetched?.();
+    } catch (err) {
+      setErrorMsg(formatBhavcopyFetchError(err).message);
+      setStatusMsg(null);
+    } finally {
+      setBusyRange(false);
+    }
+  }, [gaps?.fetch_range, onFetched]);
+
+  const fetchableLookbacks =
+    formulaDates?.lookback_checks?.filter((c) => c.fetchable && c.expected_date) ||
+    [];
+
+  if (!missing.length && !fetchableLookbacks.length) return null;
+
+  return (
+    <div className="rounded-lg border border-red-200 bg-red-50/50 p-3 space-y-3">
+      <div>
+        <p className="text-sm font-semibold text-red-900">Missing bhavcopy in RS window</p>
+        <p className="mt-1 text-xs text-red-800/90">
+          {gaps?.missing_trading_count ?? missing.length} NSE trading day(s) between
+          as-of and 252 sessions back have no PR data.
+          {gaps?.pr_sessions_loaded != null ? (
+            <> Only {gaps.pr_sessions_loaded} session(s) loaded in PR for this window.</>
+          ) : null}
+        </p>
+        {formulaDates?.message ? (
+          <p className="mt-1 text-xs text-amber-900">{formulaDates.message}</p>
+        ) : null}
+      </div>
+
+      {fetchableLookbacks.length ? (
+        <div className="space-y-1">
+          <p className="text-[0.65rem] font-semibold uppercase text-slate-600">
+            Key lookback dates — market open, data missing
+          </p>
+          <ul className="space-y-1 text-xs">
+            {fetchableLookbacks.map((row) => (
+              <li
+                key={row.key}
+                className="flex flex-wrap items-center gap-2 rounded bg-white px-2 py-1 ring-1 ring-red-100"
+              >
+                <span className="font-medium">{LOOKBACK_LABELS[row.key] || row.key}:</span>
+                <span className="tabular-nums">{row.expected_date}</span>
+                <span className="text-emerald-700">Market open</span>
+                {canFetchBhavcopy ? (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    className="h-7 text-xs"
+                    disabled={busyDate === row.expected_date || busyRange}
+                    onClick={() => row.expected_date && runDate(row.expected_date)}
+                  >
+                    {busyDate === row.expected_date ? (
+                      <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                    ) : (
+                      <Download className="mr-1 h-3 w-3" />
+                    )}
+                    Fetch
+                  </Button>
+                ) : null}
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+
+      {canFetchBhavcopy && gaps?.fetch_range ? (
+        <Button
+          type="button"
+          size="sm"
+          disabled={busyRange || Boolean(busyDate)}
+          onClick={() => void runRange()}
+        >
+          {busyRange ? (
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          ) : (
+            <Download className="mr-2 h-4 w-4" />
+          )}
+          Fetch all missing days ({gaps.missing_trading_count})
+        </Button>
+      ) : !canFetchBhavcopy && missing.length ? (
+        <p className="text-xs text-slate-600">
+          Master/admin access required to run bhavcopy fetch here. Open{" "}
+          <Link href="/master/data-coverage" className="font-medium text-blue-700 underline">
+            Admin → Data Coverage
+          </Link>{" "}
+          to fetch missing dates.
+        </p>
+      ) : null}
+
+      {statusMsg ? <p className="text-xs text-emerald-800">{statusMsg}</p> : null}
+      {errorMsg ? <p className="text-xs text-red-700">{errorMsg}</p> : null}
+
+      {missing.length > 0 && missing.length <= 40 ? (
+        <details className="text-xs">
+          <summary className="cursor-pointer font-medium text-slate-700">
+            All missing trading dates ({missing.length})
+          </summary>
+          <p className="mt-2 flex flex-wrap gap-1">
+            {missing.map((d) => (
+              <span key={d} className="rounded bg-white px-1.5 py-0.5 ring-1 ring-slate-200 tabular-nums">
+                {d}
+              </span>
+            ))}
+          </p>
+        </details>
+      ) : null}
     </div>
   );
 }
@@ -162,15 +385,28 @@ function SessionTimelineList({
             <tr>
               <th className="px-2 py-1">Sessions back</th>
               <th className="px-2 py-1">Date</th>
+              <th className="px-2 py-1">PR</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100 text-slate-800">
             {[...timeline].reverse().map((row) => (
-              <tr key={`${row.sessions_back}-${row.date}`}>
+              <tr
+                key={`${row.sessions_back}-${row.date}`}
+                className={row.pr_status === "missing" ? "bg-red-50/80" : ""}
+              >
                 <td className="px-2 py-0.5 tabular-nums">{row.sessions_back}</td>
                 <td className="px-2 py-0.5">
                   {formatDate(row.date)}
                   <span className="ml-1 text-slate-500">({row.date})</span>
+                </td>
+                <td className="px-2 py-0.5">
+                  {row.pr_status === "fetched" ? (
+                    <span className="text-emerald-700">OK</span>
+                  ) : row.pr_status === "missing" ? (
+                    <span className="text-red-700">Missing</span>
+                  ) : (
+                    "—"
+                  )}
                 </td>
               </tr>
             ))}
@@ -270,6 +506,8 @@ type Props = {
   loading?: boolean;
   companyHint?: string;
   selectedSymbol?: string;
+  canFetchBhavcopy?: boolean;
+  onRefresh?: () => void;
 };
 
 export default function RsRankConfirmationPanel({
@@ -279,6 +517,8 @@ export default function RsRankConfirmationPanel({
   loading,
   companyHint,
   selectedSymbol,
+  canFetchBhavcopy = false,
+  onRefresh,
 }: Props) {
   const tradeDate =
     runMeta?.trade_date || confirmation?.trade_date || formulaDates?.trade_date;
@@ -336,8 +576,15 @@ export default function RsRankConfirmationPanel({
           {formulaDates?.lookback_session_dates ? (
             <LookbackDatesSummary
               lookbacks={formulaDates.lookback_session_dates}
+              checks={formulaDates.lookback_checks}
             />
           ) : null}
+
+          <RsRankMissingFetchPanel
+            formulaDates={formulaDates}
+            canFetchBhavcopy={canFetchBhavcopy}
+            onFetched={onRefresh}
+          />
 
           {formulaDates?.session_timeline?.length ? (
             <SessionTimelineList timeline={formulaDates.session_timeline} />

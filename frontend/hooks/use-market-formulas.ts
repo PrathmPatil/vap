@@ -516,5 +516,6 @@ export const useMarketSignalsData = (options: UseMarketSignalsOptions = {}) => {
     rsRunMeta,
     rsConfirmation,
     rsFormulaDates,
+    refetchFormulaRows: fetchFormulaRows,
   };
 };
