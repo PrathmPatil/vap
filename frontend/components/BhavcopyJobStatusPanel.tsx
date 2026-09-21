@@ -66,8 +66,15 @@ export default function BhavcopyJobStatusPanel({
           <h3 className="text-sm font-semibold text-slate-900">Fetch job status</h3>
           {calling ? (
             <Badge variant="secondary">Calling API…</Badge>
+          ) : pollingCron ||
+            String(cronLog?.status || "").toUpperCase() === "RUNNING" ? (
+            <Badge variant="secondary">Fetching data…</Badge>
+          ) : String(cronLog?.status || "").toUpperCase() === "SUCCESS" ? (
+            <Badge className="bg-green-600">Complete</Badge>
+          ) : String(cronLog?.status || "").toUpperCase() === "FAILED" ? (
+            <Badge variant="destructive">FAILED</Badge>
           ) : apiOk ? (
-            <Badge className="bg-green-600">STARTED</Badge>
+            <Badge variant="secondary">Job running</Badge>
           ) : apiFailed ? (
             <Badge variant="destructive">API FAILED</Badge>
           ) : null}
@@ -117,13 +124,24 @@ export default function BhavcopyJobStatusPanel({
             </p>
           ) : null}
 
-          <p className="mb-2 break-all font-mono text-[11px] text-slate-500">
-            {apiResponse.requestUrl}
-          </p>
+          {apiResponse.success ? (
+            <p className="text-sm text-slate-700">
+              Background job accepted. Watching live progress and cron status —
+              formula scans run after bhavcopy is saved.
+            </p>
+          ) : null}
 
-          <pre className="max-h-48 overflow-auto rounded bg-white/90 p-2 text-xs text-slate-800">
-            {JSON.stringify(apiResponse.data ?? null, null, 2)}
-          </pre>
+          <details className="mt-2">
+            <summary className="cursor-pointer text-xs text-slate-500">
+              Request details
+            </summary>
+            <p className="mt-1 break-all font-mono text-[11px] text-slate-500">
+              {apiResponse.requestUrl}
+            </p>
+            <pre className="mt-1 max-h-32 overflow-auto rounded bg-white/90 p-2 text-xs text-slate-800">
+              {JSON.stringify(apiResponse.data ?? null, null, 2)}
+            </pre>
+          </details>
         </div>
       ) : null}
 

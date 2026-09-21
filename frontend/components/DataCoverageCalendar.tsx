@@ -284,6 +284,7 @@ export default function DataCoverageCalendar() {
       try {
         const response = await getLogs(1, 1, undefined, {
           job_name: trackJobName,
+          lightweight: true,
         });
         if (cancelled || !response?.success) return;
 

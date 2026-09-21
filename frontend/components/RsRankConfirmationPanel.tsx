@@ -7,6 +7,8 @@ import {
   fetchBhavcopyRange,
   formatBhavcopyFetchError,
 } from "@/lib/bhavcopyManualFetch";
+import { useBhavcopyJobTracker } from "@/hooks/useBhavcopyJobTracker";
+import { formatManualJobEvent } from "@/hooks/useManualJobSocket";
 
 type RsQuarterRow = {
   quarter: string;
@@ -218,6 +220,23 @@ function RsRankMissingFetchPanel({
   const [statusMsg, setStatusMsg] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
+  const tracker = useBhavcopyJobTracker({
+    onSuccess: () => {
+      setBusyDate(null);
+      setBusyRange(false);
+      setStatusMsg("Bhavcopy saved. Reloading formula results…");
+      onFetched?.();
+    },
+    onFailed: (message) => {
+      setBusyDate(null);
+      setBusyRange(false);
+      setErrorMsg(message);
+      setStatusMsg(null);
+    },
+  });
+
+  const jobBusy = tracker.active;
+
   const runDate = useCallback(
     async (date: string) => {
       setBusyDate(date);
@@ -225,19 +244,18 @@ function RsRankMissingFetchPanel({
       setStatusMsg(`Starting bhavcopy fetch for ${date}…`);
       try {
         const result = await fetchBhavcopyForDate(date, false);
-        setStatusMsg(
-          `Fetch queued for ${date}. Refresh this page after the job completes.`
-        );
-        onFetched?.();
-        void result;
+        tracker.begin({
+          jobName: result.trackJobName || "bhavcopy_manual",
+          targetDate: date,
+        });
+        setStatusMsg(`Fetching ${date} — watching job status…`);
       } catch (err) {
         setErrorMsg(formatBhavcopyFetchError(err).message);
         setStatusMsg(null);
-      } finally {
         setBusyDate(null);
       }
     },
-    [onFetched]
+    [tracker.begin]
   );
 
   const runRange = useCallback(async () => {
@@ -249,24 +267,34 @@ function RsRankMissingFetchPanel({
       `Starting range fetch ${range.start_date} → ${range.end_date}…`
     );
     try {
-      await fetchBhavcopyRange(range.start_date, range.end_date, false);
-      setStatusMsg(
-        `Range fetch queued. Refresh after jobs finish (Admin → Data Coverage for progress).`
+      const result = await fetchBhavcopyRange(
+        range.start_date,
+        range.end_date,
+        false
       );
-      onFetched?.();
+      tracker.begin({
+        jobName: result.trackJobName || "bhavcopy_manual_range",
+        targetDate: range.end_date,
+      });
+      setStatusMsg(
+        `Fetching ${range.start_date} → ${range.end_date} — watching job status…`
+      );
     } catch (err) {
       setErrorMsg(formatBhavcopyFetchError(err).message);
       setStatusMsg(null);
-    } finally {
       setBusyRange(false);
     }
-  }, [gaps?.fetch_range, onFetched]);
+  }, [gaps?.fetch_range, tracker.begin]);
 
   const fetchableLookbacks =
     formulaDates?.lookback_checks?.filter((c) => c.fetchable && c.expected_date) ||
     [];
 
-  if (!missing.length && !fetchableLookbacks.length) return null;
+  if (!missing.length && !fetchableLookbacks.length && !jobBusy && tracker.phase === "idle") {
+    return null;
+  }
+
+  const buttonsDisabled = jobBusy || Boolean(busyDate) || busyRange;
 
   return (
     <div className="rounded-lg border border-red-200 bg-red-50/50 p-3 space-y-3">
@@ -304,10 +332,11 @@ function RsRankMissingFetchPanel({
                     size="sm"
                     variant="outline"
                     className="h-7 text-xs"
-                    disabled={busyDate === row.expected_date || busyRange}
+                    disabled={buttonsDisabled}
                     onClick={() => row.expected_date && runDate(row.expected_date)}
                   >
-                    {busyDate === row.expected_date ? (
+                    {busyDate === row.expected_date ||
+                    (jobBusy && tracker.targetDate === row.expected_date) ? (
                       <Loader2 className="mr-1 h-3 w-3 animate-spin" />
                     ) : (
                       <Download className="mr-1 h-3 w-3" />
@@ -325,7 +354,7 @@ function RsRankMissingFetchPanel({
         <Button
           type="button"
           size="sm"
-          disabled={busyRange || Boolean(busyDate)}
+          disabled={buttonsDisabled}
           onClick={() => void runRange()}
         >
           {busyRange ? (
@@ -343,6 +372,46 @@ function RsRankMissingFetchPanel({
           </Link>{" "}
           to fetch missing dates.
         </p>
+      ) : null}
+
+      {jobBusy || tracker.phase === "success" || tracker.phase === "failed" ? (
+        <div className="rounded-md border border-slate-200 bg-white px-3 py-2 space-y-2">
+          <div className="flex flex-wrap items-center gap-2 text-xs">
+            {jobBusy ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin text-slate-600" />
+            ) : null}
+            <span className="font-medium text-slate-800">{tracker.phaseLabel}</span>
+            {tracker.targetDate ? (
+              <span className="tabular-nums text-slate-500">{tracker.targetDate}</span>
+            ) : null}
+            {tracker.cronLog?.status ? (
+              <span className="rounded bg-slate-100 px-1.5 py-0.5 uppercase">
+                {tracker.cronLog.status}
+              </span>
+            ) : null}
+            {tracker.polling ? (
+              <span className="text-slate-500">Checking status every few seconds…</span>
+            ) : null}
+          </div>
+          {tracker.cronLog?.additional_data?.phase ? (
+            <p className="text-[0.65rem] text-slate-600">
+              Phase: {String(tracker.cronLog.additional_data.phase)}
+            </p>
+          ) : null}
+          {tracker.events.length ? (
+            <ul className="max-h-28 overflow-y-auto space-y-0.5 font-mono text-[0.65rem] text-slate-700">
+              {tracker.events.slice(0, 8).map((ev, idx) => (
+                <li key={`${ev.timestamp}-${ev.type}-${idx}`}>
+                  {formatManualJobEvent(ev)}
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-[0.65rem] text-slate-500">
+              Waiting for live progress (bhavcopy download, insert, then formulas).
+            </p>
+          )}
+        </div>
       ) : null}
 
       {statusMsg ? <p className="text-xs text-emerald-800">{statusMsg}</p> : null}

@@ -50,6 +50,7 @@ export const fetchLogs = async ({
   start_date,
   end_date,
   search,
+  lightweight = false,
 }) => {
   try {
     const offset = (page - 1) * limit;
@@ -119,13 +120,40 @@ export const fetchLogs = async ({
       ];
     }
 
-    // 🔹 1. Fetch paginated data
-    const { rows, count } = await CronLogModel.findAndCountAll({
+    // Sort by id (PK) so MySQL never filesorts huge TEXT/JSON columns
+    // (error_traceback + additional_data caused ER_OUT_OF_SORTMEMORY).
+    const idRows = await CronLogModel.findAll({
+      attributes: ["id"],
       where: whereCondition,
-      order: [["start_time", "DESC"]],
+      order: [["id", "DESC"]],
       limit: Number(limit),
       offset: Number(offset),
+      raw: true,
     });
+    const ids = idRows.map((row) => row.id);
+
+    const [rows, count] = await Promise.all([
+      ids.length
+        ? CronLogModel.findAll({
+            where: { id: { [Op.in]: ids } },
+            attributes: { exclude: ["error_traceback"] },
+            order: [["id", "DESC"]],
+          })
+        : Promise.resolve([]),
+      CronLogModel.count({ where: whereCondition }),
+    ]);
+
+    if (lightweight) {
+      return {
+        data: rows,
+        pagination: {
+          total: count,
+          page: Number(page),
+          limit: Number(limit),
+          total_pages: Math.ceil(count / limit) || 1,
+        },
+      };
+    }
 
     // ============================================================
     // 🔥 2. GLOBAL STATUS COUNTS (NOT AFFECTED BY FILTERS)

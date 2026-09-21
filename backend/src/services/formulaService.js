@@ -1787,21 +1787,78 @@ const RS_QUARTER_LABELS = {
   q4: 'Q4 (~12M, 252 sessions)',
 };
 
-const buildRsQuarterBreakdown = (stockHistory, metrics) => {
-  if (!stockHistory?.byOffset) return [];
-  const asOf = stockHistory.byOffset.get(0);
+/** NSE calendar dates for as-of + 63/126/189/252 sessions (weekends/holidays skipped). */
+const resolveRsLookbackDates = async (latestDate) => {
+  const sessions = await buildExpectedTradingSessionsDesc(
+    latestDate,
+    RS_QUARTER_LOOKBACKS.q4
+  );
+  if (!sessions[RS_QUARTER_LOOKBACKS.q4]) return null;
+  return {
+    as_of: sessions[0],
+    q1: sessions[RS_QUARTER_LOOKBACKS.q1],
+    q2: sessions[RS_QUARTER_LOOKBACKS.q2],
+    q3: sessions[RS_QUARTER_LOOKBACKS.q3],
+    q4: sessions[RS_QUARTER_LOOKBACKS.q4],
+  };
+};
+
+const lookbackDateList = (lookbacks) =>
+  lookbacks
+    ? [lookbacks.as_of, lookbacks.q1, lookbacks.q2, lookbacks.q3, lookbacks.q4].filter(
+        Boolean
+      )
+    : [];
+
+const indexClosesByDate = (historyRows = []) => {
+  const byDate = new Map();
+  for (const row of historyRows) {
+    const tradeDate = normalizeTradeDate(row.source_date);
+    const close = parsePrClose(row.CLOSE_PRICE);
+    if (!tradeDate || close == null) continue;
+    byDate.set(tradeDate, close);
+  }
+  return byDate;
+};
+
+const computeIbdRsMetricsByDates = (byDate, lookbacks) => {
+  if (!byDate || !lookbacks) return null;
+  const asOfClose = parsePrClose(byDate.get(lookbacks.as_of));
+  const q1c = parsePrClose(byDate.get(lookbacks.q1));
+  const q2c = parsePrClose(byDate.get(lookbacks.q2));
+  const q3c = parsePrClose(byDate.get(lookbacks.q3));
+  const q4c = parsePrClose(byDate.get(lookbacks.q4));
+  const q1 = pctReturn(asOfClose, q1c);
+  const q2 = pctReturn(asOfClose, q2c);
+  const q3 = pctReturn(asOfClose, q3c);
+  const q4 = pctReturn(asOfClose, q4c);
+  if ([q1, q2, q3, q4].some((value) => value == null)) return null;
+  const rsScore = (2 * q1 + q2 + q3 + q4) / 5;
+  return {
+    q1: Number(q1.toFixed(4)),
+    q2: Number(q2.toFixed(4)),
+    q3: Number(q3.toFixed(4)),
+    q4: Number(q4.toFixed(4)),
+    rs_score: Number(rsScore.toFixed(4)),
+  };
+};
+
+const buildRsQuarterBreakdownByDates = (byDate, lookbacks, metrics) => {
+  if (!lookbacks) return [];
+  const asOfClose = byDate?.get(lookbacks.as_of) ?? null;
   return Object.entries(RS_QUARTER_LOOKBACKS).map(([key, sessions]) => {
-    const lookback = stockHistory.byOffset.get(sessions);
+    const lookbackDate = lookbacks[key] ?? null;
+    const lookbackClose = lookbackDate ? byDate?.get(lookbackDate) ?? null : null;
     return {
       quarter: key,
       label: RS_QUARTER_LABELS[key] || key,
       trading_sessions_back: sessions,
-      as_of_date: asOf?.tradeDate ?? null,
-      as_of_close: asOf?.close ?? null,
-      lookback_date: lookback?.tradeDate ?? null,
-      lookback_close: lookback?.close ?? null,
+      as_of_date: lookbacks.as_of ?? null,
+      as_of_close: asOfClose,
+      lookback_date: lookbackDate,
+      lookback_close: lookbackClose,
       return_pct: metrics?.[key] ?? null,
-      lookback_available: Boolean(lookback),
+      lookback_available: lookbackClose != null,
     };
   });
 };
@@ -1896,13 +1953,13 @@ const confirmationPayload = ({
   latestDate,
   resolvedSecurity,
   resolvedSymbol,
-  stockHistory,
+  byDate,
+  lookbacks,
   metrics,
   stored,
 }) => {
-  const quarters = buildRsQuarterBreakdown(stockHistory, metrics);
+  const quarters = buildRsQuarterBreakdownByDates(byDate, lookbacks, metrics);
   const datesUsed = collectDatesUsed(quarters);
-  const sessionsLoaded = stockHistory?.byOffset?.size ?? 0;
 
   return {
     success,
@@ -1916,7 +1973,15 @@ const confirmationPayload = ({
     quarter_session_lookbacks: RS_QUARTER_LOOKBACKS,
     quarters,
     dates_used: datesUsed,
-    trading_sessions_loaded: sessionsLoaded,
+    lookback_session_dates: lookbacks
+      ? {
+          as_of: lookbacks.as_of,
+          q1_63_sessions: lookbacks.q1,
+          q2_126_sessions: lookbacks.q2,
+          q3_189_sessions: lookbacks.q3,
+          q4_252_sessions: lookbacks.q4,
+        }
+      : null,
     stored_row: stored
       ? {
           q1: stored.q1,
@@ -1929,31 +1994,28 @@ const confirmationPayload = ({
   };
 };
 
-const loadRsHistoryRowsForSecurity = async (security, latestDate) => {
+const loadRsClosesOnDates = async (security, dates) => {
+  if (!security || !dates?.length) return [];
   const sequelize = PR.sequelize;
   const { QueryTypes } = await import('sequelize');
 
   return sequelize.query(
     `
-    SELECT *
-    FROM (
-      SELECT
-        SECURITY, source_date, CLOSE_PRICE,
-        ROW_NUMBER() OVER (ORDER BY source_date DESC) AS rn
-      FROM \`pr\`
-      WHERE SECURITY = :security
-        AND CLOSE_PRICE IS NOT NULL
-        AND (status IS NULL OR TRIM(status) = '' OR UPPER(TRIM(status)) = 'OK' OR UPPER(TRIM(status)) <> 'MISSING')
-        AND DATE(source_date) <= :latestDate
-        AND DATE(source_date) >= DATE_SUB(:latestDate, INTERVAL 400 DAY)
-    ) ranked
-    WHERE rn <= :maxRows
+    SELECT SECURITY, source_date, CLOSE_PRICE
+    FROM \`pr\`
+    WHERE SECURITY = :security
+      AND CLOSE_PRICE IS NOT NULL
+      AND (status IS NULL OR TRIM(status) = '' OR UPPER(TRIM(status)) = 'OK' OR UPPER(TRIM(status)) <> 'MISSING')
+      AND DATE(source_date) IN (:d0, :d1, :d2, :d3, :d4)
     `,
     {
       replacements: {
         security,
-        latestDate,
-        maxRows: RS_MAX_HISTORY_ROWS,
+        d0: dates[0] || null,
+        d1: dates[1] || dates[0],
+        d2: dates[2] || dates[0],
+        d3: dates[3] || dates[0],
+        d4: dates[4] || dates[0],
       },
       type: QueryTypes.SELECT,
     }
@@ -2010,40 +2072,59 @@ export const getRsRankConfirmationService = async ({
     };
   }
 
-  const historyRows = await loadRsHistoryRowsForSecurity(
+  const lookbacks = await resolveRsLookbackDates(latestDate);
+  const historyRows = await loadRsClosesOnDates(
     resolvedSecurity,
-    latestDate
+    lookbackDateList(lookbacks)
   );
-  const stockHistory = buildStockCloseHistory(historyRows, latestDate);
+  const byDate = indexClosesByDate(historyRows);
 
   const stored = await RsRankModel.findOne({
     where: { trade_date: latestDate, security: resolvedSecurity },
     raw: true,
   });
 
-  if (!stockHistory) {
+  if (!lookbacks) {
+    return confirmationPayload({
+      success: false,
+      message: `Need 252 NSE sessions on the holiday calendar before ${latestDate}.`,
+      latestDate,
+      resolvedSecurity,
+      resolvedSymbol,
+      byDate,
+      lookbacks: null,
+      metrics: null,
+      stored,
+    });
+  }
+
+  if (!byDate.has(lookbacks.as_of)) {
     return confirmationPayload({
       success: false,
       message: `No PR row on as-of date ${latestDate} for ${resolvedSecurity} (stock may not have traded that session).`,
       latestDate,
       resolvedSecurity,
       resolvedSymbol,
-      stockHistory: null,
+      byDate,
+      lookbacks,
       metrics: null,
       stored,
     });
   }
 
-  const metrics = computeIbdRsMetrics(stockHistory);
+  const metrics = computeIbdRsMetricsByDates(byDate, lookbacks);
   if (!metrics) {
-    const sessions = stockHistory.byOffset.size - 1;
+    const missing = ['q1', 'q2', 'q3', 'q4']
+      .filter((key) => byDate.get(lookbacks[key]) == null)
+      .map((key) => `${key.toUpperCase()} ${lookbacks[key]}`);
     return confirmationPayload({
       success: false,
-      message: `Need 252 prior sessions for full Q1–Q4; ${resolvedSecurity} has ${sessions} loaded before/as-of ${latestDate}. Dates below show what is available.`,
+      message: `${resolvedSecurity} is missing PR closes on: ${missing.join(', ')}.`,
       latestDate,
       resolvedSecurity,
       resolvedSymbol,
-      stockHistory,
+      byDate,
+      lookbacks,
       metrics: null,
       stored,
     });
@@ -2055,7 +2136,8 @@ export const getRsRankConfirmationService = async ({
     latestDate,
     resolvedSecurity,
     resolvedSymbol,
-    stockHistory,
+    byDate,
+    lookbacks,
     metrics,
     stored,
   });
@@ -2136,22 +2218,37 @@ export const getRsRankFormulaDatesService = async (tradeDate = null) => {
     });
   }
 
-  const hasFullPrHistory = sessionDates.length > RS_QUARTER_LOOKBACKS.q4;
+  const lookbacksReady = (dataGaps.lookback_checks || []).every(
+    (row) => row.pr_status === 'fetched' && row.expected_date
+  );
   const gapMessage =
     dataGaps.missing_trading_count > 0
       ? `${dataGaps.missing_trading_count} NSE trading day(s) in the RS window have no bhavcopy in PR yet — fetch them to compute full Q1–Q4.`
-      : market.message;
+      : market?.message;
+  const calendarLookbacks = {
+    as_of: lookbackFromExpected.as_of,
+    q1: lookbackFromExpected.q1_63_sessions,
+    q2: lookbackFromExpected.q2_126_sessions,
+    q3: lookbackFromExpected.q3_189_sessions,
+    q4: lookbackFromExpected.q4_252_sessions,
+  };
 
   return {
-    success: hasFullPrHistory && dataGaps.has_full_expected_history,
-    message: gapMessage,
+    success: Boolean(lookbacksReady || example?.success),
+    message: lookbacksReady
+      ? dataGaps.missing_trading_count > 0
+        ? `RS Rank uses closes on the 5 lookback dates (as-of + 63/126/189/252 sessions). ${dataGaps.missing_trading_count} other session(s) in the window are still missing from PR.`
+        : undefined
+      : gapMessage,
     trade_date: latestDate,
     weighted_formula: '(2×Q1 + Q2 + Q3 + Q4) / 5',
     quarter_session_lookbacks: RS_QUARTER_LOOKBACKS,
     is_market_calendar: true,
     reference_note:
-      'Lookback calendar dates use NSE trading days (weekends/holidays excluded). PR status shows whether bhavcopy exists in the database.',
-    quarters: example?.success ? example.quarters : market.quarters,
+      'Q1–Q4 use PR closes on those NSE calendar dates (63/126/189/252 trading sessions back), not a count of rows sitting in PR.',
+    quarters: example?.success
+      ? example.quarters
+      : buildRsQuarterBreakdownByDates(null, calendarLookbacks, null),
     lookback_session_dates: lookbackFromExpected,
     lookback_checks: dataGaps.lookback_checks,
     data_gaps: {
@@ -2169,7 +2266,7 @@ export const getRsRankFormulaDatesService = async (tradeDate = null) => {
       }))
     ),
     trading_sessions_loaded: Math.max(0, sessionDates.length - 1),
-    has_full_lookback_history: hasFullPrHistory,
+    has_full_lookback_history: lookbacksReady,
     example_symbol: example?.success ? stripExchangeSuffix(refRow?.symbol) : null,
     example_security: example?.success ? refRow?.security : null,
     example_rs_rank: example?.rs_rank ?? null,
@@ -2236,30 +2333,36 @@ export const generateRsRankService = async ({
       await RsRankModel.destroy({ where: { trade_date: latestDate } });
     }
 
+    const lookbacks = await resolveRsLookbackDates(latestDate);
+    if (!lookbacks) {
+      return {
+        success: false,
+        data: [],
+        message: `Need 252 NSE sessions on the holiday calendar before ${latestDate}.`,
+        trade_date: latestDate,
+      };
+    }
+
     const { nameToSymbol } = await loadListedCompanyMaps();
     const sequelize = PR.sequelize;
     const { QueryTypes } = await import('sequelize');
 
     const rows = await sequelize.query(
       `
-      SELECT *
-      FROM (
-        SELECT
-          SECURITY, source_date, CLOSE_PRICE,
-          ROW_NUMBER() OVER (PARTITION BY SECURITY ORDER BY source_date DESC) AS rn
-        FROM \`pr\`
-        WHERE SECURITY IS NOT NULL
-          AND CLOSE_PRICE IS NOT NULL
-          AND (status IS NULL OR TRIM(status) = '' OR UPPER(TRIM(status)) = 'OK' OR UPPER(TRIM(status)) <> 'MISSING')
-          AND DATE(source_date) <= :latestDate
-          AND DATE(source_date) >= DATE_SUB(:latestDate, INTERVAL 400 DAY)
-      ) ranked
-      WHERE rn <= :maxRows
+      SELECT SECURITY, source_date, CLOSE_PRICE
+      FROM \`pr\`
+      WHERE SECURITY IS NOT NULL
+        AND CLOSE_PRICE IS NOT NULL
+        AND (status IS NULL OR TRIM(status) = '' OR UPPER(TRIM(status)) = 'OK' OR UPPER(TRIM(status)) <> 'MISSING')
+        AND DATE(source_date) IN (:d0, :d1, :d2, :d3, :d4)
       `,
       {
         replacements: {
-          latestDate,
-          maxRows: RS_MAX_HISTORY_ROWS,
+          d0: lookbacks.as_of,
+          d1: lookbacks.q1,
+          d2: lookbacks.q2,
+          d3: lookbacks.q3,
+          d4: lookbacks.q4,
         },
         type: QueryTypes.SELECT,
       }
@@ -2279,17 +2382,15 @@ export const generateRsRankService = async ({
       });
       if (!symbol) continue;
 
-      const stockHistory = buildStockCloseHistory(history, latestDate);
-      if (!stockHistory) continue;
-
-      const metrics = computeIbdRsMetrics(stockHistory);
+      const byDate = indexClosesByDate(history);
+      const metrics = computeIbdRsMetricsByDates(byDate, lookbacks);
       if (!metrics) continue;
 
       scored.push({
         security,
         symbol,
         trade_date: latestDate,
-        close_price: stockHistory.byOffset.get(0)?.close ?? null,
+        close_price: byDate.get(lookbacks.as_of) ?? null,
         q1: metrics.q1,
         q2: metrics.q2,
         q3: metrics.q3,

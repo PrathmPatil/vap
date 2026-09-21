@@ -11,6 +11,7 @@ export const getLogsController = async (req, res) => {
       start_date,
       end_date,
       search,
+      lightweight,
     } = req.query;
 
     const result = await fetchLogs({
@@ -22,6 +23,10 @@ export const getLogsController = async (req, res) => {
       start_date,
       end_date,
       search,
+      lightweight:
+        lightweight === true ||
+        lightweight === "true" ||
+        lightweight === "1",
     });
 
     return res.status(200).json({
