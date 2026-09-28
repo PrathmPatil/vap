@@ -36,6 +36,11 @@ export const FORMULA_EXPLORE_CATEGORIES: FormulaExploreCategory[] = [
     title: "Breakouts & bands",
     description: "52-week extremes, band hits, and volume expansion screens.",
   },
+  {
+    id: "relative-strength",
+    title: "Relative strength",
+    description: "Rank stocks by their own multi-period price performance.",
+  },
 ];
 
 export const FORMULA_EXPLORE_ITEMS: FormulaExploreItem[] = [
@@ -292,6 +297,23 @@ export const FORMULA_EXPLORE_ITEMS: FormulaExploreItem[] = [
       "Sort by volume ratio high → low",
     ],
     tags: ["Volume", "Breakout"],
+    premium: true,
+  },
+  {
+    value: "rs-rank",
+    label: "Relative Strength Rank",
+    categoryId: "relative-strength",
+    shortDescription: "Rank from weighted 3M–12M price performance.",
+    fullDescription:
+      "Computes Q1–Q4 as the stock's own price returns over ~63, 126, 189, and 252 trading sessions (≈3M/6M/9M/12M). RS Score = (2×Q1 + Q2 + Q3 + Q4) / 5, emphasizing recent momentum. RS Rank 1–99 is the percentile versus all qualifying NSE EQ stocks — not a Nifty comparison.",
+    rules: [
+      "Q1 = 3-month return (63 sessions), weighted 2×",
+      "Q2 = 6-month (126), Q3 = 9-month (189), Q4 = 12-month (252)",
+      "RS Score = (2×Q1 + Q2 + Q3 + Q4) / 5",
+      "RS Rank = percentile of RS Score across the EQ universe (1–99)",
+      "Requires ≥252 sessions of bhavcopy history; IPOs excluded",
+    ],
+    tags: ["RS", "Rank", "Momentum"],
     premium: true,
   },
 ];

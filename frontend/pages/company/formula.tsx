@@ -29,6 +29,10 @@ import { hasMasterAccess } from "@/lib/authRoles";
 import { useRouter } from "next/router";
 import { Badge } from "@/components/ui/badge";
 import { Crown } from "lucide-react";
+import RsRankConfirmationPanel, {
+  type RsRankConfirmation,
+  type RsRunMeta,
+} from "@/components/RsRankConfirmationPanel";
 
 function slugForFilename(value: string) {
   return (
@@ -89,13 +93,21 @@ export default function Home() {
     setBodyPercent,
     volumeRatioMin,
     setVolumeRatioMin,
+    minRsRank,
+    setMinRsRank,
     usesBodyPercent,
     usesVolumeRatio,
+    usesRsRankFilter,
     usesSortControls,
+    rsRunMeta,
+    rsConfirmation,
+    rsFormulaDates,
+    refetchFormulaRows,
   } = useMarketSignalsData();
   const router = useRouter();
   const { role, authLoading, isAuthenticated, isSubscribed } = useAuth();
   const canUseMyScan = hasMasterAccess(role);
+  const canFetchBhavcopy = hasMasterAccess(role);
 
   useEffect(() => {
     if (authLoading) return;
@@ -377,6 +389,24 @@ export default function Home() {
                       </div>
                     )}
 
+                    {usesRsRankFilter && (
+                      <div className="flex flex-col gap-1">
+                        <label className="text-xs font-medium text-slate-600">
+                          Min RS rank
+                        </label>
+                        <Input
+                          type="number"
+                          min={1}
+                          max={99}
+                          step={1}
+                          className="w-[120px]"
+                          value={minRsRank}
+                          onChange={(e) => setMinRsRank(e.target.value)}
+                          placeholder="e.g. 80"
+                        />
+                      </div>
+                    )}
+
                     {usesChangePercent && (
                       <>
                         <div className="flex flex-col gap-1">
@@ -431,6 +461,29 @@ export default function Home() {
                     )}
                   </div>
                 </div>
+
+                  {activeFormula === "rs-rank" ? (
+                    <>
+                      <p className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-800">
+                        <strong>Relative Strength Rank</strong> uses the
+                        stock&apos;s own price returns over ~3M, 6M, 9M, and 12M
+                        (63/126/189/252 sessions). RS Score ={" "}
+                        <code>(2×Q1 + Q2 + Q3 + Q4) / 5</code>. Rank 1–99 is the
+                        percentile versus all NSE EQ stocks with full history —
+                        not vs Nifty.
+                      </p>
+                      <RsRankConfirmationPanel
+                        runMeta={rsRunMeta as RsRunMeta | null}
+                        confirmation={rsConfirmation as RsRankConfirmation | null}
+                        formulaDates={rsFormulaDates as RsRankConfirmation | null}
+                        loading={loading}
+                        selectedSymbol={selectedSymbol || ""}
+                        companyHint="Select a company to compare its session dates vs the reference row above."
+                        canFetchBhavcopy={canFetchBhavcopy}
+                        onRefresh={() => void refetchFormulaRows()}
+                      />
+                    </>
+                  ) : null}
 
                 {error && (
                   <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-red-600">
