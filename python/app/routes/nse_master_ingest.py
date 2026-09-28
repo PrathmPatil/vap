@@ -2,7 +2,10 @@ from fastapi import APIRouter, HTTPException, Query
 from apscheduler.schedulers.background import BackgroundScheduler
 from app.services.nse_fetch_service import NseFetchService
 from app.services.nse_indices_service import nse_indices
+from app.services.nse_filing_ingest_service import ingest_financial_filings
 import logging
+import threading
+from typing import Optional
 
 router = APIRouter()
 
@@ -115,6 +118,25 @@ async def get_prediction_snapshot(save: bool = Query(False)):
 # ----------------------------------
 # SYMBOL LEVEL INTELLIGENCE
 # ----------------------------------
+@router.get("/nse-routes")
+async def get_nse_routes():
+    try:
+        nse_fetch = NseFetchService()
+        return nse_fetch.get_nse_page_catalog()
+    except Exception as e:
+        raise HTTPException(500, str(e))
+
+
+@router.get("/company-dossier/{symbol}")
+async def get_company_dossier(symbol: str):
+    try:
+        nse_fetch = NseFetchService()
+        return nse_fetch.fetch_company_dossier(symbol)
+    except Exception as e:
+        logger.exception(e)
+        raise HTTPException(500, str(e))
+
+
 @router.get("/symbol-intelligence/{symbol}")
 async def get_symbol_intelligence(symbol: str):
     try:
@@ -123,3 +145,73 @@ async def get_symbol_intelligence(symbol: str):
     except Exception as e:
         logger.exception(e)
         raise HTTPException(500, str(e))
+
+
+def _spawn_filings_job(job_label: str, **kwargs):
+    def _runner():
+        try:
+            ingest_financial_filings(**kwargs)
+        except Exception:
+            logger.exception("Background %s failed", job_label)
+
+    thread = threading.Thread(target=_runner, name=job_label, daemon=True)
+    thread.start()
+    return thread.name
+
+
+@router.post("/financial-filings")
+async def ingest_all_financial_filings(
+    symbol: Optional[str] = Query(None, description="One NSE symbol; omit for all listed companies"),
+    period: str = Query("Quarterly", description="Quarterly (page CSV ~3816 rows), Annual, or both"),
+    limit: int = Query(0, description="Max companies (0 = all in CSV)"),
+    max_files: int = Query(3, description="Max attachment files per symbol"),
+    include_announcements: bool = Query(False),
+    include_dossier: bool = Query(True, description="Also fetch quote/filings/events for each CSV company"),
+    from_date: Optional[str] = Query(None, description="Blank = current page CSV (~3816 rows). DD-MM-YYYY for a custom range."),
+    to_date: Optional[str] = Query(None, description="DD-MM-YYYY; used only with from_date"),
+    background: bool = Query(True),
+):
+    period_key = (period or "Quarterly").strip().lower()
+    periods = ["Quarterly", "Annual"] if period_key in ("both", "all") else [period or "Quarterly"]
+    kwargs = {
+        "symbol": symbol,
+        "limit": limit,
+        "periods": periods,
+        "max_files": max_files,
+        "include_announcements": include_announcements,
+        "include_dossier": include_dossier,
+        "from_date": from_date,
+        "to_date": to_date,
+    }
+    if background:
+        name = _spawn_filings_job("nse_financial_filings", **kwargs)
+        return {
+            "success": True,
+            "status": "STARTED",
+            "message": "Financial-result ZIP/XBRL ingest started. Track Cron Logs job nse_financial_filings.",
+            "thread": name,
+            **kwargs,
+        }
+    try:
+        return ingest_financial_filings(**kwargs)
+    except Exception as e:
+        logger.exception(e)
+        raise HTTPException(500, str(e))
+
+
+@router.post("/financial-filings/{symbol}")
+async def ingest_symbol_financial_filings(
+    symbol: str,
+    period: str = Query("both"),
+    max_files: int = Query(20),
+    include_announcements: bool = Query(False),
+    background: bool = Query(True),
+):
+    return await ingest_all_financial_filings(
+        symbol=symbol,
+        period=period,
+        limit=0,
+        max_files=max_files,
+        include_announcements=include_announcements,
+        background=background,
+    )

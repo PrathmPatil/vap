@@ -15,7 +15,6 @@ export const FORMULA_CATALOG: FormulaOption[] = [
   { value: "gap-down-day", label: "Gap Down Day" },
   { value: "gap-up-day", label: "Gap Up Day" },
   { value: "rally-attempt-day", label: "Rally Attempt Day" },
-  { value: "rs-rank", label: "Relative Strength Rank" },
   { value: "strong-bullish-candle", label: "Strong Bullish Candle" },
   { value: "strong-king-candle", label: "Strong King Candle" },
   { value: "top-gainer-day", label: "Top Gainer Day" },

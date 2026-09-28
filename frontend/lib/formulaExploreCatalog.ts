@@ -19,7 +19,7 @@ export const FORMULA_EXPLORE_CATEGORIES: FormulaExploreCategory[] = [
   {
     id: "market-structure",
     title: "Market structure",
-    description: "IBD-style rally phases and follow-through signals on NSE/BSE.",
+    description: "Rally phases and follow-through signals on NSE/BSE.",
   },
   {
     id: "candle-patterns",
@@ -36,11 +36,6 @@ export const FORMULA_EXPLORE_CATEGORIES: FormulaExploreCategory[] = [
     title: "Breakouts & bands",
     description: "52-week extremes, band hits, and volume expansion screens.",
   },
-  {
-    id: "relative-strength",
-    title: "Relative strength",
-    description: "Benchmark-relative performance vs Nifty and broader market.",
-  },
 ];
 
 export const FORMULA_EXPLORE_ITEMS: FormulaExploreItem[] = [
@@ -50,7 +45,7 @@ export const FORMULA_EXPLORE_ITEMS: FormulaExploreItem[] = [
     categoryId: "market-structure",
     shortDescription: "First up day after a meaningful decline — early rally try.",
     fullDescription:
-      "Identifies stocks printing a Rally Attempt Day after a correction, using the same market-structure logic used in CAN SLIM / IBD workflows. Useful for spotting when a stock begins to recover from a base or pullback.",
+      "Identifies stocks printing a Rally Attempt Day after a correction. Useful for spotting when a stock begins to recover from a base or pullback.",
     rules: [
       "Prior downtrend or correction context from recent sessions",
       "Qualifying up day on the selected trade date",
@@ -297,23 +292,6 @@ export const FORMULA_EXPLORE_ITEMS: FormulaExploreItem[] = [
       "Sort by volume ratio high → low",
     ],
     tags: ["Volume", "Breakout"],
-    premium: true,
-  },
-  {
-    value: "rs-rank",
-    label: "Relative Strength Rank",
-    categoryId: "relative-strength",
-    shortDescription: "IBD-style rank from weighted 3M–12M price performance.",
-    fullDescription:
-      "IBD-style reconstruction: computes Q1–Q4 as the stock's own price returns over ~63, 126, 189, and 252 trading sessions (≈3M/6M/9M/12M). RS Score = (2×Q1 + Q2 + Q3 + Q4) / 5, emphasizing recent momentum. RS Rank 1–99 is the cross-sectional percentile versus all qualifying NSE EQ stocks — not a benchmark comparison.",
-    rules: [
-      "Q1 = 3-month return (63 sessions), weighted 2×",
-      "Q2 = 6-month (126), Q3 = 9-month (189), Q4 = 12-month (252)",
-      "RS Score = (2×Q1 + Q2 + Q3 + Q4) / 5",
-      "RS Rank = percentile of RS Score across the EQ universe (1–99)",
-      "Requires ≥252 sessions of bhavcopy history; IPOs excluded",
-    ],
-    tags: ["RS", "Nifty", "CNX500"],
     premium: true,
   },
 ];

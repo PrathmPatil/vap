@@ -80,6 +80,7 @@ python/.env.*
 docker-data/
 .docker/
 *.pid
+python/data/
 
 # ========================
 # OS / Editors

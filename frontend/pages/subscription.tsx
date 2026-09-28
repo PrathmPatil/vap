@@ -109,7 +109,7 @@ export default function SubscriptionPage() {
             Unlock TrendTraders Premium
           </h1>
           <p className="mx-auto mt-3 max-w-2xl text-slate-600">
-            Screen the market with Action Day, RS Rank, volume breakouts, and
+            Screen the market with Action Day, volume breakouts, and
             advanced filters — built for serious Indian equity research.
           </p>
         </div>
@@ -182,7 +182,7 @@ export default function SubscriptionPage() {
                   Premium Scanner includes
                 </p>
                 <p className="text-sm text-slate-600">
-                  Action Day signals, IBD-style RS Rank, King Candle filters,
+                  Action Day signals, King Candle filters,
                   volume breakout screens, exports, and more.
                 </p>
               </div>

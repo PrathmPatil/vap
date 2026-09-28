@@ -262,6 +262,20 @@ export const getCompanyData = async (
   });
 };
 
+export const getNseCompanyDossier = async (symbol: string) => {
+  return callApi<Record<string, unknown>>({
+    url: `nse/company-dossier/${encodeURIComponent(symbol)}`,
+    method: "GET",
+  });
+};
+
+export const getNseRoutes = async () => {
+  return callApi<Record<string, unknown>>({
+    url: "nse/routes",
+    method: "GET",
+  });
+};
+
 // http://localhost:8000/vap/company-data/listed-companies
 // In @/utils
 export const getListedCompanies = async (): Promise<ListedCompaniesResponse> => {

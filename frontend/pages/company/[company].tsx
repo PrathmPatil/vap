@@ -5,6 +5,7 @@ import { StockCharts } from "@/components/StockCharts";
 import { Button } from "@/components/ui/button";
 import { bhavcopyCategories, bhavcopyColumns } from "@/lib/bhavcopylist";
 import { getCompanyData } from "@/utils";
+import NseCompanyDossier from "@/components/NseCompanyDossier";
 import { callApi } from "@/utils/apis";
 import { ArrowLeft } from "lucide-react";
 import { PageLoader } from "@/components/ui/PageLoader";
@@ -133,6 +134,7 @@ const Index = () => {
               dynamicURL={"company-data/" + companyStr}
               columns={columns}
             />
+            <NseCompanyDossier symbol={companyStr} />
           </div>
         )}
       </main>

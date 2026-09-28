@@ -20,3 +20,6 @@ matplotlib==3.10.9
 seaborn==0.12.2
 schedule==1.2.0
 tls-client==0.2.2
+pypdf==5.4.0
+PyMuPDF==1.26.5
+rapidocr-onnxruntime==1.4.4

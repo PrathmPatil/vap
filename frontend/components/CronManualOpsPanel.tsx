@@ -227,6 +227,69 @@ function buildCatalog(): ManualApiEndpoint[] {
       host: "python",
       description: "Refresh NSE equity list into DB",
     },
+    // —— NSE company dossier (via backend proxy; required on Next/prod) ——
+    {
+      id: "nse-dossier",
+      name: "Fetch NSE Company Dossier",
+      path: "/vap/nse/company-dossier/{symbol}",
+      method: "GET",
+      host: "backend",
+      primary: true,
+      description:
+        "Live-fetch NSE public JSON for one listed symbol (quote, financials, filings, announcements). Goes through backend so Next.js production can call it.",
+      parameters: [
+        {
+          name: "symbol",
+          type: "string",
+          required: true,
+          in: "path",
+          defaultValue: "RELIANCE",
+          description: "NSE equity symbol (e.g. RELIANCE, TCS)",
+        },
+      ],
+    },
+    {
+      id: "nse-routes",
+      name: "List NSE Public Routes",
+      path: "/vap/nse/routes",
+      method: "GET",
+      host: "backend",
+      description:
+        "Catalog of NSE pages and JSON APIs used by the company dossier fetch",
+    },
+    {
+      id: "nse-filings-all",
+      name: "Ingest NSE Financial Result Files (all companies)",
+      path: "/vap/nse/ingest-filings",
+      method: "POST",
+      host: "backend",
+      primary: true,
+      description:
+        "Download the same Corporate Filings Financial Results CSV (CFfinancialequity-download) for all companies on that NSE page, store every row, then pull XBRL/ZIP attachments.",
+      parameters: [
+        { name: "period", type: "string", required: false, in: "query", defaultValue: "Quarterly", description: "Page CSV is Quarterly (~3816 rows)" },
+        { name: "from_date", type: "string", required: false, in: "query", defaultValue: "", description: "Leave blank for the on-page CSV (~3816 rows)" },
+        { name: "to_date", type: "string", required: false, in: "query", defaultValue: "", description: "Only used with from_date" },
+        { name: "limit", type: "number", required: false, in: "query", defaultValue: "0", description: "Max companies; 0 = all in CSV" },
+        { name: "max_files", type: "number", required: false, in: "query", defaultValue: "3", description: "Max downloaded files per symbol" },
+        { name: "include_dossier", type: "boolean", required: false, in: "query", defaultValue: "true", description: "Fetch all NSE JSON for each CSV company" },
+        { name: "include_announcements", type: "boolean", required: false, in: "query", defaultValue: "false" },
+      ],
+    },
+    {
+      id: "nse-filings-one",
+      name: "Ingest NSE Financial Result Files (one symbol)",
+      path: "/vap/nse/ingest-filings/{symbol}",
+      method: "POST",
+      host: "backend",
+      description: "Download and store financial-result ZIP/XBRL for one symbol (e.g. VALUEIND).",
+      parameters: [
+        { name: "symbol", type: "string", required: true, in: "path", defaultValue: "VALUEIND" },
+        { name: "period", type: "string", required: false, in: "query", defaultValue: "both" },
+        { name: "max_files", type: "number", required: false, in: "query", defaultValue: "20" },
+        { name: "include_announcements", type: "boolean", required: false, in: "query", defaultValue: "false" },
+      ],
+    },
   ];
 }
 
@@ -235,6 +298,8 @@ function matchesJob(endpoint: ManualApiEndpoint, jobName?: string | null, jobGro
   const group = (jobGroup || "").toLowerCase();
 
   if (!name && !group) return true;
+  // Always offer dossier fetch on Master — Next/prod cannot call Python directly.
+  if (endpoint.id.startsWith("nse-")) return true;
 
   if (name.includes("bhavcopy") || group === "bhavcopy") {
     return endpoint.id.startsWith("bh-") || endpoint.id.startsWith("fm-");
@@ -256,6 +321,9 @@ function matchesJob(endpoint: ManualApiEndpoint, jobName?: string | null, jobGro
   }
   if (name.includes("listed")) {
     return endpoint.id.startsWith("listed-");
+  }
+  if (name.includes("nse") || name.includes("dossier") || group.includes("nse")) {
+    return endpoint.id.startsWith("nse-");
   }
   return true;
 }
@@ -367,6 +435,8 @@ export default function CronManualOpsPanel({
         "bh-range-formulas",
         "fm-range-only",
         "fm-engine",
+        "nse-filings-all",
+        "nse-filings-one",
       ]);
       if (backgroundJobs.has(endpoint.id)) {
         query.background = true;

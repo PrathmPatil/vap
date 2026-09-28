@@ -126,6 +126,12 @@ function Navigation() {
     ...(role === "admin" || role === "master" || hasMasterAccess(role)
       ? [
           {
+            href: "/nse-dossier",
+            label: "NSE Dossier",
+            icon: FileText,
+            match: (path: string) => path.startsWith("/nse-dossier"),
+          },
+          {
             href: "/master/data-coverage",
             label: "Data Coverage",
             icon: CalendarDays,

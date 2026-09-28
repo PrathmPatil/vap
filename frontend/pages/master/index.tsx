@@ -269,6 +269,27 @@ const MasterIndex = () => {
       method: "POST",
       description: "Trigger NSE IPO sync via Python service",
     },
+    {
+      name: "Fetch NSE Company Dossier",
+      path: "/vap/nse/company-dossier/{symbol}",
+      method: "GET",
+      description:
+        "Live-fetch NSE public JSON for one listed symbol via backend (use from Next/prod)",
+      parameters: [
+        {
+          name: "symbol",
+          type: "string",
+          required: true,
+          description: "NSE equity symbol, e.g. RELIANCE",
+        },
+      ],
+    },
+    {
+      name: "List NSE Public Routes",
+      path: "/vap/nse/routes",
+      method: "GET",
+      description: "Catalog of NSE pages and JSON APIs used by company dossier",
+    },
   ];
 
   const bhavcopyEndpoints: ApiEndpoint[] = [

@@ -38,6 +38,7 @@ import syncRoutes from './routes/syncRoutes.js';
 import logRoutes from './routes/cronLogRoutes.js';
 import cronManagementRoutes from './routes/cronManagementRoutes.js';
 import manualBhavcopyRoutes from './routes/manualBhavcopyRoutes.js';
+import nseDossierRoutes from './routes/nseDossierRoutes.js';
 import { startFormulaCron } from './crons/formulaCron.js';
 import { ensureMasterUser } from './config/ensureMasterUser.js';
 import { ensureIpoColumns } from './config/ensureIpoColumns.js';
@@ -343,6 +344,7 @@ app.use('/vap/sync', syncRoutes);
 app.use('/vap/logs', logRoutes);
 app.use('/vap/cron-management', cronManagementRoutes);
 app.use('/vap/manual/bhavcopy', manualBhavcopyRoutes);
+app.use('/vap/nse', nseDossierRoutes);
 
 app.get('/vap/welcome', (req, res) => {
   res.send('📂 Welcome to the Corporate Events Ingestion API.');

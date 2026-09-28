@@ -22,7 +22,7 @@ export const SUBSCRIPTION_TERMS: TermsSection[] = [
       "Premium Services provide market scanners, technical signal screens, export tools, saved scans, and optional alert delivery based on exchange-published data and internally computed indicators.",
     ],
     bullets: [
-      "Access to Premium Scanner screens (Action Day, RS Rank, volume breakouts, and related scanners)",
+      "Access to Premium Scanner screens (Action Day, volume breakouts, and related scanners)",
       "Historical scan results and Excel/CSV export where enabled",
       "Custom and saved scan configurations (as available on your plan)",
       "Email or WhatsApp alerts for saved scans (where configured)",

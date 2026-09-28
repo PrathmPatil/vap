@@ -42,7 +42,6 @@ const CHANGE_PERCENT_FORMULAS = new Set([
 const SORTABLE_FORMULAS = new Set([
   ...CHANGE_PERCENT_FORMULAS,
   "volume-breakouts",
-  "rs-rank",
 ]);
 
 export type FormulaCompanyOption = {
@@ -385,6 +384,7 @@ export const useMarketSignalsData = (options: UseMarketSignalsOptions = {}) => {
   };
 
   const handleFormulaChange = useCallback((value: string) => {
+    if (value === "rs-rank") value = "strong-bullish-candle";
     if (formulaTypeRef.current === value) return;
 
     setSelectedFilters([value]);

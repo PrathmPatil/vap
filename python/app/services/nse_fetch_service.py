@@ -5,6 +5,7 @@ import logging
 from urllib.parse import quote
 from datetime import datetime
 import yfinance as yf
+import requests
 
 logger = logging.getLogger(__name__)
 
@@ -105,6 +106,163 @@ PREDICTION_SOURCE_CATALOG = [
     },
 ]
 
+# Pages + JSON/file endpoints the NSE website itself uses for listed-company data.
+NSE_PUBLIC_PAGES = [
+    {
+        "id": "corporate_filings_financial_results",
+        "url": "https://www.nseindia.com/companies-listing/corporate-filings-financial-results",
+        "kind": "html_page",
+        "note": "All listed companies’ financial-result filings.",
+    },
+    {
+        "id": "nse_ltd_investor_financials",
+        "url": "https://www.nseindia.com/static/investor-relations/financials",
+        "kind": "html_page",
+        "note": "NSE Limited’s own IR financials (the exchange as a listed company), not the universe of listed stocks.",
+    },
+    {
+        "id": "equity_quote",
+        "url": "https://www.nseindia.com/get-quotes/equity?symbol={symbol}",
+        "kind": "html_page",
+        "note": "Live quote page.",
+    },
+    {
+        "id": "corporate_announcements",
+        "url": "https://www.nseindia.com/companies-listing/corporate-filings-announcements",
+        "kind": "html_page",
+        "note": "Corporate announcements.",
+    },
+    {
+        "id": "board_meetings",
+        "url": "https://www.nseindia.com/companies-listing/corporate-filings-board-meetings",
+        "kind": "html_page",
+        "note": "Board meetings / next-move dates.",
+    },
+    {
+        "id": "corporate_actions",
+        "url": "https://www.nseindia.com/companies-listing/corporate-filings-actions",
+        "kind": "html_page",
+        "note": "Dividend, bonus, split, rights.",
+    },
+    {
+        "id": "event_calendar",
+        "url": "https://www.nseindia.com/companies-listing/corporate-filings-event-calendar",
+        "kind": "html_page",
+        "note": "Results calendar.",
+    },
+    {
+        "id": "shareholding",
+        "url": "https://www.nseindia.com/companies-listing/corporate-filings-shareholding-pattern",
+        "kind": "html_page",
+        "note": "Shareholding pattern.",
+    },
+    {
+        "id": "insider_trading",
+        "url": "https://www.nseindia.com/companies-listing/corporate-filings-insider-trading",
+        "kind": "html_page",
+        "note": "Insider / PIT disclosures.",
+    },
+    {
+        "id": "annual_reports",
+        "url": "https://www.nseindia.com/companies-listing/corporate-filings-annual-reports",
+        "kind": "html_page",
+        "note": "Annual report PDFs.",
+    },
+    {
+        "id": "listed_companies_csv",
+        "url": "https://nsearchives.nseindia.com/content/equities/EQUITY_L.csv",
+        "kind": "download_file",
+        "note": "Official listed-equity master CSV (symbol, name, ISIN, series).",
+    },
+]
+
+COMPANY_DOSSIER_SOURCES = [
+    {
+        "name": "quote",
+        "category": "stock",
+        "page": "https://www.nseindia.com/get-quotes/equity?symbol={symbol}",
+        "endpoint": "/api/quote-equity?symbol={symbol}",
+        "usefulness": "Price, change, 52w, industry, ISIN.",
+    },
+    {
+        "name": "trade_info",
+        "category": "stock",
+        "page": "https://www.nseindia.com/get-quotes/equity?symbol={symbol}",
+        "endpoint": "/api/quote-equity?symbol={symbol}&section=trade_info",
+        "usefulness": "Volume, delivery, market cap.",
+    },
+    {
+        "name": "meta",
+        "category": "profile",
+        "page": "https://www.nseindia.com/get-quotes/equity?symbol={symbol}",
+        "endpoint": "/api/equity-meta-info?symbol={symbol}",
+        "usefulness": "Listing metadata and identifiers.",
+    },
+    {
+        "name": "financial_results_quarterly",
+        "category": "financials",
+        "page": "https://www.nseindia.com/companies-listing/corporate-filings-financial-results",
+        "endpoint": "/api/corporates-financial-results?index=equities&symbol={symbol}&period=Quarterly",
+        "usefulness": "Quarterly result filings.",
+    },
+    {
+        "name": "financial_results_annual",
+        "category": "financials",
+        "page": "https://www.nseindia.com/companies-listing/corporate-filings-financial-results",
+        "endpoint": "/api/corporates-financial-results?index=equities&symbol={symbol}&period=Annual",
+        "usefulness": "Annual result filings.",
+    },
+    {
+        "name": "announcements",
+        "category": "news",
+        "page": "https://www.nseindia.com/companies-listing/corporate-filings-announcements",
+        "endpoint": "/api/corporate-announcements?index=equities&symbol={symbol}",
+        "usefulness": "Corporate announcements.",
+    },
+    {
+        "name": "board_meetings",
+        "category": "events",
+        "page": "https://www.nseindia.com/companies-listing/corporate-filings-board-meetings",
+        "endpoint": "/api/corporates-board-meetings?index=equities&symbol={symbol}",
+        "usefulness": "Board meeting calendar.",
+    },
+    {
+        "name": "corporate_actions",
+        "category": "events",
+        "page": "https://www.nseindia.com/companies-listing/corporate-filings-actions",
+        "endpoint": "/api/corporates-corporateActions?index=equities&symbol={symbol}",
+        "usefulness": "Dividends, bonus, splits.",
+    },
+    {
+        "name": "event_calendar",
+        "category": "events",
+        "page": "https://www.nseindia.com/companies-listing/corporate-filings-event-calendar",
+        "endpoint": "/api/event-calendar?index=equities&symbol={symbol}",
+        "usefulness": "Upcoming result / event dates.",
+    },
+    {
+        "name": "shareholding",
+        "category": "ownership",
+        "page": "https://www.nseindia.com/companies-listing/corporate-filings-shareholding-pattern",
+        "endpoint": "/api/corporate-share-holdings-all?symbol={symbol}",
+        "usefulness": "Shareholding pattern.",
+    },
+    {
+        "name": "insider_trading",
+        "category": "ownership",
+        "page": "https://www.nseindia.com/companies-listing/corporate-filings-insider-trading",
+        "endpoint": "/api/corporates-pit?index=equities&symbol={symbol}",
+        "usefulness": "Insider trades.",
+    },
+    {
+        "name": "annual_reports",
+        "category": "filings",
+        "page": "https://www.nseindia.com/companies-listing/corporate-filings-annual-reports",
+        "endpoint": "/api/annual-reports?index=equities&symbol={symbol}",
+        "usefulness": "Annual report download links.",
+    },
+]
+
 class NseFetchService:
     def __init__(self):
         self.session = tls_client.Session(
@@ -193,6 +351,39 @@ class NseFetchService:
                 "error": str(exc),
             }
 
+    def fetch_bytes(self, url, retries=2, referer=None):
+        referer = referer or "https://www.nseindia.com/companies-listing/corporate-filings-financial-results"
+        headers = {
+            **self.get_headers(referer),
+            "Accept": "*/*",
+            "Accept-Encoding": "identity",
+        }
+        last_error = None
+        http = requests.Session()
+        try:
+            for cookie in self.session.cookies:
+                http.cookies.set(
+                    cookie.name,
+                    cookie.value,
+                    domain=getattr(cookie, "domain", None),
+                    path=getattr(cookie, "path", "/"),
+                )
+        except Exception:
+            pass
+        for attempt in range(retries):
+            try:
+                res = http.get(url, headers=headers, timeout=60)
+                content = res.content
+                if res.status_code == 200 and content:
+                    if isinstance(content, str):
+                        content = content.encode("latin-1", errors="ignore")
+                    return {"ok": True, "data": content, "error": None, "status": 200}
+                last_error = f"HTTP {res.status_code}"
+            except Exception as exc:
+                last_error = str(exc)
+            time.sleep(1 + attempt)
+        return {"ok": False, "data": None, "error": last_error, "status": None}
+
     def extract_records(self, payload):
         if payload is None:
             return []
@@ -234,6 +425,67 @@ class NseFetchService:
 
     def get_prediction_source_catalog(self):
         return PREDICTION_SOURCE_CATALOG
+
+    def get_nse_page_catalog(self):
+        return {
+            "pages": NSE_PUBLIC_PAGES,
+            "json_sources": COMPANY_DOSSIER_SOURCES,
+            "note": (
+                "NSE serves JSON under /api/* to its own HTML pages. "
+                "nsearchives hosts downloadable CSV/ZIP files. "
+                "/static/investor-relations/financials is NSE Ltd only."
+            ),
+        }
+
+    def _format_endpoint(self, endpoint, symbol):
+        encoded = quote(symbol, safe="")
+        return endpoint.replace("{symbol}", encoded)
+
+    def fetch_company_dossier(self, symbol):
+        clean_symbol = self.normalize_symbol(symbol)
+        quote_page = (
+            f"https://www.nseindia.com/get-quotes/equity?symbol={quote(clean_symbol, safe='')}"
+        )
+        try:
+            self.session.get(
+                quote_page,
+                headers=self.get_headers("https://www.nseindia.com/"),
+                timeout_seconds=10,
+            )
+            time.sleep(0.4)
+        except Exception as warmup_error:
+            logger.warning("Dossier warmup failed %s: %s", clean_symbol, warmup_error)
+
+        sources = {}
+        for source in COMPANY_DOSSIER_SOURCES:
+            endpoint = self._format_endpoint(source["endpoint"], clean_symbol)
+            referer = source.get("page", quote_page).replace("{symbol}", quote(clean_symbol, safe=""))
+            response = self.fetch_optional_json(endpoint, retries=2)
+            records = self.extract_records(response["data"]) if response["ok"] else []
+            sources[source["name"]] = {
+                **source,
+                "endpoint": endpoint,
+                "page": referer,
+                "ok": response["ok"],
+                "records": records[:200],
+                "record_count": len(records),
+                "error": response["error"],
+            }
+            time.sleep(random.uniform(0.35, 0.7))
+
+        ok_count = sum(1 for item in sources.values() if item["ok"])
+        return {
+            "success": ok_count > 0,
+            "symbol": clean_symbol,
+            "fetchedAt": datetime.now().isoformat(),
+            "source_count": len(sources),
+            "ok_count": ok_count,
+            "pages": [
+                {**page, "url": page["url"].replace("{symbol}", quote(clean_symbol, safe=""))}
+                for page in NSE_PUBLIC_PAGES
+            ],
+            "sources": sources,
+        }
 
     # ------------------ APIs ------------------
 
